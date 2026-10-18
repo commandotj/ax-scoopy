@@ -14,7 +14,7 @@ use super::{
 };
 use crate::main_window::Mode;
 
-const TRAY_ID: &str = "cap-gpui-tray";
+const TRAY_ID: &str = "scoopy-gpui-tray";
 const DEFAULT_ICON: &[u8] =
     include_bytes!("../../../desktop/src-tauri/icons/tray-default-icon.png");
 const STOP_ICON: &[u8] = include_bytes!("../../assets/tray/tray-stop-icon.png");

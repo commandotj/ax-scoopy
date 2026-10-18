@@ -5,22 +5,25 @@
 <h1 align="center">Scoopy</h1>
 
 <p align="center">
-	A local-only screen recorder and editor. No account, no upload, no network.
+	Local-first, local-only screen recorder and editor.<br>No account, no server, no upload, no network.
 </p>
 
 <img src="apps/desktop-gpui/assets/images/light.jpg" alt="Scoopy app preview">
 
 Scoopy records your screen, camera and microphone, and edits the result into a finished video
-file on your own machine. It is a fork of [Cap](https://github.com/CapSoftware/Cap), the open
-source Loom alternative, with every remote feature removed.
+file on your own machine. It is local-first and local-only: no server, no remote service, and
+everything stays on your disk.
 
 Use it for product demos, bug reports, onboarding, tutorials, design reviews, engineering
 walkthroughs, async standups, or any moment where showing the work beats scheduling another call.
 
 ## Why Scoopy
 
-- **Local by construction.** There is no Scoopy server, no account, no telemetry and no
-  subscription. The app makes no network requests at runtime, so it works on a plane.
+- **Local only, by construction.** There is no Scoopy server, no remote service, no account,
+  no telemetry and no subscription. The app makes no network requests at runtime, so it works
+  on a plane.
+- **Your files, your disk.** Recordings, projects and exports stay on your machine. No sync,
+  no share links, no cloud.
 - **Record, edit, export.** Capture screen, camera and microphone, then trim, add zoom,
   backgrounds and captions in the editor, and export a finished file.
 - **Studio and Instant modes.** Studio records in full quality and opens the editor; Instant
@@ -40,7 +43,8 @@ walkthroughs, async standups, or any moment where showing the work beats schedul
 ## Data Ownership
 
 Recordings live on your machine, in Scoopy's local library. Nothing is uploaded, because there
-is nowhere to upload it to. Export writes a file wherever you point it.
+is no server to upload to and no remote feature in the code. Export writes a file wherever you
+point it.
 
 ## Get Started
 
@@ -115,16 +119,7 @@ platform-specific media access.
 Scoopy handles `scoopy://action?value=<json>` URLs for automation and scripting — see
 `apps/desktop-gpui/src/deeplink.rs` for the action grammar.
 
-## Contributing
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Upstream project and
-issue history live in [CapSoftware/Cap](https://github.com/CapSoftware/Cap).
-
 ## License
 
-Portions of this software are licensed as follows:
-
-- Code in the `cap-camera*` and `scap-*` crate families is licensed under the MIT License. See
-  [licenses/LICENSE-MIT](licenses/LICENSE-MIT).
-- Third-party components are licensed under the original license provided by their owner.
-- All other content is available under the AGPLv3 license as defined in [LICENSE](LICENSE).
+Released under the MIT License. See [LICENSE](LICENSE). Third-party components keep the
+license provided by their owner.

@@ -1702,7 +1702,7 @@ fn transcribe_project_with(
     engine: impl FnOnce(&Path) -> Result<Vec<CaptionSegment>, String>,
 ) -> Result<Vec<CaptionSegment>, String> {
     let temp_dir = std::env::temp_dir().join(format!(
-        "cap-gpui-transcription-{}-{}",
+        "scoopy-gpui-transcription-{}-{}",
         std::process::id(),
         TEMP_COUNTER.fetch_add(1, Ordering::Relaxed)
     ));

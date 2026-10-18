@@ -425,7 +425,11 @@ fn open_previous_item(path: PathBuf, cx: &mut App) {
     use cap_project::{RecordingMeta, RecordingMetaInner};
 
     let screenshots_dir = library::screenshots_dir();
-    let is_screenshot = path.extension().and_then(|ext| ext.to_str()) == Some("cap")
+    let is_screenshot = path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.eq_ignore_ascii_case("scoopy") || ext.eq_ignore_ascii_case("cap"))
+        .unwrap_or(false)
         && path
             .parent()
             .map(|parent| parent == screenshots_dir)

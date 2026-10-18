@@ -53,7 +53,7 @@ pub struct RecordParams {
     system_audio: bool,
     #[arg(
         long,
-        help = "New '.cap' project path (defaults to <recordingId>.cap in the working directory). The path must not already exist, including an empty directory."
+        help = "New '.scoopy' project path (defaults to <recordingId>.scoopy in the working directory). The path must not already exist, including an empty directory."
     )]
     path: Option<PathBuf>,
     /// Maximum fps to record at (clamped to 1-120; camera recordings follow the desktop camera cap)
@@ -159,7 +159,7 @@ pub struct RecordStopArgs {
     /// recordingId returned by `cap record start --detach`
     #[arg(long)]
     id: Option<String>,
-    /// The '.cap' project path of the recording to stop (alternative to --id)
+    /// The '.scoopy' project path of the recording to stop (alternative to --id)
     #[arg(long)]
     path: Option<PathBuf>,
     /// Seconds to wait for the recording to finalize before giving up
@@ -1171,7 +1171,7 @@ fn resolve_path(params: &RecordParams, recording_id: &str) -> Result<PathBuf, St
         Some(path) => Ok(path.clone()),
         None => current_dir()
             .map_err(|e| format!("Could not determine current directory: {e}"))
-            .map(|dir| dir.join(format!("{recording_id}.cap"))),
+            .map(|dir| dir.join(format!("{recording_id}.scoopy"))),
     }
 }
 

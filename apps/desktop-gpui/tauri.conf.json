@@ -12,7 +12,7 @@
 		},
 		"deep-link": {
 			"desktop": {
-				"schemes": ["cap-desktop"]
+				"schemes": ["scoopy", "scoopy-desktop", "cap-desktop"]
 			}
 		}
 	},

@@ -116,9 +116,9 @@ TYPICAL AGENT WORKFLOW
   cap doctor --json                          # verify permissions & capture readiness
   cap targets --json                         # discover screens/windows/cameras/mics
   cap record start --screen <id> --json --detach  # start in background -> {recordingId, pid, path}
-  cap record stop --id <recordingId> --json  # finalize the .cap recording
-  cap project validate <path.cap> --json     # confirm the recording is complete
-  cap export <path.cap> --output out.mp4 --json";
+  cap record stop --id <recordingId> --json  # finalize the .scoopy recording
+  cap project validate <path.scoopy> --json     # confirm the recording is complete
+  cap export <path.scoopy> --output out.mp4 --json";
 
 #[derive(Parser)]
 #[command(
@@ -164,11 +164,11 @@ impl CliLogLevel {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Export a '.cap' project to a video file
+    /// Export a '.scoopy' project to a video file
     Export(Export),
     /// Render an export preview frame
     ExportPreview(ExportPreview),
-    /// Inspect or validate a '.cap' project
+    /// Inspect or validate a '.scoopy' project
     Project(ProjectArgs),
     /// Start a recording or list available capture targets and devices
     Record(RecordArgs),
