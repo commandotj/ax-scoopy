@@ -5,8 +5,7 @@ use std::{
 
 use clap::{Args, Subcommand, ValueEnum};
 use serde::Serialize;
-use serde_json::{Map, Value, json};
-use toml_edit::{Array, DocumentMut, Item, Table, value};
+use serde_json::{Value, json};
 
 use crate::{OutputFormat, atomic, resolve_format, write_json};
 
@@ -47,19 +46,10 @@ enum AgentTarget {
     Cursor,
 }
 
-#[derive(Clone, Copy, ValueEnum)]
-enum AgentComponent {
-    Skill,
-    Mcp,
-    All,
-}
-
 #[derive(Args)]
 struct InstallArgs {
     #[arg(long, value_enum)]
     target: AgentTarget,
-    #[arg(long, value_enum)]
-    component: AgentComponent,
     #[arg(long)]
     dry_run: bool,
     #[arg(long)]
@@ -127,21 +117,7 @@ fn cap_demo_skill_dir(target: AgentTarget) -> Result<PathBuf, String> {
     })
 }
 
-fn mcp_path(target: AgentTarget) -> Result<PathBuf, String> {
-    let home = home_dir()?;
-    Ok(match target {
-        AgentTarget::Codex => std::env::var_os("CODEX_HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| home.join(".codex"))
-            .join("config.toml"),
-        AgentTarget::Claude => home.join(".claude.json"),
-        AgentTarget::Cursor => home.join(".cursor/mcp.json"),
-    })
-}
-
-fn atomic_write(path: &Path, content: &[u8], private: bool) -> Result<(), String> {
-    #[cfg(not(unix))]
-    let _ = private;
+fn atomic_write(path: &Path, content: &[u8]) -> Result<(), String> {
     let parent = path
         .parent()
         .ok_or_else(|| "Install path has no parent directory".to_string())?;
@@ -153,9 +129,7 @@ fn atomic_write(path: &Path, content: &[u8], private: bool) -> Result<(), String
         use std::os::unix::fs::PermissionsExt;
         let permissions = std::fs::metadata(path)
             .map(|metadata| metadata.permissions())
-            .unwrap_or_else(|_| {
-                std::fs::Permissions::from_mode(if private { 0o600 } else { 0o644 })
-            });
+            .unwrap_or_else(|_| std::fs::Permissions::from_mode(0o644));
         std::fs::set_permissions(&temporary, permissions).map_err(|error| error.to_string())?;
     }
     if let Err(error) = atomic::replace(&temporary, path) {
@@ -189,63 +163,7 @@ fn print_changes(changes: &[PlannedChange]) -> Result<(), String> {
     Ok(())
 }
 
-fn mcp_value() -> Value {
-    json!({ "command": "cap", "args": ["mcp", "serve"] })
-}
 
-fn merge_json_mcp(existing: Option<&[u8]>) -> Result<Vec<u8>, String> {
-    let mut document = match existing {
-        Some(bytes) => serde_json::from_slice::<Value>(bytes).map_err(|error| error.to_string())?,
-        None => json!({}),
-    };
-    let object = document
-        .as_object_mut()
-        .ok_or_else(|| "MCP configuration must be a JSON object".to_string())?;
-    let servers = object
-        .entry("mcpServers")
-        .or_insert_with(|| Value::Object(Map::new()))
-        .as_object_mut()
-        .ok_or_else(|| "mcpServers must be a JSON object".to_string())?;
-    if let Some(current) = servers.get("cap")
-        && current != &mcp_value()
-    {
-        return Err("An incompatible MCP server named 'cap' already exists".to_string());
-    }
-    servers.insert("cap".to_string(), mcp_value());
-    serde_json::to_vec_pretty(&document).map_err(|error| error.to_string())
-}
-
-fn merge_codex_mcp(existing: Option<&str>) -> Result<Vec<u8>, String> {
-    let mut document = existing
-        .unwrap_or_default()
-        .parse::<DocumentMut>()
-        .map_err(|error| error.to_string())?;
-    if !document.as_table().contains_key("mcp_servers") {
-        document["mcp_servers"] = Item::Table(Table::new());
-    }
-    let servers = document["mcp_servers"]
-        .as_table_mut()
-        .ok_or_else(|| "mcp_servers must be a TOML table".to_string())?;
-    if let Some(current) = servers.get("cap") {
-        let command = current.get("command").and_then(Item::as_str);
-        let args = current.get("args").and_then(Item::as_array);
-        let compatible = command == Some("cap")
-            && args.is_some_and(|args| {
-                args.len() == 2
-                    && args.get(0).and_then(toml_edit::Value::as_str) == Some("mcp")
-                    && args.get(1).and_then(toml_edit::Value::as_str) == Some("serve")
-            });
-        if !compatible {
-            return Err("An incompatible MCP server named 'cap' already exists".to_string());
-        }
-    }
-    servers["cap"]["command"] = value("cap");
-    let mut args = Array::new();
-    args.push("mcp");
-    args.push("serve");
-    servers["cap"]["args"] = value(args);
-    Ok(document.to_string().into_bytes())
-}
 
 fn confirm() -> Result<(), String> {
     if !std::io::stdin().is_terminal() {
@@ -263,17 +181,9 @@ fn confirm() -> Result<(), String> {
 }
 
 impl InstallArgs {
-    fn includes_skill(&self) -> bool {
-        matches!(self.component, AgentComponent::Skill | AgentComponent::All)
-    }
-
-    fn includes_mcp(&self) -> bool {
-        matches!(self.component, AgentComponent::Mcp | AgentComponent::All)
-    }
-
     fn plan(&self) -> Result<Vec<PlannedChange>, String> {
         let mut changes = Vec::new();
-        if self.includes_skill() {
+        {
             let path = skill_path(self.target)?;
             let expected = read_optional(&path)?;
             let action = if expected.as_deref() == Some(BUNDLED_SKILL.as_bytes()) {
@@ -324,35 +234,6 @@ impl InstallArgs {
                 });
             }
         }
-        if self.includes_mcp() {
-            let path = mcp_path(self.target)?;
-            let expected = read_optional(&path)?;
-            let merged = if matches!(self.target, AgentTarget::Codex) {
-                let text = expected
-                    .as_deref()
-                    .map(std::str::from_utf8)
-                    .transpose()
-                    .map_err(|error| error.to_string())?;
-                merge_codex_mcp(text)?
-            } else {
-                merge_json_mcp(expected.as_deref())?
-            };
-            let unchanged = expected.as_deref() == Some(merged.as_slice());
-            changes.push(PlannedChange {
-                component: "mcp",
-                action: if unchanged {
-                    "unchanged"
-                } else if expected.is_some() {
-                    "merge"
-                } else {
-                    "create"
-                },
-                path,
-                value: json!({ "name": "cap", "command": "cap", "args": ["mcp", "serve"] }),
-                expected,
-                content: (!unchanged).then_some(merged),
-            });
-        }
         Ok(changes)
     }
 
@@ -367,7 +248,7 @@ impl InstallArgs {
         }
         for change in changes {
             if let Some(content) = &change.content {
-                atomic_write(&change.path, content, change.component == "mcp")?;
+                atomic_write(&change.path, content)?;
             }
         }
         Ok(())
@@ -432,40 +313,5 @@ impl AgentsArgs {
                 }
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn json_merge_preserves_unrelated_servers() {
-        let merged = merge_json_mcp(Some(
-            br#"{"mcpServers":{"other":{"command":"other"}},"setting":true}"#,
-        ))
-        .unwrap();
-        let value: Value = serde_json::from_slice(&merged).unwrap();
-        assert_eq!(value["setting"], true);
-        assert_eq!(value["mcpServers"]["other"]["command"], "other");
-        assert_eq!(value["mcpServers"]["cap"], mcp_value());
-    }
-
-    #[test]
-    fn codex_merge_rejects_conflicting_cap_server() {
-        let error = merge_codex_mcp(Some(
-            "[mcp_servers.cap]\ncommand = \"different\"\nargs = []\n",
-        ))
-        .unwrap_err();
-        assert!(error.contains("incompatible"));
-    }
-
-    #[test]
-    fn codex_merge_is_stable() {
-        let original = "[mcp_servers.cap]\ncommand = \"cap\"\nargs = [\"mcp\", \"serve\"]\n";
-        assert_eq!(
-            merge_codex_mcp(Some(original)).unwrap(),
-            original.as_bytes()
-        );
     }
 }

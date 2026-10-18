@@ -680,7 +680,7 @@ mod tests {
                 let w = (content_w + (insets.left + insets.right) * content_h).round() as u32;
                 let h = (content_h * (1.0 + insets.top + insets.bottom)).round() as u32;
                 let rgba =
-                    rasterize_chrome(style, theme, "cap.so", "Cap Recording", w, h, content_h)
+                    rasterize_chrome(style, theme, "scoopy.so", "Scoopy Recording", w, h, content_h)
                         .unwrap();
                 image::RgbaImage::from_raw(w, h, rgba)
                     .unwrap()

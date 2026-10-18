@@ -482,13 +482,6 @@ fn capture_ready(permissions: &Permissions, checks: &[Check]) -> bool {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AutomationsInfo {
-    pub rule_count: usize,
-    pub enabled_count: usize,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Doctor {
     pub schema_version: u32,
     pub version: VersionInfo,
@@ -496,8 +489,6 @@ pub struct Doctor {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub install: Option<cap_cli_install::CliInstallStatus>,
     pub checks: Vec<Check>,
-    /// Automation rules shared with Cap Desktop that the CLI honors after capture/upload.
-    pub automations: AutomationsInfo,
     /// Overall health: false when a required check (e.g. ffmpeg) failed.
     pub ok: bool,
     /// Whether a screen recording can start right now (screen recording permission granted).
@@ -555,18 +546,12 @@ pub async fn run_doctor(format: OutputFormat) -> Result<(), String> {
         .any(|check| matches!(check.status, CheckStatus::Fail));
     let capture_ready = capture_ready(&permissions, &checks);
 
-    let (rule_count, enabled_count) = crate::automation::rule_counts();
-
     let doctor = Doctor {
         schema_version: SCHEMA_VERSION,
         version,
         permissions,
         install: install.ok(),
         checks,
-        automations: AutomationsInfo {
-            rule_count,
-            enabled_count,
-        },
         ok,
         capture_ready,
     };
@@ -583,10 +568,6 @@ pub async fn run_doctor(format: OutputFormat) -> Result<(), String> {
                 println!("  executable: {path}");
             }
             println!("  capture ready: {}", doctor.capture_ready);
-            println!(
-                "  automations: {} rule(s), {} enabled",
-                doctor.automations.rule_count, doctor.automations.enabled_count
-            );
             println!();
             for check in &doctor.checks {
                 println!(

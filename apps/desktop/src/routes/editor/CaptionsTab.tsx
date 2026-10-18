@@ -984,7 +984,7 @@ export function CaptionsTab(props: {
 									</div>
 									<p class="text-[11px] leading-relaxed text-ed-text-3">
 										{downloadMessage() ||
-											"Keep Cap open while the model downloads. Editor reloads will reconnect automatically."}
+											"Keep Scoopy open while the model downloads. Editor reloads will reconnect automatically."}
 									</p>
 								</div>
 							</Show>
@@ -1158,7 +1158,7 @@ export function CaptionsTab(props: {
 							/>
 						</Field>
 						<p class="text-[11px] leading-relaxed text-ed-text-3">
-							This is the first version of captions in Cap. Active word
+							This is the first version of captions in Scoopy. Active word
 							highlighting may be inaccurate in some situations. We're working
 							on a fix for this and it will be released in upcoming versions.
 						</p>

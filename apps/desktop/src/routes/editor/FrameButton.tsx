@@ -18,7 +18,7 @@ import { EditorButton, Input } from "./ui";
 const DEFAULT_FRAME_CONFIG: FrameConfiguration = {
 	style: "none",
 	theme: "dark",
-	url: "Cap.so",
+	url: "Scoopy.so",
 	title: "",
 };
 

@@ -39,7 +39,7 @@ export function shouldBundleGpui(
 function main() {
 	const profile = process.argv[2];
 	if (profile !== "debug" && profile !== "release") {
-		console.error("The Cap GPUI build profile must be debug or release.");
+		console.error("The Scoopy GPUI build profile must be debug or release.");
 		process.exitCode = 1;
 		return;
 	}
@@ -62,7 +62,7 @@ function main() {
 		)
 	) {
 		console.log(
-			`Skipping Cap GPUI ${profile} build on ${process.platform}${
+			`Skipping Scoopy GPUI ${profile} build on ${process.platform}${
 				process.env.CAP_GPUI_DEV === "0" ? " because CAP_GPUI_DEV=0" : ""
 			}.`,
 		);
@@ -76,7 +76,7 @@ function main() {
 	);
 
 	if (result.error) {
-		console.error(`Failed to build Cap GPUI: ${result.error.message}`);
+		console.error(`Failed to build Scoopy GPUI: ${result.error.message}`);
 		process.exitCode = 1;
 	} else if (result.status !== 0) {
 		process.exitCode = result.status ?? 1;

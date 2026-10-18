@@ -1,4 +1,4 @@
-//! `cap-desktop://` deep-link actions -- the gpui port of
+//! `scoopy://` deep-link actions -- the gpui port of
 //! `apps/desktop/src-tauri/src/deeplink_actions.rs`.
 //!
 //! The URL grammar is byte-identical to the Tauri app's: an action deep link
@@ -6,9 +6,9 @@
 //! serde form of [`DeepLinkAction`] (externally tagged, `snake_case` variant
 //! names). The scheme itself is deliberately not checked -- the Tauri parser
 //! (`deeplink_actions.rs:155-183`) discriminates on the *host* alone, so
-//! `cap-desktop://` and `cap://` both work, and any URL whose host is not
-//! `action` is either "not ours" ([`ActionParseFromUrlError::NotAction`], the
-//! login callback's host is `auth`) or malformed. No URL is ever *built* from
+//! `scoopy://` and `scoopy://` both work, and any URL whose host is not
+//! `action` is either "not ours" ([`ActionParseFromUrlError::NotAction`], e.g.
+//! a login callback) or malformed. No URL is ever *built* from
 //! these parts, so the userinfo/port authority-injection class that bit the
 //! web session endpoint (2026-08, the `port=pwn@evil.example` takeover) has no
 //! sink here -- but the host match is still exact, never a substring, and every
@@ -24,7 +24,7 @@
 //!   to [`submit_deep_link`]. A URL opened while the app runs never spawns a
 //!   second instance on macOS -- the AppleEvent goes to the running process.
 //! * **App launched by the URL.** Tauri's single-instance plugin hands the new
-//!   launch's `cap-desktop://` argv to the surviving old instance
+//!   launch's `scoopy://` argv to the surviving old instance
 //!   (`lib.rs:5193-5204`). Linux and Windows forward action URLs to the
 //!   surviving instance; [`init`] reads argv on the initial launch. On macOS the
 //!   launch URL additionally arrives as the same GURL event once the run loop
@@ -230,24 +230,17 @@ pub(crate) fn submit_reopen() -> bool {
 /// `platform::install_url_scheme_handler`'s AppleEvent handler calls. Safe
 /// from any thread; does no gpui work itself.
 ///
-/// Every URL is first forwarded to the sign-in flow ([`crate::auth`]), whose
-/// slot only exists during an active sign-in and filters for its own
-/// `token`/`api_key` parameters -- the pre-existing behavior of the handler,
-/// unchanged. Action parsing happens on top.
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 pub fn submit_deep_link(raw: &str) {
-    crate::auth::submit_deep_link(raw);
     submit_action_url(raw);
 }
 
 /// Parse-and-queue half of [`submit_deep_link`]; also the argv path in
-/// [`init`], which skips the auth forward because `main` already routes
-/// token-bearing arguments there.
+/// [`init`].
 ///
 /// Error reporting mirrors `deeplink_actions::handle`
-/// (`deeplink_actions.rs:107-133`) with one deliberate deviation: the failed
-/// URL's *content* is never logged, only its shape -- an auth callback that
-/// lands in the `Invalid` arm must not write its token into the log.
+/// (`deeplink_actions.rs:107-133`): the failed URL's *content* is never
+/// logged, only its shape.
 fn submit_action_url(raw: &str) {
     if raw.is_empty() {
         return;
@@ -273,7 +266,7 @@ fn submit_action_url(raw: &str) {
                 "invalid deep link format"
             );
         }
-        // Likely login action, not handled here -- the auth slot got it.
+        // Likely a login callback from a removed remote flow, not ours.
         Err(ActionParseFromUrlError::NotAction) => {}
     }
 }
@@ -284,7 +277,7 @@ fn submit_action_url(raw: &str) {
 /// window registry the actions dispatch into exists.
 pub fn init(cx: &mut App) {
     for argument in std::env::args().skip(1) {
-        if argument.starts_with("cap-desktop://") || argument.starts_with("cap://") {
+        if argument.starts_with("scoopy://") {
             submit_action_url(&argument);
         }
     }
@@ -671,7 +664,7 @@ mod tests {
     #[test]
     fn private_reopen_is_not_a_public_deep_link_action() {
         for value in ["\"reopen\"", "{\"reopen\":{}}"] {
-            let url = Url::parse_with_params("cap-desktop://action", &[("value", value)]).unwrap();
+            let url = Url::parse_with_params("scoopy://action", &[("value", value)]).unwrap();
             assert!(DeepLinkAction::try_from(&url).is_err());
         }
     }
@@ -681,7 +674,7 @@ mod tests {
 
     #[test]
     fn parses_stop_recording_action_url() {
-        let url = Url::parse("cap-desktop://action?value=%22stop_recording%22").unwrap();
+        let url = Url::parse("scoopy://action?value=%22stop_recording%22").unwrap();
 
         assert_eq!(
             DeepLinkAction::try_from(&url),
@@ -698,7 +691,7 @@ mod tests {
             }
         })
         .to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", value)]).unwrap();
+        let url = Url::parse_with_params("scoopy://action", &[("value", value)]).unwrap();
 
         assert_eq!(
             DeepLinkAction::try_from(&url),
@@ -722,7 +715,7 @@ mod tests {
             }
         })
         .to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", value)]).unwrap();
+        let url = Url::parse_with_params("scoopy://action", &[("value", value)]).unwrap();
 
         assert_eq!(
             DeepLinkAction::try_from(&url),
@@ -740,8 +733,8 @@ mod tests {
     #[cfg(debug_assertions)]
     #[test]
     fn parses_pause_and_resume_action_urls() {
-        let pause_url = Url::parse("cap-desktop://action?value=%22pause_recording%22").unwrap();
-        let resume_url = Url::parse("cap-desktop://action?value=%22resume_recording%22").unwrap();
+        let pause_url = Url::parse("scoopy://action?value=%22pause_recording%22").unwrap();
+        let resume_url = Url::parse("scoopy://action?value=%22resume_recording%22").unwrap();
 
         assert_eq!(
             DeepLinkAction::try_from(&pause_url),
@@ -774,7 +767,7 @@ mod tests {
             }
         })
         .to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", value)]).unwrap();
+        let url = Url::parse_with_params("scoopy://action", &[("value", value)]).unwrap();
 
         assert_eq!(
             DeepLinkAction::try_from(&url),
@@ -807,7 +800,7 @@ mod tests {
             }
         })
         .to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", value)]).unwrap();
+        let url = Url::parse_with_params("scoopy://action", &[("value", value)]).unwrap();
 
         assert_eq!(
             DeepLinkAction::try_from(&url),
@@ -824,7 +817,7 @@ mod tests {
     #[test]
     fn parses_start_recording_action_url() {
         let url = Url::parse(
-            "cap-desktop://action?value=%7B%22start_recording%22%3A%7B%22capture_mode%22%3A%7B%22screen%22%3A%22Odyssey%20G93SC%22%7D%2C%22camera%22%3Anull%2C%22mic_label%22%3A%22Shure%20MV7%2B%22%2C%22capture_system_audio%22%3Atrue%2C%22mode%22%3A%22studio%22%7D%7D",
+            "scoopy://action?value=%7B%22start_recording%22%3A%7B%22capture_mode%22%3A%7B%22screen%22%3A%22Odyssey%20G93SC%22%7D%2C%22camera%22%3Anull%2C%22mic_label%22%3A%22Shure%20MV7%2B%22%2C%22capture_system_audio%22%3Atrue%2C%22mode%22%3A%22studio%22%7D%7D",
         )
         .unwrap();
 
@@ -861,7 +854,7 @@ mod tests {
             }
         })
         .to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", value)]).unwrap();
+        let url = Url::parse_with_params("scoopy://action", &[("value", value)]).unwrap();
 
         let Ok(DeepLinkAction::StartRecording {
             camera,
@@ -883,7 +876,7 @@ mod tests {
 
     #[test]
     fn rejects_non_action_host() {
-        let url = Url::parse("cap-desktop://login?value=%22stop_recording%22").unwrap();
+        let url = Url::parse("scoopy://login?value=%22stop_recording%22").unwrap();
 
         assert_eq!(
             DeepLinkAction::try_from(&url),
@@ -900,7 +893,7 @@ mod tests {
             "open_editor": { "project_path": "/tmp/My Recording.cap" }
         })
         .to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", editor)]).unwrap();
+        let url = Url::parse_with_params("scoopy://action", &[("value", editor)]).unwrap();
         assert_eq!(
             DeepLinkAction::try_from(&url),
             Ok(DeepLinkAction::OpenEditor {
@@ -909,7 +902,7 @@ mod tests {
         );
 
         let settings = serde_json::json!({ "open_settings": { "page": "hotkeys" } }).to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", settings)]).unwrap();
+        let url = Url::parse_with_params("scoopy://action", &[("value", settings)]).unwrap();
         assert_eq!(
             DeepLinkAction::try_from(&url),
             Ok(DeepLinkAction::OpenSettings {
@@ -918,7 +911,7 @@ mod tests {
         );
 
         let settings = serde_json::json!({ "open_settings": { "page": null } }).to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", settings)]).unwrap();
+        let url = Url::parse_with_params("scoopy://action", &[("value", settings)]).unwrap();
         assert_eq!(
             DeepLinkAction::try_from(&url),
             Ok(DeepLinkAction::OpenSettings { page: None })
@@ -939,7 +932,7 @@ mod tests {
             }
         })
         .to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", value)]).unwrap();
+        let url = Url::parse_with_params("scoopy://action", &[("value", value)]).unwrap();
 
         let Ok(DeepLinkAction::StartRecording { mode, .. }) = DeepLinkAction::try_from(&url) else {
             panic!("expected start recording action");
@@ -952,14 +945,14 @@ mod tests {
     #[test]
     fn rejects_malformed_urls() {
         // No authority at all -> no domain -> Invalid.
-        let url = Url::parse("cap-desktop:action?value=%22stop_recording%22").unwrap();
+        let url = Url::parse("scoopy:action?value=%22stop_recording%22").unwrap();
         assert_eq!(
             DeepLinkAction::try_from(&url),
             Err(ActionParseFromUrlError::Invalid)
         );
 
         // Right host, no `value` parameter.
-        let url = Url::parse("cap-desktop://action").unwrap();
+        let url = Url::parse("scoopy://action").unwrap();
         assert_eq!(
             DeepLinkAction::try_from(&url),
             Err(ActionParseFromUrlError::Invalid)
@@ -967,7 +960,7 @@ mod tests {
 
         // `value` present but empty / not JSON / unknown action.
         for value in ["", "not json", "\"unknown_action\"", "{}", "[1,2,3]"] {
-            let url = Url::parse_with_params("cap-desktop://action", &[("value", value)]).unwrap();
+            let url = Url::parse_with_params("scoopy://action", &[("value", value)]).unwrap();
             assert!(
                 matches!(
                     DeepLinkAction::try_from(&url),
@@ -979,7 +972,7 @@ mod tests {
 
         // A known action with the wrong payload shape.
         let value = serde_json::json!({ "start_recording": { "capture_mode": 42 } }).to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", value)]).unwrap();
+        let url = Url::parse_with_params("scoopy://action", &[("value", value)]).unwrap();
         assert!(matches!(
             DeepLinkAction::try_from(&url),
             Err(ActionParseFromUrlError::ParseFailed(_))
@@ -992,9 +985,9 @@ mod tests {
     #[test]
     fn rejects_foreign_hosts() {
         for hostile in [
-            "cap-desktop://evil.example?value=%22stop_recording%22",
-            "cap-desktop://action.evil.example?value=%22stop_recording%22",
-            "cap-desktop://xaction?value=%22stop_recording%22",
+            "scoopy://evil.example?value=%22stop_recording%22",
+            "scoopy://action.evil.example?value=%22stop_recording%22",
+            "scoopy://xaction?value=%22stop_recording%22",
         ] {
             let url = Url::parse(hostile).unwrap();
             assert_eq!(
@@ -1014,8 +1007,8 @@ mod tests {
     #[test]
     fn authority_decorations_match_tauri() {
         for accepted in [
-            "cap-desktop://action:8080?value=%22stop_recording%22",
-            "cap-desktop://user@action?value=%22stop_recording%22",
+            "scoopy://action:8080?value=%22stop_recording%22",
+            "scoopy://user@action?value=%22stop_recording%22",
         ] {
             let url = Url::parse(accepted).unwrap();
             assert_eq!(
@@ -1033,14 +1026,14 @@ mod tests {
     #[test]
     fn hostile_json_does_not_panic() {
         let bomb = format!("{}{}", "[".repeat(400), "]".repeat(400));
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", bomb)]).unwrap();
+        let url = Url::parse_with_params("scoopy://action", &[("value", bomb)]).unwrap();
         assert!(matches!(
             DeepLinkAction::try_from(&url),
             Err(ActionParseFromUrlError::ParseFailed(_))
         ));
 
         let nul = "\"stop_recording\u{0}\"";
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", nul)]).unwrap();
+        let url = Url::parse_with_params("scoopy://action", &[("value", nul)]).unwrap();
         assert!(DeepLinkAction::try_from(&url).is_err());
     }
 

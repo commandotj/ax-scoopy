@@ -107,7 +107,7 @@ export const EXPORT_TO_OPTIONS = [
 		label: "Shareable Link",
 		value: "link",
 		icon: IconCapLink,
-		description: "Share via Cap cloud",
+		description: "Share via cloud",
 	},
 ] as const;
 
@@ -1708,7 +1708,7 @@ export function ExportPage() {
 													subtitle={
 														reuploading()
 															? "Your latest edit is ready at the same link"
-															: "Your Cap has been uploaded successfully"
+															: "Your recording has been uploaded successfully"
 													}
 												/>
 											</Match>

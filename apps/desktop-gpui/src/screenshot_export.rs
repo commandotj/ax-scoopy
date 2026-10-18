@@ -203,16 +203,6 @@ pub fn composite(raw: &RawFrame, config: &ProjectConfiguration) -> Composited {
 // Transparency + encodings (`canvasNeedsTransparency`, `exportImage`)
 // ---------------------------------------------------------------------------
 
-/// `canvasNeedsTransparency` (`screenshotExport.ts:356-371`): only a project
-/// whose background is invisible can need alpha at all, and only then is the
-/// output actually scanned.
-pub fn needs_transparency(out: &Composited, config: &ProjectConfiguration) -> bool {
-    if !has_no_visible_background(&config.background.source) {
-        return false;
-    }
-    pixels::has_translucent_pixel(&out.rgba)
-}
-
 /// `withWhiteBackground` (`useScreenshotExport.ts:18-28`).
 pub fn flatten_onto_white(out: &Composited) -> Composited {
     Composited {
@@ -234,50 +224,6 @@ fn encode_png(out: &Composited) -> Result<Vec<u8>, String> {
     encode_rgba_png(&out.rgba, out.width, out.height)
 }
 
-/// `canvasToBlob(canvas, "image/jpeg", 0.9)`. JPEG has no alpha channel; the
-/// share flow only ever picks it when the output is fully opaque, and the
-/// flatten here is the same belt the browser's own encode wears.
-fn encode_jpeg(out: &Composited) -> Result<Vec<u8>, String> {
-    let flat = flatten_onto_white(out);
-    let rgb = codec::rgba_to_rgb(&flat.rgba);
-    codec::encode_jpeg_rgb(&rgb, flat.width, flat.height, 90)
-        .map_err(|e| format!("Failed to encode screenshot export: {e}"))
-}
-
-/// An encoded export, tagged with the content type the upload sends.
-pub enum EncodedImage {
-    Png(Vec<u8>),
-    Jpeg(Vec<u8>),
-}
-
-impl EncodedImage {
-    pub fn content_type(&self) -> &'static str {
-        match self {
-            Self::Png(_) => "image/png",
-            Self::Jpeg(_) => "image/jpeg",
-        }
-    }
-
-    pub fn into_bytes(self) -> Vec<u8> {
-        match self {
-            Self::Png(bytes) | Self::Jpeg(bytes) => bytes,
-        }
-    }
-}
-
-/// Share: JPEG at 0.9 unless the output needs its alpha, then PNG
-/// (`useScreenshotExport.ts:191-198`).
-pub fn encode_for_share(
-    out: &Composited,
-    config: &ProjectConfiguration,
-) -> Result<EncodedImage, String> {
-    if needs_transparency(out, config) {
-        encode_png(out).map(EncodedImage::Png)
-    } else {
-        encode_jpeg(out).map(EncodedImage::Jpeg)
-    }
-}
-
 /// Copy: always PNG, composited over white when transparency is not needed
 /// (`:183-198` -- `withWhiteBackground` only on the clipboard path).
 pub fn encode_for_copy(out: &Composited, config: &ProjectConfiguration) -> Result<Vec<u8>, String> {
@@ -292,55 +238,6 @@ pub fn encode_for_copy(out: &Composited, config: &ProjectConfiguration) -> Resul
 /// check and no white pass on the file path).
 pub fn encode_for_save(out: &Composited) -> Result<Vec<u8>, String> {
     encode_png(out)
-}
-
-// ---------------------------------------------------------------------------
-// The share fingerprint (`screenshotProjectFingerprint`)
-// ---------------------------------------------------------------------------
-
-/// `stableValue` (`screenshotExport.ts:373-392`): arrays element-wise, objects
-/// rebuilt with their keys sorted, everything else as-is. serde's skip
-/// attributes have already dropped the `None`s JS would have dropped as
-/// `undefined`.
-fn stable_value(value: &serde_json::Value) -> serde_json::Value {
-    match value {
-        serde_json::Value::Array(items) => {
-            serde_json::Value::Array(items.iter().map(stable_value).collect())
-        }
-        serde_json::Value::Object(map) => {
-            let mut keys: Vec<&String> = map.keys().collect();
-            keys.sort();
-            let mut sorted = serde_json::Map::new();
-            for key in keys {
-                sorted.insert(key.clone(), stable_value(&map[key]));
-            }
-            serde_json::Value::Object(sorted)
-        }
-        other => other.clone(),
-    }
-}
-
-fn stable_stringify(value: &serde_json::Value) -> Result<String, String> {
-    serde_json::to_string(&stable_value(value))
-        .map_err(|e| format!("Failed to serialize screenshot config: {e}"))
-}
-
-/// The content hash the share flow compares against `sharing.contentHash`:
-/// the key-sorted config JSON, annotations included, SHA-256'd. Stable across
-/// runs of this app -- which is the contract; a hash minted by the Tauri app
-/// simply misses and re-uploads against the same video id.
-pub fn content_hash(config: &ProjectConfiguration) -> Result<String, String> {
-    use sha2::Digest as _;
-    let value = serde_json::to_value(config)
-        .map_err(|e| format!("Failed to serialize screenshot config: {e}"))?;
-    let payload = stable_stringify(&value)?;
-    let digest = sha2::Sha256::digest(payload.as_bytes());
-    let mut hex = String::with_capacity(64);
-    for byte in digest {
-        use std::fmt::Write as _;
-        let _ = write!(hex, "{byte:02x}");
-    }
-    Ok(format!("sha256:{hex}"))
 }
 
 // ---------------------------------------------------------------------------
@@ -631,7 +528,6 @@ fn draw_text(pixmap: &mut tiny_skia::PixmapMut<'_>, annotation: &Annotation) {
 mod tests {
     use super::*;
     use cap_project::BackgroundSource;
-    use serde_json::json;
 
     fn annotation(kind: AnnotationType, x: f64, y: f64, w: f64, h: f64) -> Annotation {
         Annotation {
@@ -658,37 +554,6 @@ mod tests {
             value: [0, 0, 0],
             alpha: 0,
         };
-    }
-
-    /// `stableValue`: keys sorted at every depth, arrays kept in order.
-    #[test]
-    fn stable_stringify_sorts_keys_recursively() {
-        let value = json!({
-            "zeta": { "b": 1, "a": [ { "y": 2, "x": 1 } ] },
-            "alpha": 3,
-        });
-        assert_eq!(
-            stable_stringify(&value).unwrap(),
-            r#"{"alpha":3,"zeta":{"a":[{"x":1,"y":2}],"b":1}}"#
-        );
-    }
-
-    /// The fingerprint is stable for the same config and moves when an
-    /// annotation moves -- which is what decides re-upload vs copied link.
-    #[test]
-    fn content_hash_is_stable_and_annotation_sensitive() {
-        let mut config = ProjectConfiguration::default();
-        config
-            .annotations
-            .push(annotation(AnnotationType::Rectangle, 10., 10., 40., 20.));
-        let first = content_hash(&config).unwrap();
-        let again = content_hash(&config).unwrap();
-        assert_eq!(first, again);
-        assert!(first.starts_with("sha256:"));
-        assert_eq!(first.len(), "sha256:".len() + 64);
-
-        config.annotations[0].x = 11.;
-        assert_ne!(content_hash(&config).unwrap(), first);
     }
 
     /// `scaleAnnotations`: x/w by the x factor, y/h by the y factor,
@@ -748,34 +613,10 @@ mod tests {
         );
     }
 
-    /// `canvasNeedsTransparency`: a visible background short-circuits to
-    /// false; an invisible one scans the actual alpha.
+    /// Copy over a visible background composites onto white: decoding the
+    /// PNG back shows the half-red pixel blended with white.
     #[test]
-    fn transparency_is_only_needed_when_the_background_is_invisible_and_alpha_shows() {
-        let opaque = Composited {
-            rgba: vec![255, 0, 0, 255, 0, 255, 0, 255],
-            width: 2,
-            height: 1,
-        };
-        let translucent = Composited {
-            rgba: vec![255, 0, 0, 255, 0, 255, 0, 128],
-            width: 2,
-            height: 1,
-        };
-
-        let visible = ProjectConfiguration::default();
-        assert!(!needs_transparency(&translucent, &visible));
-
-        let mut invisible = ProjectConfiguration::default();
-        invisible_background(&mut invisible);
-        assert!(!needs_transparency(&opaque, &invisible));
-        assert!(needs_transparency(&translucent, &invisible));
-    }
-
-    /// The share encoding: PNG only when the output needs its alpha, JPEG
-    /// otherwise; Copy flattens onto white first.
-    #[test]
-    fn share_picks_jpeg_unless_alpha_is_needed_and_copy_flattens() {
+    fn copy_flattens_onto_white_over_a_visible_background() {
         let translucent = Composited {
             rgba: vec![255, 0, 0, 128],
             width: 1,
@@ -783,20 +624,6 @@ mod tests {
         };
 
         let visible = ProjectConfiguration::default();
-        assert!(matches!(
-            encode_for_share(&translucent, &visible).unwrap(),
-            EncodedImage::Jpeg(_)
-        ));
-
-        let mut invisible = ProjectConfiguration::default();
-        invisible_background(&mut invisible);
-        assert!(matches!(
-            encode_for_share(&translucent, &invisible).unwrap(),
-            EncodedImage::Png(_)
-        ));
-
-        // Copy over a visible background composites onto white: decoding the
-        // PNG back shows the half-red pixel blended with white.
         let png = encode_for_copy(&translucent, &visible).unwrap();
         let decoded = image::load_from_memory(&png).unwrap().to_rgba8();
         let pixel = decoded.get_pixel(0, 0).0;
@@ -876,7 +703,9 @@ mod tests {
                     reference_unannotated_composite(&raw, &config)
                 };
                 assert_eq!(out.rgba, reference.rgba);
-                let expected = if needs_transparency(&reference, &config) {
+                let expected = if has_no_visible_background(&config.background.source)
+                    || pixels::is_opaque(&reference.rgba)
+                {
                     reference
                 } else {
                     reference_flatten(&reference)

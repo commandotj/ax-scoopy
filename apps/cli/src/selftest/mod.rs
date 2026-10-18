@@ -426,7 +426,7 @@ async fn run_av_sync_inner(
         0
     };
 
-    reporter.log("Cap A/V sync self-test");
+    reporter.log("Scoopy A/V sync self-test");
     reporter.log(&format!(
         "This will take about {} seconds.",
         (estimate_secs as f64 / 10.0).round() as u64 * 10
@@ -866,7 +866,7 @@ async fn start_recording(
         .map_err(|e| {
             format!(
                 "screen recording permission unavailable: {e}. \
-                 Grant Cap screen recording access in System Settings and retry."
+                 Grant Scoopy screen recording access in System Settings and retry."
             )
         })
         .map(cap_recording::SendableShareableContent::from)?;

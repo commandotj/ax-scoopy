@@ -30,7 +30,7 @@ def resolve_cap():
     if p:
         return p
     raise SystemExit(
-        "cap CLI not found on PATH. Install Cap Desktop (https://cap.so) or set CAP_BIN."
+        "cap CLI not found on PATH. Install Scoopy or set CAP_BIN."
     )
 
 

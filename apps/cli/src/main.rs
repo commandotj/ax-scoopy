@@ -1,22 +1,8 @@
-mod account;
-mod agent_auth;
-mod agent_client;
 mod agents;
-mod analytics;
 mod atomic;
-mod automation;
-mod caps;
-mod confirmation;
-mod credentials;
-mod developers;
 mod doctor;
 mod export;
 mod guide;
-mod jobs;
-mod library;
-mod mcp;
-mod notifications;
-mod organizations;
 mod project;
 mod record;
 mod recordings;
@@ -24,8 +10,6 @@ mod screenshot;
 mod selftest;
 mod session;
 mod targets;
-mod update;
-mod upload;
 
 use std::{
     io::{IsTerminal, Write, stderr, stdout},
@@ -103,7 +87,7 @@ const WELCOME_LINES: &[&[(&str, &str)]] = &[
     &[],
     &[(
         ANSI_BOLD,
-        "  Record, edit, and share screen recordings from the command line.",
+        "  Record and edit screen recordings from the command line.",
     )],
     &[],
     &[(ANSI_BLUE, "  cap record start --screen <id> --detach")],
@@ -123,18 +107,10 @@ OUTPUT
   export) emit newline-delimited JSON (NDJSON) events. Run `cap guide --json` for the full
   machine-readable capability + schema manifest.
 
-AUTH
-  `cap upload` authenticates automatically by reusing the login Cap Desktop already stored — no
-  key to copy when you are signed in there. Check with `cap auth status --json`. For headless/CI,
-  create a CLI API key in the Cap dashboard under Settings -> Account and set it as CAP_API_KEY.
-
 ENVIRONMENT
-  CAP_API_KEY         Overrides auth (CLI API key from the Cap dashboard, Settings -> Account);
-                      optional when signed into Cap Desktop.
-  CAP_SERVER_URL      Cap server base URL; defaults to Cap Desktop's server, else https://cap.so.
   CAP_NO_MODIFY_PATH  Set to skip editing shell profiles during `cap desktop install-cli`.
   CAP_DESKTOP_FORCE_INSTALL
-                      Force the web installer scripts to replace Cap Desktop before linking the CLI.
+                      Force the web installer scripts to replace Scoopy Desktop before linking the CLI.
 
 TYPICAL AGENT WORKFLOW
   cap doctor --json                          # verify permissions & capture readiness
@@ -142,17 +118,16 @@ TYPICAL AGENT WORKFLOW
   cap record start --screen <id> --json --detach  # start in background -> {recordingId, pid, path}
   cap record stop --id <recordingId> --json  # finalize the .cap recording
   cap project validate <path.cap> --json     # confirm the recording is complete
-  cap export <path.cap> --output out.mp4 --json
-  cap upload out.mp4 --json                   # get a shareable link (needs CAP_API_KEY)";
+  cap export <path.cap> --output out.mp4 --json";
 
 #[derive(Parser)]
 #[command(
     name = "cap",
     version,
-    about = "Cap screen recording from the command line",
-    long_about = "Cap screen recording from the command line.\n\nDesigned to be driven by automation and AI agents: add --json to any command for \
+    about = "Scoopy screen recording from the command line",
+    long_about = "Scoopy screen recording from the command line.\n\nDesigned to be driven by automation and AI agents: add --json to any command for \
 machine-readable output. See the sections below for the JSON convention, environment variables, and \
-the canonical record -> export -> upload workflow.",
+the canonical record -> export workflow.",
     after_help = AGENT_HELP,
     after_long_help = AGENT_HELP
 )]
@@ -201,37 +176,13 @@ enum Commands {
     Screenshot(screenshot::Screenshot),
     /// List recordings discovered in the desktop library (or a custom directory)
     Recordings(RecordingsArgs),
-    /// Upload a recording or video file and get a shareable link
-    Upload(upload::UploadArgs),
-    /// Update Cap Desktop and the bundled CLI
-    Update(FormatArgs),
-    /// Show how `cap upload` will authenticate (env key or Cap Desktop login)
-    Auth(AuthArgs),
-    /// Read and manage Caps in your personal library
-    Caps(caps::CapsArgs),
-    /// Read or update the authenticated Cap account
-    Account(account::AccountArgs),
-    /// Inspect Cap organizations, members, billing, and storage connections
-    Organizations(organizations::OrganizationsArgs),
-    /// Manage folders, spaces, and space membership
-    Library(library::LibraryArgs),
-    /// Read and manage account notifications
-    Notifications(notifications::NotificationsArgs),
-    /// Read organization, space, or Cap analytics
-    Analytics(analytics::AnalyticsArgs),
-    /// Inspect developer apps, domains, usage, and credits
-    Developers(developers::DevelopersArgs),
-    /// Inspect or wait for asynchronous Cap operations
-    Jobs(jobs::JobsArgs),
-    /// Run Cap's local Model Context Protocol server
-    Mcp(mcp::McpArgs),
-    /// Install Cap integrations for one explicitly selected agent
+    /// Install Scoopy integrations for one explicitly selected agent
     Agents(agents::AgentsArgs),
     /// List available capture targets and devices
     Targets(TargetsArgs),
     /// Report CLI environment and capture-readiness diagnostics
     Doctor(FormatArgs),
-    /// Run end-to-end diagnostics that verify Cap works on this machine
+    /// Run end-to-end diagnostics that verify Scoopy works on this machine
     Selftest(selftest::SelftestArgs),
     /// Print CLI version and execution context
     Version(FormatArgs),
@@ -239,8 +190,6 @@ enum Commands {
     Desktop(DesktopArgs),
     /// Print the machine-readable capability & JSON-schema manifest for agents
     Guide(FormatArgs),
-    /// List automation rules shared with Cap Desktop
-    Automations(AutomationsArgs),
     /// Generate shell completion scripts
     Completions(CompletionsArgs),
 }
@@ -410,34 +359,6 @@ enum DesktopCommands {
     InstallCli(FormatArgs),
     /// Remove the `cap` shim from your PATH
     UninstallCli(FormatArgs),
-}
-
-#[derive(Args)]
-struct AuthArgs {
-    #[command(subcommand)]
-    command: AuthCommands,
-}
-
-#[derive(Subcommand)]
-enum AuthCommands {
-    /// Report whether a credential is available and where it comes from (never prints the secret)
-    Status(FormatArgs),
-    /// Authorize Cap CLI in the browser using PKCE
-    Login(agent_auth::LoginArgs),
-    /// Revoke and remove the Cap CLI credential
-    Logout(agent_auth::LogoutArgs),
-}
-
-#[derive(Args)]
-struct AutomationsArgs {
-    #[command(subcommand)]
-    command: AutomationsCommands,
-}
-
-#[derive(Subcommand)]
-enum AutomationsCommands {
-    /// List the automation rules configured in Cap Desktop
-    List(FormatArgs),
 }
 
 #[derive(Args)]
@@ -628,28 +549,6 @@ async fn run(cli: Cli) -> Result<(), String> {
         },
         Commands::Screenshot(s) => s.run(json).await,
         Commands::Recordings(args) => args.run(json),
-        Commands::Upload(args) => args.run(json).await,
-        Commands::Update(args) => {
-            let format = resolve_format(json, args.format);
-            finish_json(format, update::run(format))
-        }
-        Commands::Auth(args) => match args.command {
-            AuthCommands::Status(args) => {
-                let format = resolve_format(json, args.format);
-                finish_json(format, credentials::status(format).await)
-            }
-            AuthCommands::Login(args) => args.run(json).await,
-            AuthCommands::Logout(args) => args.run(json).await,
-        },
-        Commands::Caps(args) => args.run(json).await,
-        Commands::Account(args) => args.run(json).await,
-        Commands::Organizations(args) => args.run(json).await,
-        Commands::Library(args) => args.run(json).await,
-        Commands::Notifications(args) => args.run(json).await,
-        Commands::Analytics(args) => args.run(json).await,
-        Commands::Developers(args) => args.run(json).await,
-        Commands::Jobs(args) => args.run(json).await,
-        Commands::Mcp(args) => args.run().await,
         Commands::Agents(args) => args.run(json),
         Commands::Targets(args) => args.run(json),
         Commands::Doctor(args) => doctor::run_doctor(resolve_format(json, args.format)).await,
@@ -662,12 +561,6 @@ async fn run(cli: Cli) -> Result<(), String> {
             let format = resolve_format(json, args.format);
             finish_json(format, guide::run(format))
         }
-        Commands::Automations(args) => match args.command {
-            AutomationsCommands::List(a) => {
-                let format = resolve_format(json, a.format);
-                finish_json(format, automation::list(format))
-            }
-        },
         Commands::Completions(args) => {
             args.run();
             Ok(())
@@ -679,8 +572,8 @@ fn print_welcome(json: bool) -> Result<(), String> {
     if json {
         return write_json(&serde_json::json!({
             "name": "cap",
-            "about": "Cap screen recording from the command line",
-            "commands": ["record", "targets", "doctor", "guide", "upload"],
+            "about": "Scoopy screen recording from the command line",
+            "commands": ["record", "targets", "doctor", "guide"],
         }));
     }
 

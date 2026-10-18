@@ -33,7 +33,7 @@ export default function Page() {
 			<SettingsPageContent>
 				<Section
 					title="Plan & license"
-					description="Your Cap plan and desktop license, in one place."
+					description="Your Scoopy plan and desktop license, in one place."
 				/>
 				<Show when={license.isPending}>
 					<p class="text-xs text-gray-10">Loading your plan…</p>
@@ -57,16 +57,16 @@ export default function Page() {
 								<SectionCard padded>
 									<p class="text-lg font-semibold text-gray-12">
 										{current().type === "pro"
-											? "Cap Pro"
+											? "Scoopy Pro"
 											: current().type === "commercial"
 												? "Desktop License"
-												: "Cap Free"}
+												: "Scoopy Free"}
 									</p>
 									<p class="mt-1 text-xs leading-relaxed text-gray-10">
 										{current().type === "pro"
 											? "Your account includes cloud sharing, Pro features and a desktop license for commercial use."
 											: current().type === "commercial"
-												? "Your desktop license covers commercial recording and editing. Cap Pro adds cloud sharing and collaboration features."
+												? "Your desktop license covers commercial recording and editing. Scoopy Pro adds cloud sharing and collaboration features."
 												: "Record and edit locally for personal use. Choose a paid plan for commercial use or more cloud features."}
 									</p>
 									<Show when={auth.data}>
@@ -87,7 +87,7 @@ export default function Page() {
 									</Show>
 									<Show when={!auth.data}>
 										<p class="mt-3 text-xs leading-relaxed text-gray-10">
-											Already have Cap Pro? Sign in with your account from the
+											Already have Scoopy Pro? Sign in with your account from the
 											sidebar.
 										</p>
 									</Show>
@@ -106,7 +106,7 @@ export default function Page() {
 											· Commercial use of the desktop recorder and editor.
 										</p>
 										<p>
-											<span class="font-medium text-gray-12">Cap Pro</span> · A
+											<span class="font-medium text-gray-12">Scoopy Pro</span> · A
 											desktop license, plus cloud sharing, AI features and
 											collaboration.
 										</p>

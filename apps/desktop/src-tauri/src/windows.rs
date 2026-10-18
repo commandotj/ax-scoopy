@@ -1286,19 +1286,19 @@ impl CapWindowId {
 
     pub fn title(&self) -> String {
         match self {
-            Self::Settings => "Cap Settings".to_string(),
-            Self::WindowCaptureOccluder { .. } => "Cap Window Capture Occluder".to_string(),
-            Self::CaptureArea => "Cap Capture Area".to_string(),
-            Self::RecordingControls => "Cap Recording Controls".to_string(),
-            Self::Editor { .. } => "Cap Editor".to_string(),
-            Self::ScreenshotEditor { .. } => "Cap Screenshot Editor".to_string(),
-            Self::ModeSelect => "Cap Mode Selection".to_string(),
-            Self::Onboarding => "Welcome to Cap".to_string(),
-            Self::Camera => "Cap Camera".to_string(),
-            Self::RecordingsOverlay => "Cap Recordings Overlay".to_string(),
-            Self::TargetSelectOverlay { .. } => "Cap Target Select".to_string(),
-            Self::Teleprompter => "Cap Teleprompter".to_string(),
-            _ => "Cap".to_string(),
+            Self::Settings => "Scoopy Settings".to_string(),
+            Self::WindowCaptureOccluder { .. } => "Scoopy Window Capture Occluder".to_string(),
+            Self::CaptureArea => "Scoopy Capture Area".to_string(),
+            Self::RecordingControls => "Scoopy Recording Controls".to_string(),
+            Self::Editor { .. } => "Scoopy Editor".to_string(),
+            Self::ScreenshotEditor { .. } => "Scoopy Screenshot Editor".to_string(),
+            Self::ModeSelect => "Scoopy Mode Selection".to_string(),
+            Self::Onboarding => "Welcome to Scoopy".to_string(),
+            Self::Camera => "Scoopy Camera".to_string(),
+            Self::RecordingsOverlay => "Scoopy Recordings Overlay".to_string(),
+            Self::TargetSelectOverlay { .. } => "Scoopy Target Select".to_string(),
+            Self::Teleprompter => "Scoopy Teleprompter".to_string(),
+            _ => "Scoopy".to_string(),
         }
     }
 

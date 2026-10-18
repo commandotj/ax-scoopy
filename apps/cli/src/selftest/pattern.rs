@@ -428,7 +428,7 @@ impl ApplicationHandler for PatternApp {
         // recording (measured as zero flashes).
         let monitor = event_loop.primary_monitor();
         let attrs = Window::default_attributes()
-            .with_title("Cap Sync Test")
+            .with_title("Scoopy Sync Test")
             .with_fullscreen(Some(Fullscreen::Borderless(monitor)))
             .with_window_level(WindowLevel::AlwaysOnTop);
         let window = match event_loop.create_window(attrs) {

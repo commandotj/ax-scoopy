@@ -17,7 +17,7 @@ const configNames = {
 const configName = configNames[process.platform];
 
 if (!configName) {
-	console.log(`Skipping Cap GPUI release validation on ${process.platform}.`);
+	console.log(`Skipping Scoopy GPUI release validation on ${process.platform}.`);
 } else {
 	const srcTauri = path.join(repoRoot, "apps/desktop/src-tauri");
 	const configPath = path.join(srcTauri, configName);
@@ -33,7 +33,7 @@ if (!configName) {
 		!externalBin.includes("binaries/cap-gpui")
 	) {
 		throw new Error(
-			`The effective ${process.platform} release config does not bundle Cap GPUI.`,
+			`The effective ${process.platform} release config does not bundle Scoopy GPUI.`,
 		);
 	}
 
@@ -63,7 +63,7 @@ if (!configName) {
 	]);
 
 	if (stagedBinary.length === 0 || releaseBinary.length === 0) {
-		throw new Error("The staged Cap GPUI release binary is empty");
+		throw new Error("The staged Scoopy GPUI release binary is empty");
 	}
 
 	const sha256 = (contents) =>

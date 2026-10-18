@@ -54,7 +54,7 @@ if (gpuiVersion !== version) {
 		gpuiManifest,
 		replacePackageVersion(gpuiSource, gpuiManifest, version),
 	);
-	console.log(`Synchronized Cap GPUI ${gpuiVersion} -> ${version}`);
+	console.log(`Synchronized Scoopy GPUI ${gpuiVersion} -> ${version}`);
 } else {
-	console.log(`Cap desktop versions match: ${version}`);
+	console.log(`Scoopy desktop versions match: ${version}`);
 }

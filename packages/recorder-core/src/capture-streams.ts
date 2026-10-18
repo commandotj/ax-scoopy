@@ -325,7 +325,7 @@ export const getCaptureErrorMessage = (
 		}
 
 		if (error.name === "InvalidStateError") {
-			return "Your browser blocked the capture request because this tab wasn't active. Bring Cap to the foreground and click Start recording again.";
+			return "Your browser blocked the capture request because this tab wasn't active. Bring Scoopy to the foreground and click Start recording again.";
 		}
 
 		if (error.name === "NotFoundError") {
@@ -347,7 +347,7 @@ export const getCaptureErrorMessage = (
 
 	if (error instanceof TypeError) {
 		if (/fetch|network|load failed|failed to fetch/i.test(error.message)) {
-			return "Cap couldn't create the upload session. Check Chrome extensions, privacy settings, or network access, then try again.";
+			return "Scoopy couldn't create the upload session. Check Chrome extensions, privacy settings, or network access, then try again.";
 		}
 
 		return "Your browser rejected the capture settings. Try another recording mode, or turn off system audio and try again.";
@@ -359,7 +359,7 @@ export const getCaptureErrorMessage = (
 		}
 
 		if (/multipart|upload|request to/i.test(error.message)) {
-			return "Cap couldn't create the upload session. Check Chrome extensions, privacy settings, or network access, then try again.";
+			return "Scoopy couldn't create the upload session. Check Chrome extensions, privacy settings, or network access, then try again.";
 		}
 	}
 

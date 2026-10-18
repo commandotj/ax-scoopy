@@ -1,3 +1,5 @@
+declare const process: { env: { appVersion?: string } };
+
 export const Logo = ({
 	className,
 	showVersion,
@@ -26,7 +28,7 @@ export const Logo = ({
 				fill="none"
 				style={style}
 				role="img"
-				aria-label="Cap Logo"
+				aria-label="Scoopy Logo"
 				className={className}
 			>
 				{squaredMark && (

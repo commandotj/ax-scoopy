@@ -1,0 +1,672 @@
+{
+	"schemaVersion": 1,
+	"mapId": "scoopy-local-architecture",
+	"revision": 2,
+	"project": {
+		"id": "ax-scoopy",
+		"name": "ax-scoopy",
+		"translations": {
+			"zh": {
+				"name": "ax-scoopy (Scoopy 本地屏幕录制与剪辑架构)"
+			}
+		}
+	},
+	"language": "en",
+	"groups": [
+		{
+			"id": "apps",
+			"name": "Applications & Tools",
+			"role": "interaction",
+			"members": [
+				"desktop-ui",
+				"cli-tool",
+				"desktop-harness"
+			],
+			"evidence": [
+				{
+					"path": "apps/desktop-gpui/src/main.rs",
+					"note": "Primary GPUI user interface and CLI application entries.",
+					"translations": {
+						"zh": {
+							"note": "主桌面 GPUI 交互端与终端 CLI 命令行入口。"
+						}
+					}
+				}
+			],
+			"translations": {
+				"zh": {
+					"name": "应用与终端工具"
+				}
+			}
+		},
+		{
+			"id": "core-engine",
+			"name": "Media & Editing Engines",
+			"role": "runtime",
+			"members": [
+				"media-pipeline",
+				"editor-engine",
+				"os-platform"
+			],
+			"evidence": [
+				{
+					"path": "crates/recording/src/lib.rs",
+					"note": "Native Rust runtime engines for recording, composition and platform capture.",
+					"translations": {
+						"zh": {
+							"note": "负责录制编排、合成剪辑与系统底层采集的 Rust 原生运行时引擎。"
+						}
+					}
+				}
+			],
+			"translations": {
+				"zh": {
+					"name": "媒体录制与渲染引擎"
+				}
+			}
+		},
+		{
+			"id": "shared-support",
+			"name": "Shared Packages",
+			"role": "generic",
+			"members": [
+				"shared-packages"
+			],
+			"evidence": [
+				{
+					"path": "packages/config/base.tsconfig.json",
+					"note": "Shared frontend libraries, typing contracts and workspace build configurations.",
+					"translations": {
+						"zh": {
+							"note": "工作区跨包共享的前端库、类型契约及构建配置。"
+						}
+					}
+				}
+			],
+			"translations": {
+				"zh": {
+					"name": "共享组件与配置"
+				}
+			}
+		}
+	],
+	"modules": [
+		{
+			"id": "desktop-ui",
+			"role": "frontend",
+			"name": "Scoopy Desktop (GPUI)",
+			"kind": "local",
+			"responsibility": "Primary native desktop application built with GPUI. Delivers screen recording overlay, camera window, composition timeline, settings, and direct local export.",
+			"ownership": [
+				{
+					"kind": "directory",
+					"path": "apps/desktop-gpui"
+				}
+			],
+			"evidence": [
+				{
+					"path": "apps/desktop-gpui/src/main.rs",
+					"note": "Entry point configuring GPUI windows, menu system, and event loops.",
+					"translations": {
+						"zh": {
+							"note": "配置 GPUI 窗口、菜单系统及事件循环的主入口。"
+						}
+					}
+				},
+				{
+					"path": "apps/desktop-gpui/src/menus.rs",
+					"note": "Defines application menu hierarchy with APP_NAME = Scoopy.",
+					"translations": {
+						"zh": {
+							"note": "定义应用菜单层级与应用名称常量 Scoopy。"
+						}
+					}
+				}
+			],
+			"status": "supported",
+			"openQuestions": [],
+			"layout": {
+				"row": 0,
+				"column": 0
+			},
+			"translations": {
+				"zh": {
+					"name": "Scoopy 桌面端 (GPUI)",
+					"responsibility": "基于 GPUI 构建的高性能原生桌面客户端，提供屏幕录制悬浮窗、摄像头取景、时间线剪辑、设置与本地导出。"
+				}
+			}
+		},
+		{
+			"id": "cli-tool",
+			"role": "generic",
+			"roleAssessment": {
+				"basis": "out-of-taxonomy",
+				"note": "Native Rust CLI terminal tool for headless local recording and export automation.",
+				"translations": {
+					"zh": {
+						"note": "用于无界面本地录制与导出自动化的 Rust 原生终端命令行工具。"
+					}
+				}
+			},
+			"name": "Scoopy CLI",
+			"kind": "local",
+			"responsibility": "Command-line interface for local recording control, device enumeration, and project batch exports.",
+			"ownership": [
+				{
+					"kind": "directory",
+					"path": "apps/cli"
+				}
+			],
+			"evidence": [
+				{
+					"path": "apps/cli/src/main.rs",
+					"note": "Clap-based CLI commands for capture and project operations.",
+					"translations": {
+						"zh": {
+							"note": "基于 Clap 的捕获与工程操作命令行入口。"
+						}
+					}
+				}
+			],
+			"status": "supported",
+			"openQuestions": [],
+			"layout": {
+				"row": 1,
+				"column": 0
+			},
+			"translations": {
+				"zh": {
+					"name": "Scoopy 命令行工具",
+					"responsibility": "用于本地录制控制、设备枚举与工程批量导出的命令行终端工具。"
+				}
+			}
+		},
+		{
+			"id": "desktop-harness",
+			"role": "frontend",
+			"name": "Tauri Dev Harness",
+			"kind": "local",
+			"responsibility": "Legacy desktop dev harness (Tauri v2 + SolidStart) maintained for rapid component iteration and testing.",
+			"ownership": [
+				{
+					"kind": "directory",
+					"path": "apps/desktop"
+				}
+			],
+			"evidence": [
+				{
+					"path": "apps/desktop/src-tauri/src/main.rs",
+					"note": "Tauri v2 desktop harness entry point.",
+					"translations": {
+						"zh": {
+							"note": "Tauri v2 桌面脚手架原生入口。"
+						}
+					}
+				}
+			],
+			"status": "supported",
+			"openQuestions": [],
+			"layout": {
+				"row": 2,
+				"column": 0
+			},
+			"translations": {
+				"zh": {
+					"name": "Tauri 开发测试脚手架",
+					"responsibility": "保留自旧版 Cap 0.6.0 的开发测试脚手架 (Tauri v2 + SolidStart)，用于组件快速迭代与原型验证。"
+				}
+			}
+		},
+		{
+			"id": "media-pipeline",
+			"role": "generic",
+			"roleAssessment": {
+				"basis": "out-of-taxonomy",
+				"note": "Low-level native Rust media capture, hardware encoding and stream muxing pipeline.",
+				"translations": {
+					"zh": {
+						"note": "底层原生 Rust 多媒体采集、硬件编码与多路复用流水线。"
+					}
+				}
+			},
+			"name": "Recording & Muxing Pipeline",
+			"kind": "local",
+			"responsibility": "Orchestrates real-time audio/video capture, hardware acceleration (FFmpeg/MediaFoundation/AVFoundation), noise reduction, and container muxing.",
+			"ownership": [
+				{
+					"kind": "directory",
+					"path": "crates/recording"
+				},
+				{
+					"kind": "directory",
+					"path": "crates/audio"
+				},
+				{
+					"kind": "directory",
+					"path": "crates/camera"
+				},
+				{
+					"kind": "directory",
+					"path": "crates/enc-ffmpeg"
+				},
+				{
+					"kind": "directory",
+					"path": "crates/cap-muxer"
+				}
+			],
+			"evidence": [
+				{
+					"path": "crates/recording/src/lib.rs",
+					"note": "Core recording engine and multi-stream synchronization.",
+					"translations": {
+						"zh": {
+							"note": "核心录制引擎与多路音视频流时间戳同步逻辑。"
+						}
+					}
+				},
+				{
+					"path": "crates/audio/src/lib.rs",
+					"note": "Audio capture and CPAL device stream management.",
+					"translations": {
+						"zh": {
+							"note": "音频捕获与 CPAL 平台设备管理。"
+						}
+					}
+				}
+			],
+			"status": "supported",
+			"openQuestions": [],
+			"layout": {
+				"row": 0,
+				"column": 1
+			},
+			"translations": {
+				"zh": {
+					"name": "录制与封装流水线",
+					"responsibility": "负责实时音视频采集编排、硬件编码加速 (FFmpeg/MediaFoundation/AVFoundation)、AI 降噪与多媒体容器封装。"
+				}
+			}
+		},
+		{
+			"id": "editor-engine",
+			"role": "generic",
+			"roleAssessment": {
+				"basis": "out-of-taxonomy",
+				"note": "Local timeline editing, multi-track composition, Skia GPU rendering, and offline video file export.",
+				"translations": {
+					"zh": {
+						"note": "本地时间线剪辑、多轨道合成、Skia GPU 渲染及离线视频文件导出。"
+					}
+				}
+			},
+			"name": "Editor & Rendering Engine",
+			"kind": "local",
+			"responsibility": "Manages recorded project files, timeline tracks, Skia visual rendering effects (zoom, cursor smooth, backgrounds), and offline video export.",
+			"ownership": [
+				{
+					"kind": "directory",
+					"path": "crates/editor"
+				},
+				{
+					"kind": "directory",
+					"path": "crates/rendering"
+				},
+				{
+					"kind": "directory",
+					"path": "crates/rendering-skia"
+				},
+				{
+					"kind": "directory",
+					"path": "crates/export"
+				},
+				{
+					"kind": "directory",
+					"path": "crates/project"
+				}
+			],
+			"evidence": [
+				{
+					"path": "crates/editor/src/lib.rs",
+					"note": "Timeline model and multi-clip composition logic.",
+					"translations": {
+						"zh": {
+							"note": "多片段合成与剪辑时间线核心逻辑。"
+						}
+					}
+				},
+				{
+					"path": "crates/export/src/lib.rs",
+					"note": "Local video file rendering and encoder export.",
+					"translations": {
+						"zh": {
+							"note": "本地视频帧离线导出与目标格式编码封装。"
+						}
+					}
+				},
+				{
+					"path": "crates/project/src/lib.rs",
+					"note": "Project disk manifest format and asset indexing.",
+					"translations": {
+						"zh": {
+							"note": "工程磁盘格式清单与录制素材资产管理。"
+						}
+					}
+				}
+			],
+			"status": "supported",
+			"openQuestions": [],
+			"layout": {
+				"row": 1,
+				"column": 1
+			},
+			"translations": {
+				"zh": {
+					"name": "剪辑与渲染引擎",
+					"responsibility": "管理录制工程文件、多轨时间线组合、基于 Skia 的视觉渲染特效（缩放平滑、光标平滑、背景装饰）及离线视频渲染导出。"
+				}
+			}
+		},
+		{
+			"id": "os-platform",
+			"role": "generic",
+			"roleAssessment": {
+				"basis": "out-of-taxonomy",
+				"note": "Native OS display capture, window enumerators, camera drivers and cursor APIs.",
+				"translations": {
+					"zh": {
+						"note": "操作系统底层显示捕获、窗口枚举、摄像头硬件驱动与系统光标 API。"
+					}
+				}
+			},
+			"name": "Platform Display & Device Capture",
+			"kind": "local",
+			"responsibility": "Platform-native APIs interfacing ScreenCaptureKit (macOS), Direct3D/MediaFoundation (Windows), system audio loopback, and cursor tracking.",
+			"ownership": [
+				{
+					"kind": "directory",
+					"path": "crates/scap-screencapturekit"
+				},
+				{
+					"kind": "directory",
+					"path": "crates/scap-direct3d"
+				},
+				{
+					"kind": "directory",
+					"path": "crates/camera-avfoundation"
+				},
+				{
+					"kind": "directory",
+					"path": "crates/cursor-capture"
+				}
+			],
+			"evidence": [
+				{
+					"path": "crates/scap-screencapturekit/src/lib.rs",
+					"note": "macOS ScreenCaptureKit native screen capture implementation.",
+					"translations": {
+						"zh": {
+							"note": "macOS ScreenCaptureKit 原生屏幕采集实现。"
+						}
+					}
+				}
+			],
+			"status": "supported",
+			"openQuestions": [],
+			"layout": {
+				"row": 2,
+				"column": 1
+			},
+			"translations": {
+				"zh": {
+					"name": "系统底层采集适配器",
+					"responsibility": "封装 macOS ScreenCaptureKit 与 Windows Direct3D/MediaFoundation 等系统底层屏幕捕获、系统内录及鼠标轨迹追踪接口。"
+				}
+			}
+		},
+		{
+			"id": "shared-packages",
+			"role": "frontend",
+			"name": "Shared Frontend & Web Packages",
+			"kind": "local",
+			"responsibility": "Shared UI components, design tokens, recorder contracts, helper utilities, and TypeScript configurations across workspace packages.",
+			"ownership": [
+				{
+					"kind": "directory",
+					"path": "packages/ui"
+				},
+				{
+					"kind": "directory",
+					"path": "packages/ui-solid"
+				},
+				{
+					"kind": "directory",
+					"path": "packages/recorder-core"
+				},
+				{
+					"kind": "directory",
+					"path": "packages/utils"
+				},
+				{
+					"kind": "directory",
+					"path": "packages/config"
+				}
+			],
+			"evidence": [
+				{
+					"path": "packages/ui/package.json",
+					"note": "Shared React UI components and styles.",
+					"translations": {
+						"zh": {
+							"note": "共享 React UI 组件与设计样式包。"
+						}
+					}
+				},
+				{
+					"path": "packages/config/base.tsconfig.json",
+					"note": "Workspace base TypeScript configuration.",
+					"translations": {
+						"zh": {
+							"note": "工作区通用 TypeScript 基础配置。"
+						}
+					}
+				}
+			],
+			"status": "supported",
+			"openQuestions": [],
+			"layout": {
+				"row": 1,
+				"column": 2
+			},
+			"translations": {
+				"zh": {
+					"name": "共享前端包与类型",
+					"responsibility": "跨工作区共享的 UI 组件库、设计系统令牌、录制器契约接口、辅助函数库及 TypeScript 基础配置。"
+				}
+			}
+		}
+	],
+	"relationships": [
+		{
+			"id": "desktop-to-media",
+			"from": "desktop-ui",
+			"to": "media-pipeline",
+			"label": "controls screen & audio capture",
+			"kind": "request",
+			"visibility": "overview",
+			"evidence": [
+				{
+					"path": "apps/desktop-gpui/src/main.rs",
+					"note": "Desktop UI triggers recording sessions via recording crate.",
+					"translations": {
+						"zh": {
+							"note": "桌面端界面通过 recording crate 触发并调度录制会话。"
+						}
+					}
+				}
+			],
+			"status": "supported",
+			"openQuestions": [],
+			"translations": {
+				"zh": {
+					"label": "调控音视频录制流水线"
+				}
+			}
+		},
+		{
+			"id": "desktop-to-editor",
+			"from": "desktop-ui",
+			"to": "editor-engine",
+			"label": "edits timeline & initiates export",
+			"kind": "request",
+			"visibility": "overview",
+			"evidence": [
+				{
+					"path": "apps/desktop-gpui/src/editor_panels.rs",
+					"note": "Editor panel UI interacts with editor and export crates.",
+					"translations": {
+						"zh": {
+							"note": "剪辑面板界面与 editor 及 export crate 进行交互。"
+						}
+					}
+				}
+			],
+			"status": "supported",
+			"openQuestions": [],
+			"translations": {
+				"zh": {
+					"label": "编辑工程时间线并触发导出"
+				}
+			}
+		},
+		{
+			"id": "media-to-platform",
+			"from": "media-pipeline",
+			"to": "os-platform",
+			"label": "captures OS display & input streams",
+			"kind": "dependency",
+			"visibility": "overview",
+			"evidence": [
+				{
+					"path": "crates/recording/src/lib.rs",
+					"note": "Recording engine binds platform capture targets.",
+					"translations": {
+						"zh": {
+							"note": "录制引擎挂载特定操作系统的屏幕采集实现。"
+						}
+					}
+				}
+			],
+			"status": "supported",
+			"openQuestions": [],
+			"translations": {
+				"zh": {
+					"label": "采集底层屏幕与硬件输入流"
+				}
+			}
+		},
+		{
+			"id": "editor-to-media",
+			"from": "editor-engine",
+			"to": "media-pipeline",
+			"label": "reads captured audio & video tracks",
+			"kind": "dependency",
+			"visibility": "overview",
+			"evidence": [
+				{
+					"path": "crates/editor/src/lib.rs",
+					"note": "Editor accesses captured media assets.",
+					"translations": {
+						"zh": {
+							"note": "剪辑器加载录制生成的媒体资产文件。"
+						}
+					}
+				}
+			],
+			"status": "supported",
+			"openQuestions": [],
+			"translations": {
+				"zh": {
+					"label": "读取录制的音视频原始轨道"
+				}
+			}
+		},
+		{
+			"id": "cli-to-media",
+			"from": "cli-tool",
+			"to": "media-pipeline",
+			"label": "initiates CLI recording",
+			"kind": "request",
+			"visibility": "overview",
+			"evidence": [
+				{
+					"path": "apps/cli/src/main.rs",
+					"note": "CLI command starts capture session.",
+					"translations": {
+						"zh": {
+							"note": "CLI 命令行子命令直接调用底层录制流水线。"
+						}
+					}
+				}
+			],
+			"status": "supported",
+			"openQuestions": [],
+			"translations": {
+				"zh": {
+					"label": "终端命令行启动录制会话"
+				}
+			}
+		},
+		{
+			"id": "cli-to-editor",
+			"from": "cli-tool",
+			"to": "editor-engine",
+			"label": "renders and exports projects",
+			"kind": "request",
+			"visibility": "overview",
+			"evidence": [
+				{
+					"path": "apps/cli/src/main.rs",
+					"note": "CLI exports project files.",
+					"translations": {
+						"zh": {
+							"note": "CLI 命令行对指定工程文件进行无界面渲染导出。"
+						}
+					}
+				}
+			],
+			"status": "supported",
+			"openQuestions": [],
+			"translations": {
+				"zh": {
+					"label": "离线批量渲染与工程导出"
+				}
+			}
+		},
+		{
+			"id": "harness-to-shared",
+			"from": "desktop-harness",
+			"to": "shared-packages",
+			"label": "imports shared UI & utils",
+			"kind": "dependency",
+			"visibility": "overview",
+			"evidence": [
+				{
+					"path": "apps/desktop/package.json",
+					"note": "Tauri app depends on @cap/ui-solid and @cap/utils.",
+					"translations": {
+						"zh": {
+							"note": "Tauri 测试端依赖 @cap/ui-solid 与 @cap/utils。"
+						}
+					}
+				}
+			],
+			"status": "supported",
+			"openQuestions": [],
+			"translations": {
+				"zh": {
+					"label": "引入共享 UI 与工具包"
+				}
+			}
+		}
+	]
+}

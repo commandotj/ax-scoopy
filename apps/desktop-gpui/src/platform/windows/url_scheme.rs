@@ -10,8 +10,8 @@ pub(super) fn install() {
     std::thread::Builder::new()
         .name("cap-url-scheme".into())
         .spawn(move || {
-            if let Err(error) = claim_url_scheme("cap-desktop", &executable) {
-                tracing::warn!(%error, "could not register the cap-desktop link handler");
+            if let Err(error) = claim_url_scheme("scoopy", &executable) {
+                tracing::warn!(%error, "could not register the scoopy link handler");
             }
         })
         .ok();

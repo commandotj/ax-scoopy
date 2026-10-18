@@ -193,10 +193,6 @@ pub fn imports_snapshot(cx: &App) -> Vec<ImportProgress> {
         .unwrap_or_default()
 }
 
-pub fn imports_in_flight(cx: &App) -> bool {
-    ACTIVE_IMPORT_WORKERS.load(Ordering::Acquire) != 0 || !imports_snapshot(cx).is_empty()
-}
-
 pub(crate) struct InFlightImport;
 
 impl InFlightImport {
@@ -1902,7 +1898,7 @@ mod tests {
         let root = temp_dir("cancel-conversion");
         let source = root.join("source.mp4");
         let source_bytes =
-            include_bytes!("../../media-server/src/__tests__/fixtures/test-with-audio.mp4");
+            include_bytes!("../tests/fixtures/test-with-audio.mp4");
         std::fs::write(&source, source_bytes).unwrap();
         std::fs::write(root.join("recording-meta.json"), b"{}").unwrap();
         let cancelled = AtomicBool::new(false);
@@ -2142,7 +2138,7 @@ mod tests {
         let source = root.join("source.mp4");
         std::fs::write(
             &source,
-            include_bytes!("../../media-server/src/__tests__/fixtures/test-with-audio.mp4"),
+            include_bytes!("../tests/fixtures/test-with-audio.mp4"),
         )
         .unwrap();
         std::fs::write(root.join("recording-meta.json"), b"{}").unwrap();

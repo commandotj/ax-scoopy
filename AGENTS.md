@@ -6,14 +6,13 @@ These rules are enforced by CI (`cargo clippy -D warnings`, Biome). Fixing them 
 
 ### Zero-tolerance rules
 - **Default to no code comments. Add a comment only after solving a bug or working through a complex issue, and only when it captures non-obvious context that a future investigator or reviewer genuinely needs** — e.g. why the fix looks the way it does, the upstream/platform bug being worked around, a non-obvious invariant or trade-off chosen after investigation, or a link to the PR/issue that explains the decision. Bad cases that remain banned: narrating what the code does, restating types, JSDoc that paraphrases parameter names, "TODO: refactor" or "this should be cleaner" notes, and any comment that just describes the change you are currently making. When in doubt, prefer better naming/types over a comment. Applies to every language: Rust, TS, JS, Python, shell, SQL, TOML, etc.
-- **Never hand-edit generated files**: `**/tauri.ts`, `apps/desktop/src-tauri/gen/**`, `packages/ui-solid/src/auto-imports.d.ts`, Drizzle migration SQL under `packages/database/migrations/`. These are regenerated (e.g. `tauri.ts` only on debug desktop runs) but stay committed because CI typecheck and fresh clones depend on them; commit binding changes alongside the Rust change that produced them. For database schema changes, run `bun run db:generate` and commit the generated SQL, snapshot, and journal changes alongside the schema change. Generating and committing these artifacts is required; modifying generated output by hand is prohibited. Note: `apps/desktop/src/utils/queries.ts` is hand-written, not generated — edit it normally.
-- **Never start additional dev servers** (`bun run dev`, `bun run dev:web`, `bun run dev:desktop`, Docker services). Assume they are already running. The `/building` workflow may start a session-owned web server in its isolated worktree on an allocated port through its environment wrapper, or services inside its owned sandbox. This exception does not permit restarting shared services or launching a native app against the user's existing profile.
+- **Never hand-edit generated files**: `**/tauri.ts`, `apps/desktop/src-tauri/gen/**`, `packages/ui-solid/src/auto-imports.d.ts`. These are regenerated (e.g. `tauri.ts` only on debug desktop runs) but stay committed because CI typecheck and fresh clones depend on them; commit binding changes alongside the Rust change that produced them. Note: `apps/desktop/src/utils/queries.ts` is hand-written, not generated — edit it normally.
+- **Never start additional dev servers** (`bun run dev`, `bun run dev:desktop`). Assume they are already running. This does not permit restarting shared services or launching a native app against the user's existing profile.
 
 ### Post-edit checks (run before you say "done")
 - Prefer scoped, fast checks over full workspace gates. Do not run long full-repo checks by default.
 - Touched any Rust file → `cargo fmt --all` and `cargo check -p <crate>`. Add `--all-targets`, `--workspace`, or clippy only when explicitly requested, when preparing CI/PR final validation, or when the change needs broader coverage.
 - Touched any TS / JS / JSON / CSS / MD file → run the narrowest applicable formatter/linter on touched files first, such as `bun run biome check --write <files>`. Use full `bun run format`, `bun run lint`, and `bun run typecheck` only when explicitly requested or when the change spans shared types/packages.
-- Touched DB schema → `bun run db:generate` before relying on it.
 
 ### Rust — write the clippy-clean form the FIRST time
 All patterns below are `deny` in the workspace `[workspace.lints]` in `Cargo.toml`. Do not emit the left column; always emit the right column.
@@ -41,27 +40,25 @@ Additionally, `unused_must_use = "deny"` applies to all Rust code: every `Result
 - **Quotes: double.** `"foo"`, never `'foo'`, for JS/TS string literals.
 - **`organizeImports: on`** — imports are sorted/grouped automatically; don't leave unused imports or hand-sort against the grain.
 - **Recommended lint ruleset is on**, with `suspicious.noShadowRestrictedNames` disabled. Everything else (unused vars, `noExplicitAny`, dead code, etc.) applies.
-- Desktop code under `apps/desktop/**` has a11y rules disabled; they are enforced everywhere else (`apps/web`, `packages/ui`, etc.).
+- Desktop code under `apps/desktop/**` has a11y rules disabled; they are enforced everywhere else (e.g. `packages/ui`).
 - CSS overrides: `noUnknownAtRules`, `noUnknownTypeSelector`, `noDescendingSpecificity` are off for `**/*.css`.
 
 ### TypeScript — strictness
-- Avoid `any`. Use `unknown` + narrowing, or existing shared types from `@cap/utils`, `@cap/web-domain`, generated bindings, etc.
+- Avoid `any`. Use `unknown` + narrowing, or existing shared types from `@cap/utils`, generated bindings, etc.
 - Do not introduce `@ts-expect-error` / `@ts-ignore` without a concrete reason. Prefer fixing the type.
 
 ## Project Structure & Modules
 - Turborepo monorepo:
-  - `apps/desktop-gpui` (GPUI, ships as Cap), `apps/desktop` (Tauri v2 + SolidStart; last shipped in 0.6.0, kept for the dev harness), `apps/web` (Next.js), `apps/cli` (Rust CLI).
-  - `packages/*` shared libs (e.g., `database`, `ui`, `ui-solid`, `utils`, `web-*`).
+  - `apps/desktop-gpui` (GPUI, ships as Cap), `apps/desktop` (Tauri v2 + SolidStart; last shipped in 0.6.0, kept for the dev harness), `apps/cli` (Rust CLI).
+  - `packages/*` shared libs (e.g., `ui`, `ui-solid`, `utils`, `web-api-contract`).
   - `crates/*` Rust media/recording/rendering/camera crates.
-  - `scripts/*`, `infra/`, and `packages/local-docker/` for tooling and local services.
-- Marketing and lifecycle emails (copy, Loops journeys and campaigns, the email catalogue and voice guide) and their Loops tooling live in the private repo [CapSoftware/cap-marketing](https://github.com/CapSoftware/cap-marketing). View and edit them there. This repo keeps only the runtime profile sync in `packages/database/loops/` (with its tests and runners in `scripts/loops/`) and the transactional emails in `packages/database/emails/`.
+  - `scripts/*` for tooling.
+- The repo has no hosted backend: there is no web app, no API, and no database. Marketing and lifecycle email copy lives in the private repo [CapSoftware/cap-marketing](https://github.com/CapSoftware/cap-marketing).
 
 ## Build, Test, Develop
-- Install: `bun install`; setup: `bun run env-setup` then `bun run cap-setup`.
-- Dev: `bun run dev` (web+desktop). Desktop only: `bun run dev:desktop`. Web only: `bun run dev:web` or `cd apps/web && bun run dev`.
+- Install: `bun install`; setup: `bun run cap-setup`.
+- Dev: `bun run dev`. Desktop only: `bun run dev:desktop`.
 - Build: `bun run build` (Turbo). Desktop release: `bun run gpui:build <target>` (Cap ships as the GPUI app only).
-- DB: `bun run db:generate` → `bun run db:push` → `bun run db:studio`.
-- Docker: `bun run docker:up | docker:stop | docker:clean`.
 - Quality: `bun run lint`, `bun run format`, `bun run typecheck`. Rust: `cargo build -p <crate>`, `cargo test -p <crate>`.
 
 ## Coding Style & Naming
@@ -83,10 +80,9 @@ Additionally, `unused_must_use = "deny"` applies to all Rust code: every `Result
 - PRs: clear description, linked issues, screenshots/GIFs for UI, env/migration notes. Keep scope tight and update docs when behavior changes.
 
 ## Agent‑Specific Practices
-- Do not start extra servers; use `bun run dev:web` or `bun run dev:desktop` as needed.
+- Do not start extra servers; use `bun run dev:desktop` as needed.
 - Prefer existing scripts and Turbo filters over ad‑hoc commands; clear `.turbo` only when necessary.
-- Database flow: always `db:generate` → `db:push` before relying on new schema.
-- Keep secrets out of VCS; configure via `.env` from `bun run env-setup`.
+- Keep secrets out of VCS; configure via `.env`.
 - macOS note: desktop permissions (screen/mic) apply to the terminal running `bun run dev:desktop`.
 - All other agent-facing rules (comments policy, no editing generated files, clippy/Biome shape, post-edit gates) live in **Pre-Generation Invariants** at the top of this file.
 
@@ -102,16 +98,21 @@ When asked to inspect, review, optimize, secure, or fix something, do not stop a
 
 Prefer the smallest correct fix, but only after checking whether the narrow fix misses related consequences.
 
-## Effect Usage
-- Next.js API routes in `apps/web/app/api/*` are built with `@effect/platform`'s `HttpApi` builder; copy the existing class/group/endpoint pattern instead of ad-hoc handlers.
-- Acquire backend services (e.g., `Videos`, `S3Buckets`) inside `Effect.gen` blocks and wire them through `Layer.provide`/`HttpApiBuilder.group`, translating domain errors to `HttpApiError` variants.
-- Convert the effectful API to a Next.js handler with `apiToHandler(ApiLive)` from `@/lib/server` and export the returned `handler`—avoid calling `runPromise` inside route files.
-- On the server, run effects through `EffectRuntime.runPromise` from `@/lib/server`, typically after `provideOptionalAuth`, so cookies and per-request context are attached automatically.
-- On the client, use `useEffectQuery`/`useEffectMutation` from `@/lib/EffectRuntime`; they already bind the managed runtime and tracing so you shouldn't call `EffectRuntime.run*` directly in components.
-
 ## Code Formatting & Lint Checks
 Before declaring any task complete, the agent should run the fastest useful check for every file type it touched and report anything skipped.
 
 - **Rust**: `cargo fmt --all` and `cargo check -p <crate>` for the touched crate. Add `--all-targets`, `--workspace`, or `cargo clippy -p <crate> --all-targets -- -D warnings` only for explicit requests, CI/PR final validation, or changes that need broader coverage.
 - **TS / JS / JSON / CSS / MD**: prefer scoped checks such as `bun run biome check --write <files>`. Use full `bun run format`, `bun run lint`, and `bun run typecheck` only when explicitly requested or when the change is broad enough to justify it.
 - If a scoped check fails, fix the violation in the source (do NOT suppress with `#[allow(...)]`, `// biome-ignore`, or `any` unless explicitly approved). The Pre-Generation Invariants show the correct form for every denied lint.
+
+<!-- birdify:mode:start -->
+Birdify mode: auto
+Birdify foundation: on
+For every authorized coding task, even when the Birdify skill is not activated: read related implementations, callers and applicable design decisions before editing. Resolve questions from source; ask only about material unresolved choices. Keep changes focused and avoid abstractions without concrete benefit. For bug fixes, establish reproduction or concrete failure evidence; favor tests of observable behavior. Verify the original request and report actual checks and limitations honestly. When coordinating with other agents, inspect existing shared task records, record time, base commit and scope there, and clear only your own temporary claims on completion.
+These foundation rules do not require reading the skill, creating a map or activity records, starting an architecture review, or requesting approval for routine authorized work. Follow the host's instruction precedence and explicit user directions. The mode below controls the architecture-map workflow only.
+Use the Birdify skill before every code-changing task, including small edits, and for planning that explicitly analyzes affected modules. Enter the workflow once per task; update activity before each edit group, not each line.
+When active, first inspect existing project maps and report the reusable path or checked locations and why a new map is needed. Follow the skill to validate/reuse the map, preview it, and declare affected modules before editing.
+After displaying the map and concrete change plan, wait for user confirmation before implementation. Preparing map and plan artifacts is allowed beforehand. Reuse confirmation of the same displayed plan; confirm material scope changes. Auto mode is not approval. Honor an explicit task-specific waiver.
+Planning alone does not authorize code edits or fabricated activity. A one-task request overrides this mode for that task without changing this block. If the skill is unavailable, report it rather than claim its workflow ran.
+This is agent guidance, not a filesystem write interceptor. Preserve all instructions outside this managed block.
+<!-- birdify:mode:end -->

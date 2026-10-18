@@ -1,5 +1,3 @@
-import type { Storage, Video } from "@cap/web-domain";
-
 export type RecorderPhase =
 	| "idle"
 	| "recording"
@@ -12,9 +10,22 @@ export type RecorderPhase =
 
 export type RecorderErrorEvent = Event & { error?: DOMException };
 
-// Derived from the server schema so contract drift fails to compile instead
-// of surfacing at runtime.
-export type UploadTarget = Storage.UploadTarget;
+export type UploadTarget =
+	| {
+			type: "s3Post";
+			url: string;
+			fields: Record<string, string>;
+	  }
+	| {
+			type: "put";
+			url: string;
+			headers: Record<string, string>;
+	  }
+	| {
+			type: "driveResumable";
+			url: string;
+			headers: Record<string, string>;
+	  };
 
 export type UploadStatus =
 	| {
@@ -44,7 +55,7 @@ export type UploadStatus =
 			capId: string;
 	  };
 
-export type VideoId = Video.VideoId;
+export type VideoId = string & { readonly __brand: "VideoId" };
 
 export type ChunkUploadState = {
 	partNumber: number;

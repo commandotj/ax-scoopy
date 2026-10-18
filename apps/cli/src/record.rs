@@ -234,19 +234,7 @@ async fn foreground_inner(params: RecordParams, format: OutputFormat) -> Result<
     }
 
     let completed = finalize(actor, params.duration, interactive, None).await?;
-    crate::automation::run_recording_finished(
-        completed.project_path(),
-        automation_mode(params.mode),
-    )
-    .await;
     emit_stopped(format, &completed)
-}
-
-fn automation_mode(mode: RecordMode) -> cap_automation::AutomationRecordingMode {
-    match mode {
-        RecordMode::Studio => cap_automation::AutomationRecordingMode::Studio,
-        RecordMode::Instant => cap_automation::AutomationRecordingMode::Instant,
-    }
 }
 
 async fn run_detached(params: RecordParams, format: OutputFormat) -> Result<(), String> {
@@ -453,11 +441,6 @@ async fn session_worker(params: RecordParams, recording_id: &str) -> Result<(), 
 
     let stop_path = session::stop_file(recording_id)?;
     let completed = finalize(actor, params.duration, false, Some(&stop_path)).await?;
-    crate::automation::run_recording_finished(
-        completed.project_path(),
-        automation_mode(params.mode),
-    )
-    .await;
     let recording_meta_exists = completed
         .project_path()
         .join("recording-meta.json")
@@ -1120,7 +1103,7 @@ fn prepare_recording_project(
             .file_stem()
             .and_then(|name| name.to_str())
             .filter(|name| !name.is_empty())
-            .unwrap_or("Cap Recording")
+            .unwrap_or("Scoopy Recording")
             .to_string(),
         sharing: None,
         inner: RecordingMetaInner::Instant(InstantRecordingMeta::InProgress { recording: true }),
@@ -1139,7 +1122,7 @@ fn persist_instant_recording_meta(
         .file_stem()
         .and_then(|name| name.to_str())
         .filter(|name| !name.is_empty())
-        .unwrap_or("Cap Recording")
+        .unwrap_or("Scoopy Recording")
         .to_string();
     let meta = match &recording.meta {
         InstantRecordingMeta::Complete { .. } => recording.meta.clone(),

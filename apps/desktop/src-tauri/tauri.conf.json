@@ -1,8 +1,8 @@
 {
 	"$schema": "https://schema.tauri.app/config/2",
-	"productName": "Cap - Development",
+	"productName": "Scoopy - Development",
 	"identifier": "so.cap.desktop.dev",
-	"mainBinaryName": "Cap - Development",
+	"mainBinaryName": "Scoopy - Development",
 	"build": {
 		"beforeDevCommand": "bun run localdev",
 		"devUrl": "http://localhost:3002",
@@ -120,7 +120,7 @@
 		"fileAssociations": [
 			{
 				"ext": ["cap"],
-				"name": "Cap Project",
+				"name": "Scoopy Project",
 				"mimeType": "application/x-cap-project",
 				"role": "Editor"
 			}

@@ -511,14 +511,6 @@ impl RecordingSession {
         cx.global::<SessionGlobal>().0.clone()
     }
 
-    /// True while a recording is in flight. Tolerates the global not being
-    /// installed yet (reporting idle) so callers can gate on it from windows
-    /// that may open before the session exists.
-    pub fn recording_in_flight(cx: &App) -> bool {
-        cx.has_global::<SessionGlobal>()
-            && cx.global::<SessionGlobal>().0.read(cx).phase != Phase::Idle
-    }
-
     /// Elapsed recording time, excluding paused stretches -- what the bar's
     /// timer shows.
     pub fn elapsed(&self) -> Duration {
@@ -1112,7 +1104,6 @@ impl RecordingSession {
         let Some(active) = self.active.as_ref() else {
             return;
         };
-        let instant_share_url = active.instant_share_url().map(ToString::to_string);
         #[cfg(target_os = "linux")]
         let stop_owner = RecordingOwner {
             generation: self.recording_generation,
@@ -1135,20 +1126,6 @@ impl RecordingSession {
         let recording_failed = self.pipeline_failed;
         #[cfg(any(target_os = "macos", windows))]
         let original_failure = recording_failed.then(|| self.error.clone()).flatten();
-        #[cfg(target_os = "linux")]
-        let defer_share_until_success =
-            crate::app_windows::clean_capture_active(cx) || active.instant_lifecycle().is_some();
-        #[cfg(not(target_os = "linux"))]
-        let defer_share_until_success = true;
-        if let Some(link) = &instant_share_url
-            && !low_storage
-            && !recording_failed
-            && !defer_share_until_success
-            && !crate::store::GeneralSettings::load().disable_auto_open_links
-        {
-            let separator = if link.contains('?') { '&' } else { '?' };
-            cx.open_url(&format!("{link}{separator}recordingStopped=1"));
-        }
         let studio_project_path = active.project_dir.clone();
         let camera_snapshot = self.last_config.as_ref().and_then(|config| {
             (config.mode == recording::RecordingMode::Studio && config.camera.is_some())
@@ -1191,14 +1168,7 @@ impl RecordingSession {
             Some(future) => future,
             None => {
                 let active = self.active.take().unwrap();
-                Box::pin(async move {
-                    (
-                        true,
-                        active
-                            .stop(low_storage || recording_failed, camera_snapshot)
-                            .await,
-                    )
-                })
+                Box::pin(async move { (true, active.stop(camera_snapshot).await) })
             }
         };
         #[cfg(target_os = "linux")]
@@ -1320,15 +1290,6 @@ impl RecordingSession {
                         }
                         if this.mode() == Some(crate::recording::RecordingMode::Studio) && !low_storage {
                             this.finished_studio = Some(project_dir);
-                        } else if let Some(link) = instant_share_url {
-                            if defer_share_until_success
-                                && !low_storage
-                                && !crate::store::GeneralSettings::load().disable_auto_open_links
-                            {
-                                let separator = if link.contains('?') { '&' } else { '?' };
-                                cx.open_url(&format!("{link}{separator}recordingStopped=1"));
-                            }
-                            cx.write_to_clipboard(gpui::ClipboardItem::new_string(link));
                         }
                     }
                     Ok(Err(error)) => {

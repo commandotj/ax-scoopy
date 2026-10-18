@@ -88,16 +88,16 @@ fn target_for(format: PackageFormat, arch: &str) -> Result<String, String> {
         PackageFormat::Deb => "deb",
         PackageFormat::AppImage => "appimage",
         PackageFormat::Rpm => {
-            return Err("Update Cap through your RPM package manager or install the latest RPM from cap.so/download.".into());
+            return Err("Update Scoopy through your RPM package manager or install the latest RPM from cap.so/download.".into());
         }
         PackageFormat::Arch => {
-            return Err("Update Cap through your Arch package manager or install the latest Arch package from cap.so/download.".into());
+            return Err("Update Scoopy through your Arch package manager or install the latest Arch package from cap.so/download.".into());
         }
         PackageFormat::ExtractedAppImage => {
-            return Err("Launch the original Cap AppImage to use automatic updates. An extracted AppImage cannot update itself.".into());
+            return Err("Launch the original Scoopy AppImage to use automatic updates. An extracted AppImage cannot update itself.".into());
         }
         PackageFormat::Unknown => {
-            return Err("Automatic updates are unavailable for this Cap installation. Update it through your package manager or cap.so/download.".into());
+            return Err("Automatic updates are unavailable for this Scoopy installation. Update it through your package manager or cap.so/download.".into());
         }
     };
     Ok(format!("linux-{arch}-{suffix}"))

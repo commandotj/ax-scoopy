@@ -45,7 +45,7 @@ pub async fn start_recording(
         .map_err(|e| {
             format!(
                 "screen recording permission unavailable: {e}. \
-                 Grant Cap screen recording access in System Settings and retry."
+                 Grant Scoopy screen recording access in System Settings and retry."
             )
         })
         .map(cap_recording::SendableShareableContent::from)?;
@@ -103,7 +103,7 @@ fn persist_meta(recording: &instant_recording::CompletedRecording) -> Result<(),
         .file_stem()
         .and_then(|name| name.to_str())
         .filter(|name| !name.is_empty())
-        .unwrap_or("Cap Recording")
+        .unwrap_or("Scoopy Recording")
         .to_string();
     let meta = match &recording.meta {
         InstantRecordingMeta::InProgress { .. } => InstantRecordingMeta::Failed {

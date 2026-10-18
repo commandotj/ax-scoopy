@@ -5,9 +5,7 @@
 		{ "path": "./packages/recorder-core" },
 		{ "path": "./packages/ui-solid" },
 		{ "path": "./packages/utils" },
-		{ "path": "./apps/desktop" },
-		{ "path": "./apps/chrome-extension" },
-		{ "path": "./apps/web" }
+		{ "path": "./apps/desktop" }
 	],
 	"compilerOptions": {
 		"plugins": [{ "name": "@effect/language-service" }]

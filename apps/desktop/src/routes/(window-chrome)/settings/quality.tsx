@@ -59,7 +59,7 @@ const INSTANT_OPTIONS = [
 		value: 1920,
 		label: "1080p",
 		description:
-			"Clear text and a practical upload size. Recommended with Cap Pro.",
+			"Clear text and a practical upload size. Recommended with Scoopy Pro.",
 	},
 	{
 		value: 2560,
@@ -293,7 +293,7 @@ export default function RecordingQualitySettings() {
 								<Show when={!auth.isPending && !hasCapPro()}>
 									<div class="flex flex-col items-start gap-3 mt-4 pt-4 border-t border-gray-4">
 										<p class="text-xs leading-relaxed text-gray-11">
-											720p is included. Cap Pro unlocks 1080p, 1440p and 4K for
+											720p is included. Scoopy Pro unlocks 1080p, 1440p and 4K for
 											Instant recordings.
 										</p>
 										<Button

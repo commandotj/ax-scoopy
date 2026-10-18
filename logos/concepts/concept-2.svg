@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 512">
+	<g id="icon">
+		<path d="M96 262a160 160 0 0 1 320 0z" fill="#FF8FB1"/>
+		<path d="M80 262h352v26c0 24-22 24-22 0c0 40-44 40-44 0c0 24-30 24-30 0c0 52-52 52-52 0c0 24-26 24-26 0c0 40-48 40-48 0c0 24-22 24-22 0c0 26-108 26-108 0z" fill="#FF5A8A"/>
+		<path d="M150 330h212L256 468z" fill="#E9A24B"/>
+	</g>
+	<g id="wordmark">
+		<text x="470" y="318" font-family="Helvetica, Arial, sans-serif" font-size="150" font-weight="700" letter-spacing="-4" fill="#2B2340">scoopy</text>
+	</g>
+</svg>

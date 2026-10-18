@@ -57,8 +57,6 @@ impl Screenshot {
             }
         };
 
-        let automation_target = target.clone();
-
         let image = capture_screenshot(target)
             .await
             .map_err(|e| format!("Screenshot failed: {e}"))?;
@@ -66,8 +64,6 @@ impl Screenshot {
         image
             .save(&self.path)
             .map_err(|e| format!("Failed to write screenshot to {}: {e}", self.path.display()))?;
-
-        crate::automation::run_screenshot(&self.path, &automation_target).await;
 
         match format {
             OutputFormat::Json => write_json(&ScreenshotResult {

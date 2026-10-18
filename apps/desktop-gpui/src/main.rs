@@ -6,7 +6,6 @@
 mod app_sounds;
 mod app_windows;
 mod assets;
-mod auth;
 #[cfg(target_os = "macos")]
 mod camera_bench;
 #[cfg(target_os = "macos")]
@@ -38,7 +37,6 @@ mod editor_window;
 mod feeds;
 mod hotkeys;
 mod import;
-mod installer;
 mod library;
 mod main_window;
 mod menus;
@@ -71,8 +69,6 @@ mod theme;
 mod transcription;
 mod tray;
 mod ui;
-mod updates;
-mod upload;
 
 use gpui::{App, AppContext as _, Bounds, WindowBounds, WindowOptions, px, size};
 
@@ -97,7 +93,6 @@ fn parse_auto_record(spec: &str) -> Option<(main_window::Mode, u64)> {
     let (mode, secs) = spec.split_once(':')?;
     let mode = match mode {
         "studio" => main_window::Mode::Studio,
-        "instant" => main_window::Mode::Instant,
         _ => return None,
     };
     Some((mode, secs.parse().ok()?))
@@ -265,23 +260,11 @@ fn main() {
     }
 
     platform::install_url_scheme_handler();
-    for argument in std::env::args().skip(1) {
-        if argument.contains("token") || argument.contains("api_key") {
-            crate::auth::submit_deep_link(&argument);
-        }
-    }
-
     let app = gpui_platform::application().with_assets(Assets);
     // `RunEvent::Reopen`: the dock icon clicked while the app runs. Must be
     // registered on the builder -- gpui exposes it nowhere else -- with the
     // handler guarding against firing before the window registry exists.
     app.on_reopen(crate::app_windows::handle_dock_reopen);
-    #[cfg(target_os = "macos")]
-    app.on_open_urls(|urls| {
-        for url in urls {
-            crate::deeplink::submit_deep_link(&url);
-        }
-    });
     let runtime = app_runtime();
     let runtime_handle = runtime.handle().clone();
 
@@ -332,17 +315,17 @@ fn main() {
                     titlebar: None,
                     #[cfg(target_os = "windows")]
                     titlebar: Some(gpui::TitlebarOptions {
-                        title: Some("Cap".into()),
+                        title: Some("Scoopy".into()),
                         appears_transparent: true,
                         ..Default::default()
                     }),
                     #[cfg(target_os = "linux")]
                     titlebar: Some(gpui::TitlebarOptions {
-                        title: Some("Cap".into()),
+                        title: Some("Scoopy".into()),
                         ..Default::default()
                     }),
                     #[cfg(target_os = "linux")]
-                    app_id: Some("Cap".into()),
+                    app_id: Some("Scoopy".into()),
                     #[cfg(target_os = "linux")]
                     window_min_size: Some(size(px(MAIN_WINDOW_WIDTH), px(MAIN_WINDOW_HEIGHT))),
                     #[cfg(target_os = "linux")]
@@ -401,8 +384,6 @@ fn main() {
         }
         #[cfg(target_os = "linux")]
         single_instance::init_linux_reopen(cx);
-        updates::schedule_startup_check(cx);
-        upload::queue::init(cx);
 
         // The app menu (and with it ⌘W/⌘M/⌘Q) and the status-bar item. Both
         // reach into the window registry, so they come after it -- and the menu

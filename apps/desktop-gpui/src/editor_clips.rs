@@ -3452,9 +3452,9 @@ mod tests {
     }
 
     const MP4_WITHOUT_AUDIO: &[u8] =
-        include_bytes!("../../media-server/src/__tests__/fixtures/test-no-audio.mp4");
+        include_bytes!("../tests/fixtures/test-no-audio.mp4");
     const MP4_WITH_AUDIO: &[u8] =
-        include_bytes!("../../media-server/src/__tests__/fixtures/test-with-audio.mp4");
+        include_bytes!("../tests/fixtures/test-with-audio.mp4");
 
     struct ImportFixture {
         root: PathBuf,

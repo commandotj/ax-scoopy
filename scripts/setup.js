@@ -840,7 +840,7 @@ async function ensureMsvcVersion() {
 	if (!isAtLeast) {
 		throw new Error(
 			`Visual Studio 2022 Build Tools ${major}.${minor} is too old (full: ${raw}).\n` +
-				`Cap requires ${MIN_MSVC_VERSION[0]}.${MIN_MSVC_VERSION[1]} or newer because the prebuilt ONNX Runtime ` +
+				`Scoopy requires ${MIN_MSVC_VERSION[0]}.${MIN_MSVC_VERSION[1]} or newer because the prebuilt ONNX Runtime ` +
 				`shipped by the 'ort' crate references vectorized-algorithm symbols ` +
 				`(e.g. __std_find_last_of_trivial_pos_*, __std_remove_8) that only exist in vcruntime140_1.lib from MSVC 14.42+.\n` +
 				`\nUpdate via the Visual Studio Installer, or from an elevated PowerShell:\n` +

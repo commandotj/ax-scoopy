@@ -140,7 +140,7 @@ export default function FeedbackTab() {
 
 	const handleRunDiagnostic = async () => {
 		const confirmed = await confirm(
-			`Cap will take over your screen with a flashing test pattern and play loud beeps for about ${durationSecs()} seconds per pipeline. Take your headphones off, leave the volume audible, and don't use the machine until it finishes.`,
+			`Scoopy will take over your screen with a flashing test pattern and play loud beeps for about ${durationSecs()} seconds per pipeline. Take your headphones off, leave the volume audible, and don't use the machine until it finishes.`,
 			{ title: "Run diagnostic?", kind: "warning", okLabel: "Run Diagnostic" },
 		);
 		if (!confirmed) return;
@@ -181,7 +181,7 @@ export default function FeedbackTab() {
 		setSendingReport(true);
 		try {
 			await commands.uploadDiagnosticReport(report.reportPath);
-			toast.success("Diagnostic report sent to Cap");
+			toast.success("Diagnostic report sent to Scoopy");
 		} catch (error) {
 			toast.error("Failed to send diagnostic report");
 			console.error("Failed to send diagnostic report:", error);
@@ -220,7 +220,7 @@ export default function FeedbackTab() {
 			<SettingsPageContent>
 				<Section
 					title="Feedback"
-					description="Help us improve Cap by submitting feedback or reporting bugs. We'll get right on it."
+					description="Help us improve Scoopy by submitting feedback or reporting bugs. We'll get right on it."
 				>
 					<form
 						class="space-y-4"
@@ -234,7 +234,7 @@ export default function FeedbackTab() {
 								<textarea
 									value={feedback()}
 									onInput={(e) => setFeedback(e.currentTarget.value)}
-									placeholder="Tell us what you think about Cap..."
+									placeholder="Tell us what you think about Scoopy..."
 									required
 									minLength={10}
 									class="p-2 w-full h-32 text-[13px] rounded-md border transition-colors duration-200 resize-none bg-gray-2 placeholder:text-gray-10 border-gray-3 text-primary focus:outline-hidden focus:ring-1 focus:ring-gray-8 hover:border-gray-6"
@@ -266,7 +266,7 @@ export default function FeedbackTab() {
 
 				<Section
 					title="Join the Community"
-					description="Have questions, want to share ideas, or just hang out? Join the Cap Discord community."
+					description="Have questions, want to share ideas, or just hang out? Join the Scoopy Discord community."
 				>
 					<Button
 						onClick={() => shell.open("https://cap.link/discord")}
@@ -279,7 +279,7 @@ export default function FeedbackTab() {
 
 				<Section
 					title="Diagnostic Report"
-					description="Runs an audio/video sync test and collects your hardware, displays, cameras, microphones, Cap settings, details of your recent recordings and a copy of Cap's log file, so we can reproduce your setup instead of guessing at it. You can read the whole report before sending it."
+					description="Runs an audio/video sync test and collects your hardware, displays, cameras, microphones, Scoopy settings, details of your recent recordings and a copy of Scoopy's log file, so we can reproduce your setup instead of guessing at it. You can read the whole report before sending it."
 				>
 					<div class="space-y-2.5">
 						<div class="flex gap-2.5 items-start px-3 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10">
@@ -367,7 +367,7 @@ export default function FeedbackTab() {
 											variant="dark"
 											disabled={sendingReport()}
 										>
-											{sendingReport() ? "Sending..." : "Send to Cap"}
+											{sendingReport() ? "Sending..." : "Send to Scoopy"}
 										</Button>
 										<Button
 											onClick={handleRevealReport}
@@ -385,7 +385,7 @@ export default function FeedbackTab() {
 
 				<Section
 					title="Debug Information"
-					description="Upload Cap's log file to help us diagnose issues. It records what the app did, which can include file paths and the names of things you recorded."
+					description="Upload Scoopy's log file to help us diagnose issues. It records what the app did, which can include file paths and the names of things you recorded."
 				>
 					<Button
 						onClick={handleUploadLogs}

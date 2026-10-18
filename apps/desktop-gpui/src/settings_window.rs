@@ -41,7 +41,6 @@ pub const SETTINGS_WIDTH: f32 = 782.;
 pub const SETTINGS_HEIGHT: f32 = 775.;
 pub const SETTINGS_MIN_WIDTH: f32 = 780.;
 pub const SETTINGS_MIN_HEIGHT: f32 = 560.;
-const MAX_PROFILE_IMAGE_BYTES: usize = 5 * 1024 * 1024;
 
 /// `CapWindowId::Settings::traffic_lights_position` -- `Some(Some(
 /// LogicalPosition::new(22.0, 22.0)))`. Unlike the main window these are the
@@ -84,13 +83,8 @@ pub enum Page {
     Cli,
     Recordings,
     Screenshots,
-    Automations,
     Transcription,
-    Integrations,
-    License,
     Experimental,
-    Feedback,
-    Changelog,
 }
 
 impl Page {
@@ -101,13 +95,8 @@ impl Page {
         Page::Cli,
         Page::Recordings,
         Page::Screenshots,
-        Page::Automations,
         Page::Transcription,
-        Page::Integrations,
-        Page::License,
         Page::Experimental,
-        Page::Feedback,
-        Page::Changelog,
     ];
 
     /// The `name` field. Note "Shortcuts" for the `hotkeys` route -- the label
@@ -120,13 +109,8 @@ impl Page {
             Self::Cli => "CLI",
             Self::Recordings => "Recordings",
             Self::Screenshots => "Screenshots",
-            Self::Automations => "Automations",
             Self::Transcription => "Transcription",
-            Self::Integrations => "Integrations",
-            Self::License => "Plan & license",
             Self::Experimental => "Experimental",
-            Self::Feedback => "Feedback",
-            Self::Changelog => "Changelog",
         }
     }
 
@@ -139,13 +123,8 @@ impl Page {
             Self::Cli => "cli",
             Self::Recordings => "recordings",
             Self::Screenshots => "screenshots",
-            Self::Automations => "automations",
             Self::Transcription => "transcription",
-            Self::Integrations => "integrations",
-            Self::License => "license",
             Self::Experimental => "experimental",
-            Self::Feedback => "feedback",
-            Self::Changelog => "changelog",
         }
     }
 
@@ -162,12 +141,7 @@ impl Page {
             Self::Quality => "icons/gauge.svg",
             Self::Recordings => "icons/square-play.svg",
             Self::Screenshots => "icons/image.svg",
-            Self::Automations => "icons/zap.svg",
             Self::Transcription => "icons/captions.svg",
-            Self::Integrations => "icons/unplug.svg",
-            Self::License => "icons/gift.svg",
-            Self::Feedback => "icons/message-square-plus.svg",
-            Self::Changelog => "icons/bell.svg",
         }
     }
 
@@ -177,11 +151,6 @@ impl Page {
 }
 
 /// A popup list standing in for the native `Menu.popup()` the selects use.
-///
-/// The variants from `S3Provider` down belong to the pages in
-/// `settings_pages.rs`, whose option lists and commits live there
-/// (`pages_menu_items` / `pages_choose`); the `usize` payloads are the rule
-/// index and, where present, the condition/action index within it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum MenuKind {
     Countdown,
@@ -191,21 +160,6 @@ pub(crate) enum MenuKind {
     /// The excluded-windows card's Add button, whose menu is the live window
     /// list rather than a fixed option set.
     AddWindow,
-    /// The S3 config page's Storage Provider select.
-    S3Provider,
-    AutomationTrigger(usize),
-    AutomationMatchMode(usize),
-    AutomationConditionType(usize, usize),
-    AutomationConditionTarget(usize, usize),
-    AutomationConditionMode(usize, usize),
-    AutomationActionType(usize, usize),
-    AutomationClipboardSource(usize, usize),
-    AutomationWebhookMethod(usize, usize),
-    AutomationExportFormat(usize, usize),
-    AutomationExportResolution(usize, usize),
-    AutomationExportFps(usize, usize),
-    AutomationExportCompression(usize, usize),
-    AutomationPreset(usize, usize),
 }
 
 struct OpenMenu {
@@ -265,9 +219,6 @@ const INSTANT_RESOLUTION_TIERS: &[(u32, &str, &str)] = &[
     ),
     (3840, "4K", "The most detail. Best on a fast connection."),
 ];
-
-/// `FREE_INSTANT_MODE_MAX_RESOLUTION`.
-const FREE_INSTANT_MODE_MAX_RESOLUTION: u32 = 1280;
 
 #[derive(Clone, Copy)]
 enum InstantQualityNotice {
@@ -501,118 +452,6 @@ fn recordings_empty_message(tab: RecordingsTab, trimmed_search: &str) -> String 
     format!("{prefix} {tab_label}")
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct UserProfile {
-    name: Option<String>,
-    email: Option<String>,
-    image_url: Option<String>,
-}
-
-fn signed_in_user_id() -> Option<Option<String>> {
-    store::auth_snapshot().signed_in().then(|| {
-        store::store_section("auth")
-            .get("user_id")
-            .and_then(Value::as_str)
-            .map(str::to_string)
-    })
-}
-
-fn cached_user_profile(
-    user_id: Option<&str>,
-    cached: &serde_json::Map<String, Value>,
-) -> Option<UserProfile> {
-    let cached_user_id = match cached.get("userId")? {
-        Value::Null => None,
-        Value::String(value) => Some(value.as_str()),
-        _ => return None,
-    };
-    if cached_user_id != user_id {
-        return None;
-    }
-    serde_json::from_value(cached.get("profile")?.clone()).ok()
-}
-
-fn account_name(signed_in: bool, profile: Option<&UserProfile>) -> String {
-    if !signed_in {
-        return "Click to sign in".to_string();
-    }
-    profile
-        .and_then(|profile| {
-            [&profile.name, &profile.email]
-                .into_iter()
-                .filter_map(Option::as_deref)
-                .map(str::trim)
-                .find(|value| !value.is_empty())
-        })
-        .unwrap_or("Signed in")
-        .to_string()
-}
-
-async fn fetch_user_profile() -> Result<UserProfile, crate::auth::AuthApiError> {
-    let response =
-        crate::auth::authed_request(reqwest::Method::GET, "/api/desktop/user/profile", None)
-            .await?;
-    if !response.status().is_success() {
-        return Err(crate::auth::AuthApiError::Other(format!(
-            "Profile fetch returned {}",
-            response.status()
-        )));
-    }
-    response
-        .json::<UserProfile>()
-        .await
-        .map_err(|error| crate::auth::AuthApiError::Other(error.to_string()))
-}
-
-async fn fetch_profile_image() -> Result<Arc<RenderImage>, crate::auth::AuthApiError> {
-    let response = crate::auth::authed_request(
-        reqwest::Method::GET,
-        "/api/desktop/user/profile/image",
-        None,
-    )
-    .await?;
-    if !response.status().is_success() {
-        return Err(crate::auth::AuthApiError::Other(format!(
-            "Profile image fetch returned {}",
-            response.status()
-        )));
-    }
-    if response
-        .headers()
-        .get(reqwest::header::CONTENT_TYPE)
-        .is_some_and(|value| {
-            value.to_str().map_or(true, |value| {
-                !value.to_ascii_lowercase().starts_with("image/")
-            })
-        })
-    {
-        return Err(crate::auth::AuthApiError::Other(
-            "Invalid profile image response".to_string(),
-        ));
-    }
-    if response
-        .content_length()
-        .is_some_and(|length| length > MAX_PROFILE_IMAGE_BYTES as u64)
-    {
-        return Err(crate::auth::AuthApiError::Other(
-            "Profile image is too large".to_string(),
-        ));
-    }
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|error| crate::auth::AuthApiError::Other(error.to_string()))?;
-    if bytes.len() > MAX_PROFILE_IMAGE_BYTES {
-        return Err(crate::auth::AuthApiError::Other(
-            "Profile image is too large".to_string(),
-        ));
-    }
-    let image = image::load_from_memory(&bytes)
-        .map_err(|error| crate::auth::AuthApiError::Other(error.to_string()))?;
-    Ok(library::rgba_to_render_image(image.into_rgba8()))
-}
-
 pub struct SettingsWindow {
     pub(crate) theme: Theme,
     pub(crate) page: Page,
@@ -622,9 +461,6 @@ pub struct SettingsWindow {
     instant_quality_anchor: ScrollAnchor,
     studio_quality_anchor: ScrollAnchor,
     quality_scroll_request: Option<Mode>,
-    has_cap_pro: bool,
-    pub(crate) plan_refresh_pending: bool,
-    pub(crate) plan_refresh_failed: bool,
     instant_quality_notice: Option<InstantQualityNotice>,
     studio_quality_save_failed: bool,
     /// Everything the pages in `settings_pages.rs` own -- their fetch state,
@@ -659,11 +495,6 @@ pub struct SettingsWindow {
     /// Key handling for Cmd-W lives on the root, which needs a focus handle of
     /// its own so the window has something focused when nothing else does.
     pub(crate) focus: FocusHandle,
-    sign_in_pending: bool,
-    sign_in_cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    sign_in_task: Option<gpui::Task<()>>,
-    user_profile: Option<UserProfile>,
-    profile_image: Option<Arc<RenderImage>>,
 }
 
 impl SettingsWindow {
@@ -671,9 +502,6 @@ impl SettingsWindow {
         crate::theme::bind_window(window, cx);
         let theme = Theme::for_window(window, cx, true);
         let settings = GeneralSettings::load();
-        let user_profile = signed_in_user_id().and_then(|user_id| {
-            cached_user_profile(user_id.as_deref(), &store::store_section("user_profile"))
-        });
 
         // The Tauri app's close button and Cmd-W both go through the window's
         // own close, and `CapWindowId::Settings`'s `Destroyed` arm calls
@@ -746,9 +574,6 @@ impl SettingsWindow {
             studio_quality_anchor: ScrollAnchor::for_handle(page_scroll.clone()),
             page_scroll,
             quality_scroll_request: None,
-            has_cap_pro: store::auth_snapshot().is_upgraded(),
-            plan_refresh_pending: false,
-            plan_refresh_failed: false,
             instant_quality_notice: None,
             studio_quality_save_failed: false,
             project_name_input,
@@ -762,11 +587,6 @@ impl SettingsWindow {
             slider_dragging: false,
             windows: Vec::new(),
             focus: cx.focus_handle(),
-            sign_in_pending: false,
-            sign_in_cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            sign_in_task: None,
-            user_profile,
-            profile_image: None,
         }
     }
 
@@ -776,7 +596,6 @@ impl SettingsWindow {
     /// a task spawned inside `open_window`'s builder closure updates the model
     /// without ever scheduling a frame.
     pub fn start_enumeration(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.refresh_user_profile(window, cx);
         cx.spawn_in(window, async move |this, cx| {
             let windows = cx
                 .background_executor()
@@ -806,7 +625,6 @@ impl SettingsWindow {
         self.quality_scroll_request = None;
         self.instant_quality_notice = None;
         self.studio_quality_save_failed = false;
-        self.has_cap_pro = store::auth_snapshot().is_upgraded();
         self.shortcuts_cancel(cx);
         self.page = page;
         self.menu = None;
@@ -848,9 +666,6 @@ impl SettingsWindow {
     /// scheduling a frame.
     pub fn page_shown(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.pages_shown(window, cx);
-        if matches!(self.page, Page::Quality | Page::License) {
-            self.refresh_plan(window, cx);
-        }
         if self.page == Page::Recordings {
             self.screenshots.scan = None;
             self.refresh_recordings(window, cx);
@@ -1046,12 +861,13 @@ impl SettingsWindow {
                 return;
             }
 
-            let Ok(task) = cx.update(|_, cx| {
-                gpui_tokio::Tokio::spawn(cx, crate::upload::queue::delete_recording(path.clone()))
-            }) else {
-                return;
-            };
-            let deleted = task.await.unwrap_or_else(|error| Err(error.to_string()));
+            let deleted = cx
+                .background_executor()
+                .spawn({
+                    let path = path.clone();
+                    async move { library::delete_recording_directory(&path) }
+                })
+                .await;
             if let Err(error) = deleted {
                 tracing::error!(path = %path.display(), "deleting the recording failed: {error}");
                 return;
@@ -1390,7 +1206,6 @@ impl SettingsWindow {
                 .into_iter()
                 .map(|window| ui::MenuItem::new(window_option_label(&window), false))
                 .collect(),
-            kind => self.pages_menu_items(kind),
         }
     }
 
@@ -1398,7 +1213,7 @@ impl SettingsWindow {
         &mut self,
         kind: MenuKind,
         index: usize,
-        window: &mut Window,
+        _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
         self.menu = None;
@@ -1441,7 +1256,6 @@ impl SettingsWindow {
                 });
                 self.write_excluded(next, cx);
             }
-            kind => self.pages_choose(kind, index, window, cx),
         }
         cx.notify();
     }
@@ -1663,93 +1477,16 @@ impl SettingsWindow {
                         window.start_window_move();
                     }),
             )
-            .child(self.render_profile(cx))
-            .child(self.render_nav(cx))
-            .child(self.render_account(cx))
-    }
-
-    fn render_profile(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let theme = self.theme;
-        let signed_in = store::auth_snapshot().signed_in();
-        let avatar = match self.profile_image.clone() {
-            Some(image) if signed_in => {
-                use gpui::StyledImage as _;
-                img(image)
-                    .size(px(32.))
-                    .flex_shrink_0()
-                    .object_fit(gpui::ObjectFit::Cover)
-                    .rounded_full()
-                    .into_any_element()
-            }
-            _ => div()
-                .flex()
-                .items_center()
-                .justify_center()
-                .size(px(32.))
-                .flex_shrink_0()
-                .rounded_full()
-                .bg(theme.settings_fill())
-                .child(
-                    svg()
-                        .path("icons/user-round.svg")
-                        .size(px(16.))
-                        .text_color(theme.settings_muted()),
-                )
-                .into_any_element(),
-        };
-
-        div()
-            .id("settings-profile")
-            .flex()
-            .flex_row()
-            .items_center()
-            // `.cap-settings-profile { gap: 8px; min-height: 44px; margin: 0
-            //  var(--macos-settings-sidebar-padding-x) 16px; padding: 6px 4px;
-            //  border-radius: 8px }`
-            .gap(px(8.))
-            .min_h(px(44.))
-            .mx(px(SIDEBAR_PADDING_X))
-            .mb(px(16.))
-            .px(px(4.))
-            .py(px(6.))
-            .rounded(px(8.))
-            .cursor_pointer()
-            .hover(move |style| style.bg(theme.settings_hover()))
-            .active(move |style| style.bg(theme.settings_selection()))
-            .child(avatar)
             .child(
                 div()
-                    .flex()
-                    .flex_col()
-                    .flex_1()
-                    .min_w_0()
-                    .justify_center()
-                    // `.cap-settings-profile-copy { gap: 2px }`
-                    .gap(px(2.))
-                    .child(
-                        div()
-                            .truncate()
-                            .text_size(px(13.))
-                            .line_height(px(15.))
-                            .child(account_name(signed_in, self.user_profile.as_ref())),
-                    )
-                    .child(
-                        // `text-[11px] leading-[13px] text-gray-10`
-                        div()
-                            .truncate()
-                            .text_size(px(11.))
-                            .line_height(px(13.))
-                            .text_color(theme.settings_muted())
-                            .child("Account"),
-                    ),
+                    .px(px(SIDEBAR_PADDING_X))
+                    .pb(px(16.))
+                    .text_size(px(13.))
+                    .text_color(theme.settings_text())
+                    .child("Local library"),
             )
-            .on_click(cx.listener(|this, _, window, cx| {
-                if store::auth_snapshot().signed_in() {
-                    cx.open_url(&format!("{}/dashboard", crate::auth::server_url()));
-                } else {
-                    this.toggle_sign_in(window, cx);
-                }
-            }))
+            .child(self.render_nav(cx))
+            .child(self.render_account(cx))
     }
 
     fn render_nav(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -1811,295 +1548,21 @@ impl SettingsWindow {
             }))
     }
 
-    fn render_account(&self, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_account(&self, _cx: &mut Context<Self>) -> impl IntoElement {
         let theme = self.theme;
-        let (update_label, update_ready) = match crate::updates::status(cx) {
-            crate::updates::UpdateStatus::Idle => ("Check for updates".to_string(), false),
-            crate::updates::UpdateStatus::Downloading {
-                version,
-                fraction: Some(fraction),
-            } => (
-                format!(
-                    "Downloading v{version}… {}%",
-                    (fraction * 100.).round() as u32
-                ),
-                false,
-            ),
-            crate::updates::UpdateStatus::Downloading { version, .. } => {
-                (format!("Downloading v{version}…"), false)
-            }
-            crate::updates::UpdateStatus::Ready { version }
-            | crate::updates::UpdateStatus::Installed { version, .. } => {
-                (format!("Restart to update to v{version}"), true)
-            }
-            crate::updates::UpdateStatus::Installing { version } => {
-                (format!("Installing v{version}…"), false)
-            }
-        };
-
-        let update_links = div()
+        div()
             .flex()
             .flex_col()
             .items_start()
             .gap(px(6.))
-            .mb(px(8.))
-            .text_size(px(12.))
-            .text_color(theme.settings_muted())
-            .child(
-                div()
-                    .id("settings-version")
-                    .px(px(4.))
-                    .py(px(2.))
-                    .rounded(px(4.))
-                    .child(format!("v{}", env!("CARGO_PKG_VERSION"))),
-            )
-            .child(
-                div()
-                    .id("settings-previous-versions")
-                    .child("View previous versions")
-                    .hover(|style| style.text_color(theme.settings_text()))
-                    .on_click(|_, _, cx| cx.open_url("https://cap.so/download/versions")),
-            )
-            .child(
-                div()
-                    .id("settings-check-updates")
-                    .cursor_pointer()
-                    .when(update_ready, |link| {
-                        link.text_color(rgb(Theme::SETTINGS_ACCENT))
-                    })
-                    .hover(|style| style.text_color(theme.settings_text()))
-                    .on_click(cx.listener(move |_, _, _, cx| {
-                        if update_ready {
-                            crate::updates::install_and_relaunch(cx);
-                        } else {
-                            crate::updates::check_manually(cx);
-                        }
-                    }))
-                    .child(update_label),
-            );
-
-        div()
-            .flex()
-            .flex_col()
-            // `.cap-settings-account { padding: 8px var(--sidebar-padding-x)
-            //  var(--sidebar-padding-x); border-top: 1px solid
-            //  var(--macos-settings-border) }`
             .pt(px(8.))
             .px(px(SIDEBAR_PADDING_X))
             .pb(px(SIDEBAR_PADDING_X))
             .border_t_1()
             .border_color(theme.settings_border())
-            .child(update_links)
-            .child({
-                let signed_in = store::auth_snapshot().signed_in();
-                let (variant, label) = if self.sign_in_pending {
-                    (ui::ButtonVariant::Gray, "Cancel Sign In")
-                } else if signed_in {
-                    (ui::ButtonVariant::Gray, "Sign Out")
-                } else {
-                    (ui::ButtonVariant::Primary, "Sign In")
-                };
-                self.button(
-                    "settings-sign-in",
-                    (variant, None),
-                    label,
-                    false,
-                    cx,
-                    |this, window, cx| this.toggle_sign_in(window, cx),
-                )
-                .full_width()
-                .height(px(34.))
-            })
-    }
-
-    fn toggle_sign_in(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        use std::sync::atomic::Ordering;
-
-        if self.sign_in_pending {
-            self.sign_in_cancel.store(true, Ordering::Relaxed);
-            self.sign_in_pending = false;
-            cx.notify();
-            return;
-        }
-        if store::auth_snapshot().signed_in() {
-            self.clear_local_auth(window, cx);
-            return;
-        }
-
-        self.sign_in_cancel.store(false, Ordering::Relaxed);
-        let cancel = self.sign_in_cancel.clone();
-        let session = match crate::auth::begin_sign_in(cancel.clone()) {
-            Ok(session) => session,
-            Err(error) => {
-                tracing::error!("starting sign-in: {error}");
-                return;
-            }
-        };
-        cx.open_url(&session.url);
-        self.sign_in_pending = true;
-        self.sign_in_task = Some(cx.spawn_in(window, async move |this, cx| {
-            let signed_in = cx
-                .background_executor()
-                .spawn(async move { session.complete() })
-                .await;
-            if matches!(signed_in, Ok(true))
-                && let Ok(plan) =
-                    gpui_tokio::Tokio::spawn(cx, crate::auth::update_auth_plan()).await
-                && let Err(error) = plan
-            {
-                tracing::warn!("updating auth plan after sign-in: {error}");
-            }
-            crate::platform::activate_app();
-            let _ = this.update_in(cx, |this, window, cx| {
-                this.sign_in_pending = false;
-                if store::auth_snapshot().signed_in() {
-                    this.refresh_user_profile(window, cx);
-                }
-                cx.notify();
-                window.refresh();
-            });
-        }));
-        cx.notify();
-    }
-
-    pub(crate) fn refresh_plan(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.plan_refresh_pending || !store::auth_snapshot().signed_in() {
-            return;
-        }
-        self.plan_refresh_pending = true;
-        self.plan_refresh_failed = false;
-        cx.spawn_in(window, async move |this, cx| {
-            let result = gpui_tokio::Tokio::spawn(cx, crate::auth::update_auth_plan()).await;
-            this.update_in(cx, |this, window, cx| {
-                this.plan_refresh_pending = false;
-                this.plan_refresh_failed = !matches!(result, Ok(Ok(())));
-                this.has_cap_pro = store::auth_snapshot().is_upgraded();
-                cx.notify();
-                window.refresh();
-            })
-            .ok();
-        })
-        .detach();
-        cx.notify();
-    }
-
-    fn clear_local_auth(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if !crate::auth::sign_out() {
-            tracing::error!("failed to clear the auth session");
-        }
-        self.has_cap_pro = store::auth_snapshot().is_upgraded();
-        self.instant_quality_notice = None;
-        if !store::set_store_value("user_profile", Value::Null) {
-            tracing::error!("failed to clear the cached user profile");
-        }
-        self.user_profile = None;
-        if let Some(image) = self.profile_image.take() {
-            let _ = window.drop_image(image);
-        }
-        cx.notify();
-        window.refresh();
-    }
-
-    fn refresh_user_profile(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.has_cap_pro = store::auth_snapshot().is_upgraded();
-        self.instant_quality_notice = None;
-        let Some(user_id) = signed_in_user_id() else {
-            return;
-        };
-        cx.spawn_in(window, async move |this, cx| {
-            let Ok(task) = cx.update(|_, cx| gpui_tokio::Tokio::spawn(cx, fetch_user_profile()))
-            else {
-                return;
-            };
-            let Ok(result) = task.await else {
-                return;
-            };
-            let profile = match result {
-                Ok(profile) => profile,
-                Err(crate::auth::AuthApiError::InvalidAuthentication) => {
-                    let _ = this.update_in(cx, |this, window, cx| {
-                        if signed_in_user_id().as_ref() == Some(&user_id) {
-                            this.clear_local_auth(window, cx);
-                        }
-                    });
-                    return;
-                }
-                Err(error) => {
-                    tracing::warn!("loading account profile: {error}");
-                    return;
-                }
-            };
-            let image_url = profile
-                .image_url
-                .as_deref()
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .map(str::to_string);
-            let Ok(true) = this.update_in(cx, |this, window, cx| {
-                if signed_in_user_id().as_ref() != Some(&user_id) {
-                    return false;
-                }
-                if !store::set_store_value(
-                    "user_profile",
-                    serde_json::json!({
-                        "userId": &user_id,
-                        "profile": &profile,
-                        "updatedAt": chrono::Utc::now().timestamp_millis(),
-                    }),
-                ) {
-                    tracing::warn!("failed to cache the user profile");
-                }
-                this.user_profile = Some(profile);
-                if let Some(image) = this.profile_image.take() {
-                    let _ = window.drop_image(image);
-                }
-                cx.notify();
-                window.refresh();
-                true
-            }) else {
-                return;
-            };
-            let Some(image_url) = image_url else {
-                return;
-            };
-            let Ok(task) = cx.update(|_, cx| gpui_tokio::Tokio::spawn(cx, fetch_profile_image()))
-            else {
-                return;
-            };
-            let Ok(result) = task.await else {
-                return;
-            };
-            match result {
-                Ok(image) => {
-                    let _ = this.update_in(cx, |this, window, cx| {
-                        if signed_in_user_id().as_ref() != Some(&user_id)
-                            || this
-                                .user_profile
-                                .as_ref()
-                                .and_then(|profile| profile.image_url.as_deref())
-                                .map(str::trim)
-                                != Some(image_url.as_str())
-                        {
-                            return;
-                        }
-                        if let Some(old) = this.profile_image.replace(image) {
-                            let _ = window.drop_image(old);
-                        }
-                        cx.notify();
-                        window.refresh();
-                    });
-                }
-                Err(crate::auth::AuthApiError::InvalidAuthentication) => {
-                    let _ = this.update_in(cx, |this, window, cx| {
-                        if signed_in_user_id().as_ref() == Some(&user_id) {
-                            this.clear_local_auth(window, cx);
-                        }
-                    });
-                }
-                Err(error) => tracing::warn!("loading account profile image: {error}"),
-            }
-        })
-        .detach();
+            .text_size(px(12.))
+            .text_color(theme.settings_muted())
+            .child(format!("Local recording · v{}", env!("CARGO_PKG_VERSION")))
     }
 
     // -- Content pane ------------------------------------------------------
@@ -2142,13 +1605,8 @@ impl SettingsWindow {
                         Page::Screenshots => self.render_screenshots(cx),
                         Page::Shortcuts => self.render_shortcuts(cx),
                         Page::Cli => self.render_cli(cx),
-                        Page::Automations => self.render_automations(cx),
                         Page::Transcription => self.render_transcription(cx),
-                        Page::Integrations => self.render_integrations(cx),
-                        Page::License => self.render_license(cx),
                         Page::Experimental => self.render_experimental(cx),
-                        Page::Feedback => self.render_feedback(cx),
-                        Page::Changelog => self.render_changelog(cx),
                     }),
             )
     }
@@ -2766,23 +2224,6 @@ impl SettingsWindow {
                 .child(glyph(item.mode.icon()))
                 .child(item.mode.label()),
             )
-            .when_some(item.upload.clone(), |this, upload| {
-                let label = upload.label();
-                let message = upload
-                    .last_error
-                    .clone()
-                    .unwrap_or_else(|| label.to_string());
-                this.child(
-                    pill(theme.settings_fill())
-                        .id("recording-upload-status")
-                        .child(label)
-                        .tooltip(move |_, cx| {
-                            ui::Tooltip::new(&theme, message.clone())
-                                .style(ui::TooltipStyle::Light)
-                                .view(cx)
-                        }),
-                )
-            })
             .when(item.clip_count > 1, |this| {
                 this.child(pill(theme.settings_fill()).child(format!("{} clips", item.clip_count)))
             })
@@ -2813,7 +2254,7 @@ impl SettingsWindow {
     /// The row's right-hand button group: `flex gap-2 items-center`.
     ///
     /// Studio rows get Open link (when shared) and Edit; instant rows get
-    /// Reupload and Open link; both get Open recording bundle and Delete.
+    /// Open link; both get Open recording bundle and Delete.
     fn render_recording_actions(
         &self,
         index: usize,
@@ -2853,49 +2294,17 @@ impl SettingsWindow {
             ));
         }
 
-        if mode == RecordingMode::Instant {
-            let retry_path = path.clone();
-            actions = actions.child(
-                self.row_button(
-                    ("recording-reupload", index),
-                    "icons/rotate-ccw.svg",
-                    "Retry upload",
-                    !item
-                        .upload
-                        .as_ref()
-                        .is_some_and(crate::upload::queue::UploadState::can_retry),
-                    cx,
-                    move |_, window, cx| {
-                        let path = retry_path.clone();
-                        cx.spawn_in(window, async move |this, cx| {
-                            let Ok(task) = cx.update(|_, cx| {
-                                gpui_tokio::Tokio::spawn(cx, crate::upload::queue::retry(path))
-                            }) else {
-                                return;
-                            };
-                            if let Err(error) =
-                                task.await.unwrap_or_else(|error| Err(error.to_string()))
-                            {
-                                tracing::warn!(%error, "Upload retry deferred");
-                            }
-                            let _ = this.update_in(cx, |this, window, cx| {
-                                this.refresh_recordings(window, cx)
-                            });
-                        })
-                        .detach();
-                    },
-                ),
-            );
-            if let Some(link) = sharing {
-                actions = actions.child(self.row_button(
-                    ("recording-instant-link", index),
-                    "icons/link.svg",
-                    "Open link",
-                    false,
-                    cx,
-                    move |_this, _window, cx| cx.open_url(&link),
-                ));
-            }
+        if mode == RecordingMode::Instant
+            && let Some(link) = sharing
+        {
+            actions = actions.child(self.row_button(
+                ("recording-instant-link", index),
+                "icons/link.svg",
+                "Open link",
+                false,
+                cx,
+                move |_this, _window, cx| cx.open_url(&link),
+            ));
         }
 
         let folder_path = path.clone();
@@ -3119,12 +2528,6 @@ impl SettingsWindow {
         let Some((resolution, _, _)) = INSTANT_RESOLUTION_TIERS.get(index).copied() else {
             return;
         };
-        self.has_cap_pro = store::auth_snapshot().is_upgraded();
-        if self.instant_resolution_locked(resolution) {
-            cx.open_url(crate::auth::PRICING_URL);
-            cx.notify();
-            return;
-        }
         if store::set_store_setting(
             GENERAL_SETTINGS,
             "instantModeMaxResolution",
@@ -3176,15 +2579,7 @@ impl SettingsWindow {
     }
 
     fn effective_instant_resolution(&self) -> u32 {
-        if self.has_cap_pro {
-            self.settings.instant_mode_max_resolution
-        } else {
-            FREE_INSTANT_MODE_MAX_RESOLUTION
-        }
-    }
-
-    fn instant_resolution_locked(&self, resolution: u32) -> bool {
-        !self.has_cap_pro && resolution > FREE_INSTANT_MODE_MAX_RESOLUTION
+        self.settings.instant_mode_max_resolution
     }
 
     fn render_instant_quality(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -3195,21 +2590,11 @@ impl SettingsWindow {
             .find(|(value, _, _)| *value == effective)
             .map(|(_, _, summary)| *summary)
             .unwrap_or_default();
-        let description = if self.has_cap_pro {
-            summary.to_string()
-        } else {
-            "720p on the free plan. Cap Pro records up to 4K.".to_string()
-        };
+        let description = summary.to_string();
 
         let options = INSTANT_RESOLUTION_TIERS
             .iter()
-            .map(|(value, label, _)| {
-                let mut option = ui::SegmentOption::new(*label, *value == effective);
-                if self.instant_resolution_locked(*value) {
-                    option.icon = Some("icons/lock.svg".into());
-                }
-                option
-            })
+            .map(|(value, label, _)| ui::SegmentOption::new(*label, *value == effective))
             .collect();
 
         let resolution = div()
@@ -4150,10 +3535,6 @@ impl SettingsWindow {
                             }
                             this.settings.update_channel = value;
                             this.write_enum("updateChannel", value, cx);
-                            crate::updates::update_channel_changed(
-                                this.settings.update_channel,
-                                cx,
-                            );
                         },
                     )),
             )
@@ -4675,7 +4056,7 @@ mod tests {
     /// addresses by slug.
     #[test]
     fn every_page_round_trips_through_its_slug() {
-        assert_eq!(Page::ALL.len(), 13);
+        assert_eq!(Page::ALL.len(), 8);
         for page in Page::ALL {
             assert_eq!(Page::from_slug(page.slug()), Some(*page));
         }
@@ -4697,66 +4078,6 @@ mod tests {
         assert_eq!(origin_of("cap.so"), None);
         assert_eq!(origin_of("ftp://cap.so"), None);
         assert_eq!(origin_of(""), None);
-    }
-
-    #[test]
-    fn account_name_matches_the_tauri_profile_fallbacks() {
-        let mut profile = UserProfile {
-            name: Some(" Taylor Example ".to_string()),
-            email: Some("taylor@example.com".to_string()),
-            image_url: None,
-        };
-
-        assert_eq!(account_name(false, Some(&profile)), "Click to sign in");
-        assert_eq!(account_name(true, None), "Signed in");
-        assert_eq!(account_name(true, Some(&profile)), "Taylor Example");
-
-        profile.name = Some("  ".to_string());
-        assert_eq!(account_name(true, Some(&profile)), "taylor@example.com");
-
-        profile.email = None;
-        assert_eq!(account_name(true, Some(&profile)), "Signed in");
-    }
-
-    #[test]
-    fn cached_profile_must_belong_to_the_signed_in_user() {
-        let cached = serde_json::json!({
-            "userId": "user-1",
-            "profile": {
-                "name": "Taylor",
-                "email": "taylor@example.com",
-                "imageUrl": "https://example.com/profile.png"
-            },
-            "updatedAt": 1
-        });
-        let cached = cached.as_object().expect("cached profile object");
-
-        assert_eq!(
-            cached_user_profile(Some("user-1"), cached).and_then(|profile| profile.name),
-            Some("Taylor".to_string())
-        );
-        assert!(cached_user_profile(Some("user-2"), cached).is_none());
-        assert!(cached_user_profile(None, cached).is_none());
-    }
-
-    #[test]
-    fn cached_profile_accepts_the_tauri_null_user_identity() {
-        let cached = serde_json::json!({
-            "userId": null,
-            "profile": {
-                "name": null,
-                "email": "taylor@example.com",
-                "imageUrl": null
-            },
-            "updatedAt": 1
-        });
-        let cached = cached.as_object().expect("cached profile object");
-
-        assert_eq!(
-            cached_user_profile(None, cached).and_then(|profile| profile.email),
-            Some("taylor@example.com".to_string())
-        );
-        assert!(cached_user_profile(Some("user-1"), cached).is_none());
     }
 
     /// `coversDefaultExclusion`: the Reset button's "is this default already
@@ -4793,7 +4114,6 @@ mod tests {
             path: std::path::PathBuf::from(format!("/tmp/{name}.cap")),
             mode,
             status: crate::library::RecordingStatus::Complete,
-            upload: None,
             clip_count: 1,
             pretty_name: name.to_string(),
             sharing: None,

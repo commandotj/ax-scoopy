@@ -109,7 +109,7 @@ impl Mode {
 
     pub fn from_slug(slug: &str) -> Option<Self> {
         match slug {
-            "instant" => Some(Self::Instant),
+            "instant" => Some(Self::Studio),
             "studio" => Some(Self::Studio),
             "screenshot" => Some(Self::Screenshot),
             _ => None,
@@ -122,7 +122,7 @@ impl Mode {
         crate::store::recording_mode_slug()
             .as_deref()
             .and_then(Self::from_slug)
-            .unwrap_or(Self::Instant)
+            .unwrap_or(Self::Studio)
     }
 
     pub fn icon(self) -> &'static str {
@@ -154,10 +154,7 @@ impl Mode {
 
     fn panel_description(self) -> &'static str {
         match self {
-            Self::Instant => {
-                "Share instantly with a link. Your recording uploads as you record, so you \
-                 can share it immediately when you're done."
-            }
+            Self::Instant => "Records in a single pass and finishes as soon as you stop.",
             Self::Studio => {
                 "Record locally in the highest quality for editing later. Perfect for \
                  creating polished content with effects and transitions."
@@ -302,9 +299,7 @@ impl gpui::RenderOnce for ModeHoverCard {
         let theme = self.theme;
         let mode = self.mode;
         let description = match mode {
-            Mode::Instant => {
-                "No rendering required — uploads on the fly so you can share the link the moment you stop."
-            }
+            Mode::Instant => "Records in a single pass and finishes as soon as you stop.",
             Mode::Studio => {
                 "Saves to your computer and opens the editor when you stop. Choose recording quality in settings."
             }
@@ -813,7 +808,6 @@ pub struct MainWindow {
     recovery_pending: bool,
     recovery_scan_task: Option<Task<()>>,
     recovery_action_task: Option<Task<()>>,
-    plan: PlanBadge,
     /// Display/window thumbnails and app icons for the target cards. See
     /// `target_thumbnails::ThumbnailCache` for why this is per-view rather
     /// than an app global.
@@ -831,27 +825,6 @@ pub struct MainWindow {
     input_enumeration_gate: devices::InputEnumerationGate,
     /// `scheduleTargetListPrewarm` (`new-main/index.tsx:1897-1965`).
     prewarm_task: Option<gpui::Task<()>>,
-}
-
-/// `createLicenseQuery` (`utils/queries.ts:257-273`): pro from the auth
-/// plan first, then a commercial license, then personal.
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum PlanBadge {
-    Personal,
-    Pro,
-    Commercial,
-}
-
-impl PlanBadge {
-    fn current() -> Self {
-        if crate::store::auth_snapshot().is_upgraded() {
-            Self::Pro
-        } else if crate::store::commercial_license().is_some() {
-            Self::Commercial
-        } else {
-            Self::Personal
-        }
-    }
 }
 
 impl MainWindow {
@@ -1024,7 +997,6 @@ impl MainWindow {
             recovery_pending: false,
             recovery_scan_task: None,
             recovery_action_task: None,
-            plan: PlanBadge::current(),
             thumbnails: target_thumbnails::ThumbnailCache::default(),
             display_thumbnail_task: None,
             window_thumbnail_task: None,
@@ -1601,17 +1573,9 @@ impl MainWindow {
                 }).await
             } else {
                 let path = recording.project_path;
-                let Ok(task) = cx.update(|_, cx| {
-                    gpui_tokio::Tokio::spawn(
-                        cx,
-                        crate::upload::queue::delete_recording(path.clone()),
-                    )
-                }) else {
-                    return;
-                };
-                task.await
-                    .unwrap_or_else(|error| Err(error.to_string()))
-                    .map(|()| path)
+                cx.background_executor()
+                    .spawn(async move { library::delete_recording_directory(&path).map(|()| path) })
+                    .await
             };
 
             this.update_in(cx, |this, window, cx| {
@@ -3167,15 +3131,6 @@ impl MainWindow {
                                 cx.defer(app_windows::open_teleprompter);
                             }),
                         ),
-                    )
-                    .child(
-                        icon_button("changelog", "icons/bell.svg", 16.).on_click(cx.listener(
-                            |_, _, _window, cx| {
-                                cx.defer(|cx: &mut gpui::App| {
-                                    app_windows::open_settings(Page::Changelog, cx)
-                                });
-                            },
-                        )),
                     ),
             );
 
@@ -3568,7 +3523,6 @@ impl MainWindow {
     }
 
     pub(crate) fn show_recorder(&mut self, cx: &mut Context<Self>) {
-        self.plan = PlanBadge::current();
         cx.notify();
         if self.panel.is_some() {
             self.close_panel(cx);
@@ -4124,15 +4078,7 @@ impl MainWindow {
         let sharing = item.sharing.clone();
         let mode = item.mode;
         let opens_editor = item.opens_editor();
-        let subtitle = item.upload.as_ref().map_or_else(
-            || item.mode.label().to_string(),
-            |upload| {
-                upload
-                    .last_error
-                    .clone()
-                    .unwrap_or_else(|| upload.label().to_string())
-            },
-        );
+        let subtitle = item.mode.label().to_string();
         let actions = self.render_recording_card_actions(index, item, cx);
 
         self.library_card(
@@ -4190,36 +4136,6 @@ impl MainWindow {
                 ("lib-rec-link", index),
                 "icons/link.svg",
                 move |_, _, cx| cx.open_url(&url),
-            ));
-        }
-        if item
-            .upload
-            .as_ref()
-            .is_some_and(crate::upload::queue::UploadState::can_retry)
-        {
-            let retry_path = path.clone();
-            row = row.child(self.library_action(
-                ("lib-rec-retry", index),
-                "icons/rotate-ccw.svg",
-                cx.listener(move |_, _, window, cx| {
-                    let path = retry_path.clone();
-                    cx.spawn_in(window, async move |this, cx| {
-                        let Ok(task) = cx.update(|_, cx| {
-                            gpui_tokio::Tokio::spawn(cx, crate::upload::queue::retry(path))
-                        }) else {
-                            return;
-                        };
-                        if let Err(error) =
-                            task.await.unwrap_or_else(|error| Err(error.to_string()))
-                        {
-                            tracing::warn!(%error, "Upload retry deferred");
-                        }
-                        let _ = this.update_in(cx, |this, window, cx| {
-                            this.refresh_open_library(window, cx)
-                        });
-                    })
-                    .detach();
-                }),
             ));
         }
         let folder = path.clone();
@@ -4457,12 +4373,13 @@ impl MainWindow {
             ) {
                 return;
             }
-            let Ok(task) = cx.update(|_, cx| {
-                gpui_tokio::Tokio::spawn(cx, crate::upload::queue::delete_recording(path.clone()))
-            }) else {
-                return;
-            };
-            let deleted = task.await.unwrap_or_else(|error| Err(error.to_string()));
+            let deleted = cx
+                .background_executor()
+                .spawn({
+                    let path = path.clone();
+                    async move { library::delete_recording_directory(&path) }
+                })
+                .await;
             if let Err(error) = deleted {
                 tracing::error!(path = %path.display(), "deleting the recording failed: {error}");
                 return;
@@ -5258,8 +5175,12 @@ impl MainWindow {
         let effective_mode = self.effective_mode(cx);
         let locked = self.session.read(cx).editor_recording_target().is_some();
 
-        div().flex().flex_col().gap(px(8.)).w_full().children(
-            [Mode::Instant, Mode::Studio, Mode::Screenshot].map(|mode| {
+        div()
+            .flex()
+            .flex_col()
+            .gap(px(8.))
+            .w_full()
+            .children([Mode::Studio, Mode::Screenshot].map(|mode| {
                 let selected = mode == effective_mode;
 
                 div()
@@ -5332,8 +5253,7 @@ impl MainWindow {
                         this.set_mode(mode, cx);
                         this.close_panel(cx);
                     }))
-            }),
-        )
+            }))
     }
 
     fn render_empty_state(&self, message: impl Into<SharedString>) -> gpui::AnyElement {
@@ -5467,10 +5387,7 @@ impl MainWindow {
                     .flex_row()
                     .items_center()
                     .gap(px(4.))
-                    .when(!recording_clip, |this| {
-                        this.child(self.render_logo())
-                            .child(self.render_plan_badge())
-                    })
+                    .when(!recording_clip, |this| this.child(self.render_logo()))
                     .when(recording_clip, |this| {
                         this.child(
                             div()
@@ -5502,46 +5419,6 @@ impl MainWindow {
                             .child(format!("{} Mode", self.effective_mode(cx).panel_title())),
                     ),
             )
-    }
-
-    /// The plan badge: Personal is `text-[0.6rem] ml-2 rounded-lg border
-    /// border-gray-5 px-1 py-0.5 bg-gray-3 hover:bg-gray-5`, a button; Pro and
-    /// Commercial are a non-interactive span on `--blue-400`. Which one
-    /// applies is [`PlanBadge::current`], the license query's resolution.
-    fn render_plan_badge(&self) -> impl IntoElement {
-        let theme = self.theme;
-
-        let badge = div()
-            .id("plan-badge")
-            .flex()
-            .items_center()
-            .flex_shrink_0()
-            .ml(px(8.))
-            .px(px(4.))
-            .py(px(2.))
-            .rounded(px(8.))
-            .text_size(px(9.6));
-
-        match self.plan {
-            PlanBadge::Personal => badge
-                .border_1()
-                .border_color(theme.body_border(5))
-                .bg(theme.body_fill(3))
-                .text_color(theme.gray_12)
-                .child("Personal")
-                .hover(|style| style.bg(theme.body_hover_fill(5)))
-                .on_click(|_, _, cx| {
-                    cx.open_url(crate::auth::PRICING_URL);
-                }),
-            PlanBadge::Pro | PlanBadge::Commercial => badge
-                .bg(theme.blue_9)
-                .text_color(gpui::white())
-                .child(if self.plan == PlanBadge::Commercial {
-                    "Commercial"
-                } else {
-                    "Pro"
-                }),
-        }
     }
 
     /// This goes through `img()`, not `svg()`. The two take different paths in
@@ -5705,9 +5582,8 @@ impl MainWindow {
             .border_1()
             .border_color(theme.body_border(5))
             .bg(theme.body_fill(3))
-            .child(button(Mode::Instant, "mode-instant", 0))
-            .child(button(Mode::Studio, "mode-studio", 1))
-            .child(button(Mode::Screenshot, "mode-screenshot", 2))
+            .child(button(Mode::Studio, "mode-studio", 0))
+            .child(button(Mode::Screenshot, "mode-screenshot", 1))
             // `absolute -left-1.5 -top-2 p-1 rounded-full bg-gray-5`, hanging
             // off the pill's top-left corner.
             .child(

@@ -144,26 +144,22 @@ const MODES: [ModeDetail; 3] = [
     },
 ];
 
-const FAQ: [(&str, &str); 5] = [
+const FAQ: [(&str, &str); 4] = [
     (
-        "Is Cap free to use?",
-        "Cap is free for personal use. For teams and commercial use, check out our pricing plans.",
+        "Where are my recordings stored?",
+        "All recordings stay on your computer. Nothing is uploaded, and Cap works with no account and no network.",
     ),
     (
         "What's the difference between Instant and Studio?",
-        "Instant mode uploads as you record — stop recording and you'll have a shareable link immediately. Studio mode records locally in full quality, letting you edit with backgrounds, effects, and more before sharing.",
-    ),
-    (
-        "Where are my recordings stored?",
-        "All recordings are stored locally on your computer. In Instant mode, they're also uploaded to Cap's cloud for easy sharing. You can manage storage in Settings.",
+        "Instant mode records in a single pass and finishes as soon as you stop. Studio mode records in full quality and lets you edit with backgrounds, effects, and more.",
     ),
     (
         "Can I change my shortcuts later?",
         "Head to Settings → Shortcuts at any time to customize all your keyboard shortcuts.",
     ),
     (
-        "How does sharing work?",
-        "In Instant mode, you get a shareable link automatically when you stop recording. In Studio mode, export your edited video and share via Cap's cloud or save locally.",
+        "How do I get the video out?",
+        "Open a recording in the editor and export it to a file or the clipboard, or export a screenshot straight from the screenshot editor.",
     ),
 ];
 
@@ -1465,32 +1461,12 @@ impl OnboardingWindow {
                             )
                             .when(open, |el| {
                                 el.child(
-                                    div()
-                                        .px(px(20.))
-                                        .pb(px(16.))
-                                        .child(
-                                            copy(*answer, 13., theme.gray_10).line_height(px(20.)),
-                                        )
-                                        .when(index == 0, |el| {
-                                            el.child(
-                                                copy("View pricing plans", 13., theme.blue_10)
-                                                    .id("onboarding-faq-pricing")
-                                                    .cursor_pointer()
-                                                    .mt(px(8.))
-                                                    .on_click(|_, _, cx| {
-                                                        cx.open_url(crate::auth::PRICING_URL)
-                                                    }),
-                                            )
-                                        }),
+                                    div().px(px(20.)).pb(px(16.)).child(
+                                        copy(*answer, 13., theme.gray_10).line_height(px(20.)),
+                                    ),
                                 )
                             })
                     })),
-            )
-            .child(
-                copy("View pricing plans ↗", 13., theme.blue_10)
-                    .id("onboarding-pricing")
-                    .cursor_pointer()
-                    .on_click(|_, _, cx| cx.open_url(crate::auth::PRICING_URL)),
             )
             .into_any_element()
     }

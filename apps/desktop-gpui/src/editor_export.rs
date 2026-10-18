@@ -48,17 +48,15 @@ const COMPRESSION_PRESETS: [(ExportCompression, &str); 4] = [
 pub enum ExportDestination {
     File,
     Clipboard,
-    Link,
 }
 
 impl ExportDestination {
-    const ALL: &'static [Self] = &[Self::File, Self::Clipboard, Self::Link];
+    const ALL: &'static [Self] = &[Self::File, Self::Clipboard];
 
     fn label(self) -> &'static str {
         match self {
             Self::File => "File",
             Self::Clipboard => "Clipboard",
-            Self::Link => "Shareable Link",
         }
     }
 
@@ -66,7 +64,6 @@ impl ExportDestination {
         match self {
             Self::File => "icons/folder.svg",
             Self::Clipboard => "icons/copy.svg",
-            Self::Link => "icons/link.svg",
         }
     }
 
@@ -74,14 +71,12 @@ impl ExportDestination {
         match self {
             Self::File => "file",
             Self::Clipboard => "clipboard",
-            Self::Link => "link",
         }
     }
 
     fn from_slug(slug: &str) -> Self {
         match slug {
             "clipboard" => Self::Clipboard,
-            "link" => Self::Link,
             _ => Self::File,
         }
     }
@@ -156,7 +151,6 @@ pub enum ExportPhase {
     Starting,
     Rendering,
     Copying,
-    Uploading,
     Done,
     Failed,
 }
@@ -165,7 +159,7 @@ impl ExportPhase {
     pub(crate) fn is_busy(self) -> bool {
         matches!(
             self,
-            Self::ChoosingFile | Self::Starting | Self::Rendering | Self::Copying | Self::Uploading
+            Self::ChoosingFile | Self::Starting | Self::Rendering | Self::Copying
         )
     }
 
@@ -208,13 +202,6 @@ pub struct ExportUi {
     pub error: Option<String>,
     pub cancel: Arc<AtomicBool>,
     pub export_task: Option<gpui::Task<()>>,
-    pub sign_in_pending: bool,
-    pub sign_in_cancel: Arc<AtomicBool>,
-    pub organization_id: Option<String>,
-    pub share_link: Option<String>,
-    pub reuploading: bool,
-    pub upload_progress: f32,
-    pub copy_link_pressed: bool,
     bpp_track: ui::SliderTrack,
     bpp_dragging: bool,
 }
@@ -242,7 +229,6 @@ impl ExportUi {
             custom_bpp: None,
             force_ffmpeg_decoder: false,
             advanced_open: false,
-            organization_id: None,
         });
         Self::from_preferences(prefs)
     }
@@ -280,13 +266,6 @@ impl ExportUi {
             error: None,
             cancel: Arc::new(AtomicBool::new(false)),
             export_task: None,
-            sign_in_pending: false,
-            sign_in_cancel: Arc::new(AtomicBool::new(false)),
-            organization_id: prefs.organization_id,
-            share_link: None,
-            reuploading: false,
-            upload_progress: 0.0,
-            copy_link_pressed: false,
             bpp_track: ui::SliderTrack::default(),
             bpp_dragging: false,
         }
@@ -312,7 +291,6 @@ impl ExportUi {
             custom_bpp: self.custom_bpp,
             force_ffmpeg_decoder: self.force_ffmpeg,
             advanced_open: self.advanced_open,
-            organization_id: self.organization_id.clone(),
         };
         store::update(|state| state.export = Some(prefs));
     }
@@ -439,44 +417,6 @@ fn decode_jpeg_bytes(bytes: &[u8]) -> Option<Arc<RenderImage>> {
 }
 
 impl EditorWindow {
-    pub(crate) fn render_reupload_button(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        div()
-            .rounded(px(8.))
-            .bg(Hsla::from(self.theme.blue_3))
-            .border_1()
-            .border_color(Hsla::from(self.theme.blue_5))
-            .child(
-                ui::EditorButton::plain(&self.theme, "editor-reupload")
-                    .left_icon("icons/cloud-upload.svg")
-                    .label("Reupload")
-                    .tooltip(
-                        &self.theme,
-                        if has_transparent_background(&self.project) {
-                            "Share links require a background without transparency"
-                        } else {
-                            "Upload your latest edit to the same link"
-                        },
-                    )
-                    .disabled(!self.project_ready() || has_transparent_background(&self.project))
-                    .on_click(cx.listener(|this, _, window, cx| {
-                        if !this.project_ready() {
-                            return;
-                        }
-                        this.open_export(window, cx);
-                        if !has_transparent_background(&this.project)
-                            && let Some(ui) = this.export.as_mut()
-                        {
-                            ui.destination = ExportDestination::Link;
-                            ui.format = ExportFormatKind::Mp4;
-                            ui.cursor_only = false;
-                        }
-                        this.normalize_loaded_export_fps();
-                        this.refresh_export_preview(window, cx);
-                        cx.notify();
-                    })),
-            )
-    }
-
     pub(crate) fn open_export(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.playing {
             self.toggle_play_from_crop(cx);
@@ -490,12 +430,6 @@ impl EditorWindow {
             if ui.resolution == ExportResolution::P4k {
                 ui.resolution = ExportResolution::P1080;
             }
-            if ui.destination == ExportDestination::Link {
-                ui.destination = ExportDestination::File;
-            }
-        }
-        if ui.cursor_only && ui.destination == ExportDestination::Link {
-            ui.destination = ExportDestination::File;
         }
         self.normalize_export_fps(&mut ui);
         self.export = Some(ui);
@@ -511,7 +445,6 @@ impl EditorWindow {
                 cx.notify();
                 return;
             }
-            ui.sign_in_cancel.store(true, Ordering::Relaxed);
             if let Some(image) = ui.preview.take() {
                 let _ = window.drop_image(image);
             }
@@ -529,27 +462,6 @@ impl EditorWindow {
         {
             self.close_export(window, cx);
         }
-    }
-
-    fn copy_share_link(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let Some(link) = self.export.as_ref().and_then(|ui| ui.share_link.clone()) else {
-            return;
-        };
-        cx.write_to_clipboard(gpui::ClipboardItem::new_string(link));
-        if let Some(ui) = self.export.as_mut() {
-            ui.copy_link_pressed = true;
-        }
-        cx.notify();
-        cx.spawn_in(window, async move |this, cx| {
-            cx.background_executor().timer(Duration::from_secs(2)).await;
-            let _ = this.update(cx, |this, cx| {
-                if let Some(ui) = this.export.as_mut() {
-                    ui.copy_link_pressed = false;
-                }
-                cx.notify();
-            });
-        })
-        .detach();
     }
 
     fn normalize_export_fps(&self, ui: &mut ExportUi) {
@@ -740,21 +652,6 @@ impl EditorWindow {
         if ui.phase.is_busy() || ui.close_requested {
             return;
         }
-        if ui.destination == ExportDestination::Link {
-            if ui.sign_in_pending {
-                ui.sign_in_cancel.store(true, Ordering::Relaxed);
-                ui.sign_in_pending = false;
-                cx.notify();
-                return;
-            }
-            if !store::auth_snapshot().signed_in() {
-                self.start_share_sign_in(window, cx);
-                return;
-            }
-            self.start_link_export(window, cx);
-            return;
-        }
-
         let estimate = ui
             .estimate
             .as_ref()
@@ -987,341 +884,6 @@ impl EditorWindow {
         });
         cx.notify();
         self.finish_requested_export_close(window, cx);
-    }
-
-    fn start_share_sign_in(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let Some(ui) = self.export.as_mut() else {
-            return;
-        };
-        ui.sign_in_cancel.store(false, Ordering::Relaxed);
-        let cancel = ui.sign_in_cancel.clone();
-        ui.sign_in_pending = true;
-        cx.notify();
-
-        let session = match crate::auth::begin_sign_in(cancel.clone()) {
-            Ok(session) => session,
-            Err(error) => {
-                ui.sign_in_pending = false;
-                ui.error = Some(error);
-                cx.notify();
-                return;
-            }
-        };
-        cx.open_url(&session.url);
-
-        ui.export_task = Some(cx.spawn_in(window, async move |this, cx| {
-            let signed_in = cx
-                .background_executor()
-                .spawn(async move { session.complete() })
-                .await;
-            match signed_in {
-                Ok(true) => {
-                    if let Ok(Err(error)) =
-                        gpui_tokio::Tokio::spawn(cx, crate::auth::update_auth_plan()).await
-                    {
-                        tracing::warn!("updating auth plan after sign-in: {error}");
-                    }
-                    platform::activate_app();
-                    let _ = this.update(cx, |this, cx| {
-                        if let Some(ui) = this.export.as_mut() {
-                            ui.sign_in_pending = false;
-                            ui.error = None;
-                            if ui.organization_id.is_none() {
-                                ui.organization_id = store::auth_snapshot()
-                                    .organizations
-                                    .first()
-                                    .map(|org| org.id.clone());
-                            }
-                            ui.persist();
-                        }
-                        cx.notify();
-                    });
-                }
-                Ok(false) => {
-                    let _ = this.update(cx, |this, cx| {
-                        if let Some(ui) = this.export.as_mut() {
-                            ui.sign_in_pending = false;
-                        }
-                        cx.notify();
-                    });
-                }
-                Err(error) => {
-                    let _ = this.update(cx, |this, cx| {
-                        if let Some(ui) = this.export.as_mut() {
-                            ui.sign_in_pending = false;
-                            ui.error = Some(error.clone());
-                        }
-                        cx.notify();
-                    });
-                    if !cancel.load(Ordering::Relaxed) {
-                        platform::alert_dialog("Sign in failed", &error);
-                    }
-                }
-            }
-        }));
-    }
-
-    fn start_link_export(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let duration = self.total_duration();
-        let Some(ui) = self.export.as_mut() else {
-            return;
-        };
-        if ui.phase.is_busy() || ui.close_requested {
-            return;
-        }
-
-        let upgraded = store::auth_snapshot().is_upgraded();
-        if !upgraded && duration >= 300.0 {
-            cx.open_url(crate::auth::PRICING_URL);
-            return;
-        }
-
-        let estimate = ui
-            .estimate
-            .as_ref()
-            .map(|estimate| estimate.size_range_mb[1])
-            .or_else(|| {
-                ui.preview_stats
-                    .as_ref()
-                    .map(|stats| stats.estimated_size_mb)
-            })
-            .map(estimated_working_bytes)
-            .unwrap_or(0);
-        let format = ui.format;
-        let cursor_only = ui.cursor_only;
-        let fps = ui.fps;
-        let (width, height) = ui.resolution.size();
-        let compression = ui.compression;
-        let custom_bpp = ui.custom_bpp;
-        let optimize = ui.optimize_filesize;
-        let force = ui.force_ffmpeg;
-        let project_path = self.project_path.clone();
-        let project = self.project.clone();
-        let organization_id = ui.organization_id.clone().or_else(|| {
-            store::auth_snapshot()
-                .organizations
-                .first()
-                .map(|org| org.id.clone())
-        });
-        ui.cancel = Arc::new(AtomicBool::new(false));
-        let cancel = ui.cancel.clone();
-        ui.phase = ExportPhase::Starting;
-        ui.reuploading = self.sharing.is_some();
-        ui.error = None;
-        ui.share_link = None;
-        ui.upload_progress = 0.0;
-        ui.rendered = 0;
-        ui.total_frames = 0;
-        cx.notify();
-
-        ui.export_task = Some(cx.spawn_in(window, async move |this, cx| {
-            let save_path = RecordingMeta::load_for_project(&project_path)
-                .ok()
-                .map(|meta| meta.output_path());
-            if let Some(path) = save_path.as_ref()
-                && let Some(parent) = path.parent()
-            {
-                let _ = std::fs::create_dir_all(parent);
-            }
-
-            let resources = ExportResources::new(vec![DiskBudget {
-                path: save_path
-                    .clone()
-                    .unwrap_or_else(|| project_path.join("output")),
-                description: "your recording drive",
-                estimated_bytes: estimate,
-            }]);
-            if !confirm_export_resources(&this, cx, &resources, &cancel).await {
-                let _ = this.update_in(cx, |this, window, cx| {
-                    this.finish_requested_export_close(window, cx)
-                });
-                return;
-            }
-
-            let _ = this.update(cx, |this, cx| {
-                if let Some(ui) = this.export.as_mut() {
-                    ui.phase = ExportPhase::Rendering;
-                }
-                cx.notify();
-            });
-
-            let (progress_tx, progress_rx) = flume::unbounded::<(u32, u32)>();
-            let export_cancel = cancel.clone();
-            let export_path = project_path.clone();
-            let export = gpui_tokio::Tokio::spawn(cx, async move {
-                let stopped = export_cancel.clone();
-                resources
-                    .supervise(
-                        run_export(
-                            export_path,
-                            project,
-                            format,
-                            cursor_only,
-                            fps,
-                            width,
-                            height,
-                            compression,
-                            custom_bpp,
-                            optimize,
-                            force,
-                            save_path.clone(),
-                            progress_tx,
-                            export_cancel,
-                        ),
-                        || stopped.store(true, Ordering::Release),
-                    )
-                    .await
-            });
-
-            loop {
-                while let Ok((rendered, total)) = progress_rx.try_recv() {
-                    let _ = this.update(cx, |this, cx| {
-                        if let Some(ui) = this.export.as_mut() {
-                            ui.rendered = rendered;
-                            ui.total_frames = total;
-                            ui.phase = ExportPhase::Rendering;
-                        }
-                        cx.notify();
-                    });
-                }
-                if progress_rx.is_disconnected() {
-                    break;
-                }
-                cx.background_executor()
-                    .timer(Duration::from_millis(50))
-                    .await;
-            }
-
-            match export.await {
-                Ok(Ok(path)) => {
-                    let _ = this.update(cx, |this, cx| {
-                        if let Some(ui) = this.export.as_mut() {
-                            ui.phase = ExportPhase::Uploading;
-                            ui.output_path = Some(path);
-                            ui.upload_progress = 0.0;
-                        }
-                        cx.notify();
-                    });
-
-                    let (upload_tx, upload_rx) = flume::unbounded::<f64>();
-                    let upload_cancel = cancel.clone();
-                    let upload_project = project_path.clone();
-                    let upload = gpui_tokio::Tokio::spawn(cx, async move {
-                        crate::upload::upload_exported_video(
-                            upload_project,
-                            organization_id,
-                            |progress| {
-                                let _ = upload_tx.send(progress);
-                            },
-                            upload_cancel,
-                        )
-                        .await
-                    });
-
-                    loop {
-                        while let Ok(progress) = upload_rx.try_recv() {
-                            let _ = this.update(cx, |this, cx| {
-                                if let Some(ui) = this.export.as_mut() {
-                                    ui.upload_progress = progress as f32;
-                                    ui.phase = ExportPhase::Uploading;
-                                }
-                                cx.notify();
-                            });
-                        }
-                        if upload_rx.is_disconnected() {
-                            break;
-                        }
-                        cx.background_executor()
-                            .timer(Duration::from_millis(50))
-                            .await;
-                    }
-
-                    match upload.await {
-                        Ok(Ok(crate::upload::UploadResult::Success(link))) => {
-                            let _ = this.update(cx, |this, cx| {
-                                if let Ok(meta) =
-                                    RecordingMeta::load_for_project(&this.project_path)
-                                {
-                                    this.sharing = meta.sharing;
-                                }
-                                if let Some(ui) = this.export.as_mut() {
-                                    ui.phase = ExportPhase::Done;
-                                    ui.share_link = Some(link.clone());
-                                    ui.upload_progress = 1.0;
-                                }
-                                cx.notify();
-                            });
-                            let _ = this.update(cx, |_, cx| {
-                                cx.write_to_clipboard(gpui::ClipboardItem::new_string(link));
-                                crate::app_sounds::play_notification();
-                            });
-                        }
-                        Ok(Ok(crate::upload::UploadResult::NotAuthenticated)) => {
-                            show_upload_failure(
-                                &this,
-                                cx,
-                                "You need to sign in to share recordings",
-                                true,
-                            );
-                        }
-                        Ok(Ok(crate::upload::UploadResult::UpgradeRequired)) => {
-                            let _ = this.update(cx, |this, cx| {
-                                if let Some(ui) = this.export.as_mut() {
-                                    ui.phase = ExportPhase::Idle;
-                                }
-                                cx.notify();
-                            });
-                            let _ = this.update(cx, |_, cx| {
-                                cx.open_url(crate::auth::PRICING_URL);
-                            });
-                            platform::alert_dialog(
-                                "Upgrade required",
-                                "This feature requires an upgraded plan",
-                            );
-                        }
-                        Ok(Err(error)) => {
-                            if error == "Export cancelled" || cancel.load(Ordering::Relaxed) {
-                                let _ = this.update(cx, |this, cx| {
-                                    if let Some(ui) = this.export.as_mut() {
-                                        ui.phase = ExportPhase::Idle;
-                                    }
-                                    cx.notify();
-                                });
-                            } else {
-                                show_upload_failure(&this, cx, &error, true);
-                            }
-                        }
-                        Err(_) => {
-                            show_upload_failure(&this, cx, "Failed to upload recording", true);
-                        }
-                    }
-                }
-                Ok(Err(error)) => {
-                    let cancelled = !is_resource_stop(&error)
-                        && (error == "Export cancelled" || cancel.load(Ordering::Relaxed));
-                    let _ = this.update(cx, |this, cx| {
-                        if let Some(ui) = this.export.as_mut() {
-                            if cancelled {
-                                ui.phase = ExportPhase::Idle;
-                            } else {
-                                ui.phase = ExportPhase::Failed;
-                                ui.error = Some(error.clone());
-                            }
-                        }
-                        cx.notify();
-                    });
-                    if !cancelled {
-                        platform::alert_dialog("Export failed", &error);
-                    }
-                }
-                Err(_) => {
-                    show_upload_failure(&this, cx, "Export task failed", false);
-                }
-            }
-            let _ = this.update_in(cx, |this, window, cx| {
-                this.finish_requested_export_close(window, cx)
-            });
-        }));
     }
 
     pub(crate) fn render_export_page(
@@ -1643,7 +1205,6 @@ impl EditorWindow {
         let theme = self.theme;
         let editor = theme.editor;
         let transparent = has_transparent_background(&self.project);
-        let link_disabled = transparent || ui.cursor_only;
         let format_locked = transparent || ui.cursor_only;
         let resolutions = self.export_resolutions(ui);
         let fps_options = self.export_fps_options(ui);
@@ -1667,7 +1228,7 @@ impl EditorWindow {
                     .overflow_y_scroll()
                     .p(px(16.))
                     .gap(px(20.))
-                    .child(self.export_destination_field(ui, link_disabled, cx))
+                    .child(self.export_destination_field(ui, cx))
                     .child(self.export_format_field(ui, format_locked, cx))
                     .child(self.export_resolution_field(ui, &resolutions, cx))
                     .child(self.export_fps_field(ui, fps_options, cx))
@@ -1692,23 +1253,9 @@ impl EditorWindow {
     fn export_cta(&self, ui: &ExportUi, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = self.theme;
         let editor = theme.editor;
-        let signed_in = store::auth_snapshot().signed_in();
         let (label, icon, primary) = match ui.destination {
             ExportDestination::File => ("Export to File", Some("icons/folder.svg"), true),
             ExportDestination::Clipboard => ("Export to Clipboard", Some("icons/copy.svg"), true),
-            ExportDestination::Link if ui.sign_in_pending => ("Cancel Sign In", None, false),
-            ExportDestination::Link if !signed_in => {
-                ("Sign in to share", Some("icons/link.svg"), true)
-            }
-            ExportDestination::Link => (
-                if self.sharing.is_some() {
-                    "Reupload to same link"
-                } else {
-                    "Create shareable link"
-                },
-                Some("icons/link.svg"),
-                true,
-            ),
         };
         let busy = ui.phase.is_busy();
         let (bg, hover_bg, text) = if primary {
@@ -1766,14 +1313,8 @@ impl EditorWindow {
             .gap(px(8.))
     }
 
-    fn export_destination_field(
-        &self,
-        ui: &ExportUi,
-        link_disabled: bool,
-        cx: &mut Context<Self>,
-    ) -> impl IntoElement {
+    fn export_destination_field(&self, ui: &ExportUi, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = self.theme;
-        let editor = theme.editor;
         self.export_section("Destination", "icons/upload-arrow.svg")
             .child(
                 ui::SegmentedControl::editor(
@@ -1782,16 +1323,8 @@ impl EditorWindow {
                     ExportDestination::ALL
                         .iter()
                         .map(|dest| {
-                            let label = if *dest == ExportDestination::Link
-                                && self.sharing.is_some()
-                            {
-                                "Reupload"
-                            } else {
-                                dest.label()
-                            };
                             let mut option =
-                                ui::SegmentOption::new(label, ui.destination == *dest)
-                                    .disabled(*dest == ExportDestination::Link && link_disabled);
+                                ui::SegmentOption::new(dest.label(), ui.destination == *dest);
                             option.icon = Some(dest.icon().into());
                             option
                         })
@@ -1804,147 +1337,12 @@ impl EditorWindow {
                         return;
                     };
                     if let Some(ui) = this.export.as_mut() {
-                        if dest == ExportDestination::Link
-                            && (has_transparent_background(&this.project) || ui.cursor_only)
-                        {
-                            return;
-                        }
                         ui.destination = dest;
-                        if dest == ExportDestination::Link && ui.format == ExportFormatKind::Gif {
-                            ui.format = ExportFormatKind::Mp4;
-                        }
                         ui.persist();
                     }
                     this.refresh_export_preview(window, cx);
                     cx.notify();
                 })),
-            )
-            .when(link_disabled, |field| {
-                field.child(
-                    div()
-                        .text_size(px(11.))
-                        .text_color(Hsla::from(editor.text_3))
-                        .child(if ui.cursor_only {
-                            "Cursor-only exports can only be saved to a file or clipboard."
-                        } else {
-                            "Transparent exports can only be saved to a file or clipboard."
-                        }),
-                )
-            })
-            .when(
-                ui.destination == ExportDestination::Link && self.sharing.is_some(),
-                |field| {
-                    let link = self.sharing.as_ref()
-                        .map(|sharing| sharing.link.clone())
-                        .unwrap_or_default();
-                    field.child(
-                        div()
-                            .p(px(12.))
-                            .rounded(px(10.))
-                            .bg(Hsla::from(editor.card_2))
-                            .flex()
-                            .flex_col()
-                            .gap(px(4.))
-                            .child(
-                                div()
-                                    .text_size(px(12.5))
-                                    .font_weight(FontWeight::MEDIUM)
-                                    .text_color(Hsla::from(editor.text_1))
-                                    .child("Update your existing link"),
-                            )
-                            .child(
-                                div()
-                                    .text_size(px(11.5))
-                                    .line_height(px(15.))
-                                    .text_color(Hsla::from(editor.text_3))
-                                    .child("Reupload replaces the video at this link with your latest edit. Everyone with the link will see the updated version."),
-                            )
-                            .child(
-                                div()
-                                    .id("reupload-existing-link")
-                                    .text_size(px(11.5))
-                                    .text_color(Hsla::from(editor.accent))
-                                    .truncate()
-                                    .cursor_pointer()
-                                    .child(link.clone())
-                                    .on_click(move |_, _, cx| cx.open_url(&link)),
-                            ),
-                    )
-                },
-            )
-            .when(
-                ui.destination == ExportDestination::Link
-                    && self.sharing.is_none()
-                    && store::auth_snapshot().organizations.len() > 1,
-                |this| {
-                    let orgs = store::auth_snapshot().organizations;
-                    let selected = ui
-                        .organization_id
-                        .clone()
-                        .or_else(|| orgs.first().map(|org| org.id.clone()));
-                    let label = orgs
-                        .iter()
-                        .find(|org| Some(org.id.as_str()) == selected.as_deref())
-                        .or(orgs.first())
-                        .map(|org| org.name.clone())
-                        .unwrap_or_else(|| "Organization".into());
-                    this.child(
-                        div()
-                            .id("export-organization")
-                            .flex()
-                            .flex_row()
-                            .items_center()
-                            .justify_between()
-                            .h(px(30.))
-                            .px(px(10.))
-                            .rounded(px(7.))
-                            .bg(Hsla::from(editor.ctl))
-                            .cursor_pointer()
-                            .hover(move |style| style.bg(Hsla::from(editor.ctl_hover)))
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                let orgs = store::auth_snapshot().organizations;
-                                if orgs.is_empty() {
-                                    return;
-                                }
-                                if let Some(ui) = this.export.as_mut() {
-                                    let current = ui
-                                        .organization_id
-                                        .as_deref()
-                                        .or(orgs.first().map(|org| org.id.as_str()));
-                                    let index = orgs
-                                        .iter()
-                                        .position(|org| Some(org.id.as_str()) == current)
-                                        .unwrap_or(0);
-                                    let next = orgs[(index + 1) % orgs.len()].id.clone();
-                                    ui.organization_id = Some(next);
-                                    ui.persist();
-                                }
-                                cx.notify();
-                            }))
-                            .child(
-                                div()
-                                    .text_size(px(12.))
-                                    .text_color(Hsla::from(editor.text_2))
-                                    .child("Organization"),
-                            )
-                            .child(
-                                div()
-                                    .flex()
-                                    .flex_row()
-                                    .items_center()
-                                    .gap(px(4.))
-                                    .text_size(px(12.))
-                                    .text_color(Hsla::from(editor.text_1))
-                                    .child(label)
-                                    .child(
-                                        svg()
-                                            .path("icons/caret-down.svg")
-                                            .size(px(14.))
-                                            .text_color(Hsla::from(editor.text_3)),
-                                    ),
-                            ),
-                    )
-                },
             )
     }
 
@@ -1982,9 +1380,6 @@ impl EditorWindow {
                     if let Some(ui) = this.export.as_mut() {
                         ui.format = format;
                         if format == ExportFormatKind::Gif {
-                            if ui.destination == ExportDestination::Link {
-                                ui.destination = ExportDestination::File;
-                            }
                             if ui.resolution == ExportResolution::P4k {
                                 ui.resolution = ExportResolution::P1080;
                             }
@@ -2234,9 +1629,6 @@ impl EditorWindow {
                     cx.listener(|this, _, window, cx| {
                         if let Some(ui) = this.export.as_mut() {
                             ui.cursor_only = !ui.cursor_only;
-                            if ui.cursor_only && ui.destination == ExportDestination::Link {
-                                ui.destination = ExportDestination::File;
-                            }
                             ui.persist();
                         }
                         this.refresh_export_preview(window, cx);
@@ -2414,9 +1806,7 @@ impl EditorWindow {
     fn render_export_overlay(&self, ui: &ExportUi, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = self.theme;
         let editor = theme.editor;
-        let fraction = if ui.phase == ExportPhase::Uploading {
-            Some(ui.upload_progress.clamp(0.0, 1.0))
-        } else if ui.total_frames == 0 {
+        let fraction = if ui.total_frames == 0 {
             None
         } else {
             Some(ui.rendered as f32 / ui.total_frames as f32)
@@ -2430,15 +1820,9 @@ impl EditorWindow {
                 "Copying to clipboard"
             }
             ExportPhase::Copying => "Saving to file",
-            ExportPhase::Uploading if ui.reuploading => "Reuploading to your link",
-            ExportPhase::Uploading => "Creating shareable link",
             ExportPhase::Done if ui.destination == ExportDestination::Clipboard => {
                 "Copied to clipboard"
             }
-            ExportPhase::Done if ui.destination == ExportDestination::Link && ui.reuploading => {
-                "Reupload complete"
-            }
-            ExportPhase::Done if ui.destination == ExportDestination::Link => "Upload complete",
             ExportPhase::Done => "Export complete",
             ExportPhase::Failed if ui.clipboard_retry_path().is_some() => {
                 "Export complete; clipboard copy failed"
@@ -2486,22 +1870,6 @@ impl EditorWindow {
                             .text_size(px(16.))
                             .font_weight(FontWeight::MEDIUM)
                             .child(heading),
-                    )
-                    .when(
-                        ui.phase == ExportPhase::Done
-                            && ui.destination == ExportDestination::Link,
-                        |this| {
-                            this.child(
-                                div()
-                                    .text_size(px(12.))
-                                    .text_color(Hsla::from(editor.text_2))
-                                    .child(if ui.reuploading {
-                                        "Your latest edit is ready at the same link"
-                                    } else {
-                                        "Your Cap has been uploaded successfully"
-                                    }),
-                            )
-                        },
                     ),
             )
             .when(ui.phase == ExportPhase::Rendering && ui.total_frames > 0, |this| {
@@ -2618,45 +1986,6 @@ impl EditorWindow {
                                 if let Some(path) = &path {
                                     library::open_path(path);
                                 }
-                            }),
-                        )
-                    },
-                )
-                .when(
-                    ui.phase == ExportPhase::Done
-                        && ui.destination == ExportDestination::Link
-                        && ui.share_link.is_some(),
-                    |this| {
-                        let copied = ui.copy_link_pressed;
-                        let open = ui.share_link.clone().unwrap_or_default();
-                        this.child(
-                            ui::Button::plain(
-                                &theme,
-                                "export-copy-link",
-                                ui::ButtonVariant::Gray,
-                                ui::ButtonSize::Md,
-                            )
-                            .icon(if copied {
-                                "icons/check.svg"
-                            } else {
-                                "icons/copy.svg"
-                            })
-                            .label(if copied { "Link copied" } else { "Copy link" })
-                            .on_click(cx.listener(|this, _, window, cx| {
-                                this.copy_share_link(window, cx);
-                            })),
-                        )
-                        .child(
-                            ui::Button::plain(
-                                &theme,
-                                "export-open-link",
-                                ui::ButtonVariant::Primary,
-                                ui::ButtonSize::Md,
-                            )
-                            .icon("icons/link.svg")
-                            .label("Open link")
-                            .on_click(move |_, _, cx| {
-                                cx.open_url(&open);
                             }),
                         )
                     },
@@ -2795,25 +2124,6 @@ async fn confirm_export_resources(
 fn cancel_matching_export(current: &Arc<AtomicBool>, requested: &Arc<AtomicBool>, confirmed: bool) {
     if confirmed && Arc::ptr_eq(current, requested) {
         current.store(true, Ordering::Relaxed);
-    }
-}
-
-fn show_upload_failure(
-    this: &gpui::WeakEntity<EditorWindow>,
-    cx: &mut gpui::AsyncWindowContext,
-    message: &str,
-    dialog: bool,
-) {
-    let message = message.to_string();
-    let _ = this.update(cx, |this, cx| {
-        if let Some(ui) = this.export.as_mut() {
-            ui.phase = ExportPhase::Failed;
-            ui.error = Some(message.clone());
-        }
-        cx.notify();
-    });
-    if dialog {
-        platform::alert_dialog("Failed to upload recording", &message);
     }
 }
 
@@ -3004,7 +2314,6 @@ mod tests {
             custom_bpp: None,
             force_ffmpeg_decoder: false,
             advanced_open: false,
-            organization_id: None,
         })
     }
 
@@ -3070,8 +2379,6 @@ mod tests {
         ui.output_path = Some(PathBuf::from("finished recording.mp4"));
         ui.destination = ExportDestination::File;
         assert!(ui.clipboard_retry_path().is_none());
-        ui.destination = ExportDestination::Link;
-        assert!(ui.clipboard_retry_path().is_none());
     }
 
     #[test]
@@ -3110,7 +2417,6 @@ mod tests {
             ExportPhase::Starting,
             ExportPhase::Rendering,
             ExportPhase::Copying,
-            ExportPhase::Uploading,
             ExportPhase::Done,
             ExportPhase::Failed,
         ] {

@@ -170,7 +170,7 @@ pub static TEXT_PRESETS: &[TextPreset] = &[
         id: "title",
         group: "Titles",
         name: "Title",
-        sample: "Introducing Cap",
+        sample: "Introducing Scoopy",
         center: None,
         style: TextPresetStyle {
             font_stack: SANS_STACK,
@@ -344,7 +344,7 @@ pub static TEXT_PRESETS: &[TextPreset] = &[
         id: "caption",
         group: "Lower thirds",
         name: "Caption",
-        sample: "Recorded with Cap",
+        sample: "Recorded with Scoopy",
         center: Some(XY { x: 0.5, y: 0.88 }),
         style: TextPresetStyle {
             font_stack: SANS_STACK,
@@ -8241,7 +8241,7 @@ mod tests {
         let mut segment = text_segment();
         assert_eq!(segment.content, "Text");
         apply_text_preset(&mut segment, preset("title"), &[]);
-        assert_eq!(segment.content, "Introducing Cap");
+        assert_eq!(segment.content, "Introducing Scoopy");
 
         // An empty box counts as untouched too.
         let mut segment = text_segment();

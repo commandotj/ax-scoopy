@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 512">
+	<g id="icon">
+		<path d="M256 76a180 180 0 1 0 0 360a180 180 0 0 0 0-360zm110 90a64 64 0 1 1-128 0a64 64 0 0 1 128 0z" fill="#FF5A36" fill-rule="evenodd"/>
+		<circle cx="302" cy="166" r="40" fill="#FFB199"/>
+	</g>
+	<g id="wordmark">
+		<text x="470" y="318" font-family="Helvetica, Arial, sans-serif" font-size="150" font-weight="700" letter-spacing="-4" fill="#1F1B2E">scoopy</text>
+	</g>
+</svg>

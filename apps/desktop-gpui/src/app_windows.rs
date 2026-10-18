@@ -459,25 +459,6 @@ fn remove_popup_window_chrome(native: Option<platform::NativeWindow>, cx: &mut A
         .detach();
 }
 
-pub(crate) fn export_in_flight(cx: &App) -> bool {
-    if !cx.has_global::<AppWindows>() {
-        return false;
-    }
-
-    let windows = cx.global::<AppWindows>();
-    windows.editors.iter().any(|(_, handle)| {
-        handle
-            .read(cx)
-            .ok()
-            .and_then(|editor| editor.export.as_ref())
-            .is_some_and(|export| export.phase.is_busy())
-    }) || windows.screenshot_editors.iter().any(|(_, handle)| {
-        handle
-            .read(cx)
-            .is_ok_and(ScreenshotEditorWindow::export_in_flight)
-    })
-}
-
 pub(crate) fn flush_pending_editor_saves(cx: &mut App) -> Result<(), String> {
     if !cx.has_global::<AppWindows>() {
         return Ok(());
@@ -648,7 +629,7 @@ pub fn init(main: WindowHandle<MainWindow>, session: Entity<RecordingSession>, c
     })
     .detach();
 
-    // The `cap-desktop://action` executor (see `crate::deeplink`): started
+    // The `scoopy://action` executor (see `crate::deeplink`): started
     // here because the actions dispatch into this registry, which now exists.
     // The Tauri app orders it the same way -- `DeepLinkActionExecutor::new` in
     // `setup`, before `on_open_url` is wired (`lib.rs:5449`).
@@ -1137,15 +1118,6 @@ pub fn open_quality_settings(mode: Mode, cx: &mut App) {
                 view.show_quality_settings(mode, window, cx);
             })
             .ok();
-    }
-}
-
-pub(crate) fn refresh_settings(cx: &mut App) {
-    if !cx.has_global::<AppWindows>() {
-        return;
-    }
-    if let Some(handle) = cx.global::<AppWindows>().settings {
-        handle.update(cx, |_, _, cx| cx.notify()).ok();
     }
 }
 
@@ -2593,16 +2565,16 @@ impl OwnWindow {
 
     pub fn title(self) -> &'static str {
         match self {
-            Self::Main => "Cap",
-            Self::Settings => "Cap Settings",
-            Self::Controls => "Cap Recording Controls",
-            Self::Camera => "Cap Camera",
-            Self::ModeSelect => "Cap Mode Selection",
-            Self::Teleprompter => "Cap Teleprompter",
-            Self::TargetSelect => "Cap Target Select",
-            Self::Editor => "Cap Editor",
-            Self::ScreenshotEditor => "Cap Screenshot Editor",
-            Self::Onboarding => "Welcome to Cap",
+            Self::Main => "Scoopy",
+            Self::Settings => "Scoopy Settings",
+            Self::Controls => "Scoopy Recording Controls",
+            Self::Camera => "Scoopy Camera",
+            Self::ModeSelect => "Scoopy Mode Selection",
+            Self::Teleprompter => "Scoopy Teleprompter",
+            Self::TargetSelect => "Scoopy Target Select",
+            Self::Editor => "Scoopy Editor",
+            Self::ScreenshotEditor => "Scoopy Screenshot Editor",
+            Self::Onboarding => "Welcome to Scoopy",
         }
     }
 }
@@ -5387,9 +5359,6 @@ async fn drive_auto_export(handle: WindowHandle<EditorWindow>, cx: &mut gpui::As
             if let Some(export) = view.export.as_mut() {
                 let flags: Vec<&str> = page.split(',').collect();
                 export.advanced_open = flags.contains(&"advanced");
-                if flags.contains(&"link") {
-                    export.destination = crate::editor_export::ExportDestination::Link;
-                }
             }
             cx.notify();
         });
@@ -6007,7 +5976,7 @@ pub(crate) fn request_editor_deletion(
         let prepared = cx.update(|cx| {
             editor_deletion_allowed(&key, handle, cx)?;
             let ownership = cap_recording::upload_resume::UploadLock::acquire(&key)
-                .map_err(|error| format!("This recording is still in use. Finish or cancel its upload and try again: {error}"))?;
+                .map_err(|error| format!("This recording is still in use. Close anything using it and try again: {error}"))?;
             let windows = cx.global_mut::<AppWindows>();
             windows.deleting_editors.insert(key.clone());
             windows.editors.retain(|(_, current)| *current != handle);
@@ -6057,7 +6026,7 @@ pub(crate) fn request_editor_deletion(
                     drop(ownership);
                     Ok(())
                 },
-                crate::upload::queue::delete_recording(deleting),
+                async move { crate::library::delete_recording_directory(&deleting) },
             ).await
         }));
         let notice = cx.background_executor().timer(std::time::Duration::from_secs(10));
@@ -7699,16 +7668,16 @@ mod tests {
     #[test]
     fn own_window_titles_match_cap_window_id() {
         let expected = [
-            (OwnWindow::Main, "Cap"),
-            (OwnWindow::Settings, "Cap Settings"),
-            (OwnWindow::Controls, "Cap Recording Controls"),
-            (OwnWindow::Camera, "Cap Camera"),
-            (OwnWindow::ModeSelect, "Cap Mode Selection"),
-            (OwnWindow::Teleprompter, "Cap Teleprompter"),
-            (OwnWindow::TargetSelect, "Cap Target Select"),
-            (OwnWindow::Editor, "Cap Editor"),
-            (OwnWindow::ScreenshotEditor, "Cap Screenshot Editor"),
-            (OwnWindow::Onboarding, "Welcome to Cap"),
+            (OwnWindow::Main, "Scoopy"),
+            (OwnWindow::Settings, "Scoopy Settings"),
+            (OwnWindow::Controls, "Scoopy Recording Controls"),
+            (OwnWindow::Camera, "Scoopy Camera"),
+            (OwnWindow::ModeSelect, "Scoopy Mode Selection"),
+            (OwnWindow::Teleprompter, "Scoopy Teleprompter"),
+            (OwnWindow::TargetSelect, "Scoopy Target Select"),
+            (OwnWindow::Editor, "Scoopy Editor"),
+            (OwnWindow::ScreenshotEditor, "Scoopy Screenshot Editor"),
+            (OwnWindow::Onboarding, "Welcome to Scoopy"),
         ];
         assert_eq!(OwnWindow::ALL.len(), expected.len());
         for (kind, title) in expected {
@@ -7720,7 +7689,7 @@ mod tests {
     /// How the table lines up with `DEFAULT_EXCLUDED_WINDOW_TITLES`
     /// (`general_settings.rs:104-114`): the defaults name three windows this
     /// app does not have, and four of ours are deliberately not in the defaults
-    /// -- "Cap Target Select" carries a comment over there explaining why it
+    /// -- "Scoopy Target Select" carries a comment over there explaining why it
     /// must not be added (a Windows ghost-overlay bug), and the editors and
     /// onboarding are simply not excluded by default.
     #[test]
@@ -7734,12 +7703,12 @@ mod tests {
         assert_eq!(
             shared,
             vec![
-                &"Cap",
-                &"Cap Settings",
-                &"Cap Recording Controls",
-                &"Cap Camera",
-                &"Cap Mode Selection",
-                &"Cap Teleprompter",
+                &"Scoopy",
+                &"Scoopy Settings",
+                &"Scoopy Recording Controls",
+                &"Scoopy Camera",
+                &"Scoopy Mode Selection",
+                &"Scoopy Teleprompter",
             ]
         );
 
@@ -7750,9 +7719,9 @@ mod tests {
         assert_eq!(
             defaults_without_a_window,
             vec![
-                &"Cap Window Capture Occluder",
-                &"Cap Capture Area",
-                &"Cap Recordings Overlay",
+                &"Scoopy Window Capture Occluder",
+                &"Scoopy Capture Area",
+                &"Scoopy Recordings Overlay",
             ]
         );
 

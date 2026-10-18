@@ -52,47 +52,21 @@ for (const [directory, workspace] of Object.entries(lock.workspaces)) {
 		checked++;
 	}
 }
-const webRequire = createRequire(path.join(root, "apps/web/package.json"));
-const mobileRequire = createRequire(
-	path.join(root, "apps/mobile/package.json"),
-);
-const nativeRequire = createRequire(
-	mobileRequire.resolve("react-native/package.json"),
+const rootRequire = createRequire(path.join(root, "package.json"));
+const rendererRequire = createRequire(
+	rootRequire.resolve("react-dom/package.json"),
 );
 assert.equal(
-	nativeRequire.resolve("react"),
-	mobileRequire.resolve("react"),
-	"React Native must resolve the mobile React instance",
+	rendererRequire.resolve("react"),
+	rootRequire.resolve("react"),
+	"React DOM must resolve its application's React instance",
 );
-for (const require of [webRequire, mobileRequire]) {
-	const rendererRequire = createRequire(
-		require.resolve("react-dom/package.json"),
-	);
-	assert.equal(
-		rendererRequire.resolve("react"),
-		require.resolve("react"),
-		"React DOM must resolve its application's React instance",
-	);
-}
-const ffmpeg = webRequire("ffmpeg-static");
-assert.equal(
-	typeof ffmpeg,
-	"string",
-	"ffmpeg-static must support this platform",
-);
-const ffmpegResult = spawnSync(ffmpeg, ["-version"], { encoding: "utf8" });
-assert.equal(
-	ffmpegResult.status,
-	0,
-	ffmpegResult.error?.message ?? ffmpegResult.stderr,
-);
-const nextRequire = createRequire(webRequire.resolve("next/package.json"));
-const image = await nextRequire("sharp")({
+const image = await rootRequire("sharp")({
 	create: { width: 1, height: 1, channels: 3, background: "white" },
 })
 	.png()
 	.toBuffer();
 assert.ok(image.length > 0, "sharp must load its native binding");
 console.log(
-	`Bun ${version.stdout.trim()}: ${checked} workspace dependencies match the lockfile; React Native, FFmpeg and sharp passed.`,
+	`Bun ${version.stdout.trim()}: ${checked} workspace dependencies match the lockfile; sharp passed.`,
 );

@@ -57,13 +57,13 @@ impl OSPermission {
     pub fn blurb(self) -> &'static str {
         match self {
             Self::ScreenRecording => {
-                "Click Grant to allow when macOS asks, or pick Cap in System Settings if needed. Restart the app after allowing screen recording."
+                "Click Grant to allow when macOS asks, or pick Scoopy in System Settings if needed. Restart the app after allowing screen recording."
             }
             Self::Accessibility => {
-                "During recording, Cap collects mouse activity locally to generate automatic zoom in segments."
+                "During recording, Scoopy collects mouse activity locally to generate automatic zoom in segments."
             }
-            Self::Microphone => "This permission is required to record audio in your Caps.",
-            Self::Camera => "This permission is required to record your camera in your Caps.",
+            Self::Microphone => "This permission is required to record audio in your recordings.",
+            Self::Camera => "This permission is required to record your camera in your recordings.",
         }
     }
 
@@ -281,7 +281,7 @@ async fn media_permission_result(
         MediaAuthorization::NotDetermined
         | MediaAuthorization::Denied
         | MediaAuthorization::Restricted => Err(format!(
-            "{} access is unavailable. Allow Cap in System Settings > Privacy & Security > {}, then select the device again.",
+            "{} access is unavailable. Allow Scoopy in System Settings > Privacy & Security > {}, then select the device again.",
             permission.label(),
             permission.label()
         )),

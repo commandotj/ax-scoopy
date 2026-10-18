@@ -431,7 +431,7 @@ export default function Teleprompter() {
 								? "Scrolling paused with recording"
 								: isLinux
 									? "This window may appear in recordings on Linux"
-									: "This window is hidden from Cap recordings")}
+									: "This window is hidden from Scoopy recordings")}
 					</span>
 				</div>
 				<Show when={isWindows}>

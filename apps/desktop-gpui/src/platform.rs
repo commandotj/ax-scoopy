@@ -1939,17 +1939,6 @@ mod mac {
         }
     }
 
-    pub fn activate_app() {
-        use objc2::{class, msg_send};
-
-        unsafe {
-            let app: *mut AnyObject = msg_send![class!(NSApplication), sharedApplication];
-            if !app.is_null() {
-                let _: () = msg_send![&*app, activateIgnoringOtherApps: true];
-            }
-        }
-    }
-
     /// `commands.focusWindow(id)` -- the macOS body of the `focus_window`
     /// command (`src-tauri/src/target_select_overlay.rs:377-399`): the picked
     /// window's owning pid, its `NSRunningApplication`, and

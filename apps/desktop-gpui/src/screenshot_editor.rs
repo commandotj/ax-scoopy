@@ -830,20 +830,14 @@ enum ExportDestination {
     Harness(PathBuf),
 }
 
-/// `exportStatus` (`useScreenshotExport.ts`), which is what the Share button's
-/// tooltip reads. Copy and Save walk Rendering -> Encoding; only the share
-/// flow reaches Uploading.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ExportStatus {
     Idle,
     Rendering,
     Encoding,
-    Uploading,
 }
 
-/// One `solid-toast` bubble. `Loading` is the share flow's
-/// (`useScreenshotExport.ts:153-239` posts one and updates it in place);
-/// copy and save go straight to a success bubble.
+/// One `solid-toast` bubble.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ToastKind {
     Loading,
@@ -970,10 +964,6 @@ pub struct ScreenshotEditorWindow {
 }
 
 impl ScreenshotEditorWindow {
-    pub(crate) fn export_in_flight(&self) -> bool {
-        self.exporting
-    }
-
     pub fn new(bundle: PathBuf, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let close_bundle = bundle.clone();
         window.on_window_should_close(cx, move |_window, cx| {
@@ -2049,287 +2039,6 @@ impl ScreenshotEditorWindow {
         .detach();
     }
 
-    /// One step of the share flow's status ladder: the header tooltip's
-    /// `exportStatus` and the one loading toast, updated in place.
-    fn share_progress(
-        &mut self,
-        toast: u64,
-        status: ExportStatus,
-        message: &'static str,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        self.export_status = status;
-        self.toast_update(toast, ToastKind::Loading, message, window, cx);
-    }
-
-    fn finish_share_error(
-        &mut self,
-        toast: u64,
-        message: String,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        tracing::error!("screenshot share failed: {message}");
-        self.toast_update(toast, ToastKind::Error, message, window, cx);
-        self.exporting = false;
-        self.export_status = ExportStatus::Idle;
-        cx.notify();
-    }
-
-    /// `copy_screenshot_share_link`: the link onto the clipboard, the loading
-    /// toast flipped to "Share link copied to clipboard".
-    fn finish_share_success(
-        &mut self,
-        toast: u64,
-        link: String,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        cx.write_to_clipboard(gpui::ClipboardItem::new_string(link));
-        crate::app_sounds::play_notification();
-        self.toast_update(
-            toast,
-            ToastKind::Success,
-            "Share link copied to clipboard",
-            window,
-            cx,
-        );
-        self.exporting = false;
-        self.export_status = ExportStatus::Idle;
-        cx.notify();
-    }
-
-    /// `exportImage("share")` (`useScreenshotExport.ts:139-253`) end to end:
-    /// fingerprint the config; an unchanged one just re-copies the stored link
-    /// (`copy_current_screenshot_share_link`, no upload). Otherwise render +
-    /// composite, encode JPEG-0.9-or-PNG per transparency, create-or-get the
-    /// screenshot video record (reusing `sharing.id` so the link stays
-    /// stable), presigned-PUT the bytes, and persist
-    /// `SharingMeta { id, link, content_hash }` into the bundle's meta --
-    /// `upload_rendered_screenshot` + `save_screenshot_sharing` over there.
-    ///
-    /// Failure modes, deliberately Tauri's: a failed upload (or a failed meta
-    /// write after a successful upload) leaves the existing sharing meta
-    /// untouched and toasts the error; the next attempt re-runs create-or-get,
-    /// which also heals a sharing id deleted server-side by minting a fresh
-    /// record.
-    fn share_screenshot(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.exporting {
-            return;
-        }
-        let Some(export_tx) = self.export_tx.clone() else {
-            return;
-        };
-        self.exporting = true;
-        self.export_status = ExportStatus::Encoding;
-        let toast = self.toast_loading("Preparing upload", cx);
-        cx.notify();
-
-        let config = self.project.clone();
-        let bundle = self.bundle.clone();
-        cx.spawn_in(window, async move |this, cx| {
-            // 1. The fingerprint, and the sharing meta it is compared against.
-            let hash_config = config.clone();
-            let content_hash = match cx
-                .background_executor()
-                .spawn(async move { crate::screenshot_export::content_hash(&hash_config) })
-                .await
-            {
-                Ok(hash) => hash,
-                Err(error) => {
-                    this.update_in(cx, |this, window, cx| {
-                        this.finish_share_error(toast, error, window, cx)
-                    })
-                    .ok();
-                    return;
-                }
-            };
-
-            let meta_bundle = bundle.clone();
-            let meta = cx
-                .background_executor()
-                .spawn(async move {
-                    RecordingMeta::load_for_project(&meta_bundle)
-                        .map_err(|error| format!("Failed to load screenshot metadata: {error}"))
-                })
-                .await;
-            let mut meta = match meta {
-                Ok(meta) => meta,
-                Err(error) => {
-                    this.update_in(cx, |this, window, cx| {
-                        this.finish_share_error(toast, error, window, cx)
-                    })
-                    .ok();
-                    return;
-                }
-            };
-
-            // 2. An unchanged config short-circuits to the stored link --
-            //    `screenshot_share_link_for_hash`.
-            if let Some(sharing) = meta.sharing.as_ref()
-                && sharing.content_hash.as_deref() == Some(content_hash.as_str())
-            {
-                let link = sharing.link.clone();
-                this.update_in(cx, |this, window, cx| {
-                    this.finish_share_success(toast, link, window, cx)
-                })
-                .ok();
-                return;
-            }
-
-            // 3. Render + composite.
-            this.update_in(cx, |this, window, cx| {
-                this.share_progress(
-                    toast,
-                    ExportStatus::Rendering,
-                    "Rendering screenshot",
-                    window,
-                    cx,
-                );
-            })
-            .ok();
-            let (reply_tx, reply_rx) = tokio::sync::oneshot::channel();
-            let request = ExportRequest::Render {
-                config: config.clone(),
-                reply: reply_tx,
-            };
-            let rendered = if export_tx.send(request).await.is_ok() {
-                match reply_rx.await {
-                    Ok(result) => result,
-                    Err(_) => Err("The renderer stopped before the export finished".into()),
-                }
-            } else {
-                Err("The screenshot renderer is not running".into())
-            };
-            let raw = match rendered {
-                Ok(raw) => raw,
-                Err(error) => {
-                    this.update_in(cx, |this, window, cx| {
-                        this.finish_share_error(toast, error, window, cx)
-                    })
-                    .ok();
-                    return;
-                }
-            };
-            let composite_config = config.clone();
-            let out = cx
-                .background_executor()
-                .spawn(async move { crate::screenshot_export::composite(&raw, &composite_config) })
-                .await;
-
-            // 4. Encode -- JPEG at 0.9 unless the output needs its alpha.
-            this.update_in(cx, |this, window, cx| {
-                this.share_progress(
-                    toast,
-                    ExportStatus::Encoding,
-                    "Preparing upload",
-                    window,
-                    cx,
-                );
-            })
-            .ok();
-            let encode_config = config.clone();
-            let encoded = match cx
-                .background_executor()
-                .spawn(
-                    async move { crate::screenshot_export::encode_for_share(&out, &encode_config) },
-                )
-                .await
-            {
-                Ok(encoded) => encoded,
-                Err(error) => {
-                    this.update_in(cx, |this, window, cx| {
-                        this.finish_share_error(toast, error, window, cx)
-                    })
-                    .ok();
-                    return;
-                }
-            };
-
-            // 5. Upload, on the tokio runtime the network stack lives on.
-            this.update_in(cx, |this, window, cx| {
-                this.share_progress(
-                    toast,
-                    ExportStatus::Uploading,
-                    "Uploading screenshot",
-                    window,
-                    cx,
-                );
-            })
-            .ok();
-            let existing_id = meta.sharing.as_ref().map(|sharing| sharing.id.clone());
-            let content_type = encoded.content_type();
-            let bytes = encoded.into_bytes();
-            let upload = gpui_tokio::Tokio::spawn(cx, async move {
-                crate::upload::upload_rendered_screenshot(bytes, content_type, existing_id).await
-            });
-            let outcome = match upload.await {
-                Ok(outcome) => outcome,
-                Err(error) => Err(format!("The upload task failed: {error}")),
-            };
-
-            let uploaded = match outcome {
-                Ok(crate::upload::ScreenshotShareOutcome::Uploaded(item)) => item,
-                Ok(crate::upload::ScreenshotShareOutcome::NotAuthenticated) => {
-                    this.update_in(cx, |this, window, cx| {
-                        this.finish_share_error(
-                            toast,
-                            "You need to sign in to create shareable links".into(),
-                            window,
-                            cx,
-                        )
-                    })
-                    .ok();
-                    return;
-                }
-                Ok(crate::upload::ScreenshotShareOutcome::UpgradeRequired) => {
-                    this.update_in(cx, |this, window, cx| {
-                        this.finish_share_error(
-                            toast,
-                            "This feature requires an upgraded plan".into(),
-                            window,
-                            cx,
-                        )
-                    })
-                    .ok();
-                    return;
-                }
-                Err(error) => {
-                    this.update_in(cx, |this, window, cx| {
-                        this.finish_share_error(toast, error, window, cx)
-                    })
-                    .ok();
-                    return;
-                }
-            };
-
-            // 6. `save_screenshot_sharing`: the meta write is part of the
-            //    flow's success -- a failure here surfaces as the error, and
-            //    the sharing meta on disk stays what it was.
-            let link = uploaded.link.clone();
-            meta.sharing = Some(cap_project::SharingMeta {
-                id: uploaded.id,
-                link: uploaded.link,
-                content_hash: Some(content_hash),
-            });
-            let saved = cx
-                .background_executor()
-                .spawn(async move {
-                    meta.save_for_project()
-                        .map_err(|error| format!("Error saving project: {error}"))
-                })
-                .await;
-
-            this.update_in(cx, |this, window, cx| match saved {
-                Ok(()) => this.finish_share_success(toast, link, window, cx),
-                Err(error) => this.finish_share_error(toast, error, window, cx),
-            })
-            .ok();
-        })
-        .detach();
-    }
-
     /// The header's Delete: confirm, remove the bundle, close this window --
     /// `Header.tsx`'s delete (`remove(path)` then close).
     fn delete_screenshot(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -2747,13 +2456,6 @@ impl ScreenshotEditorWindow {
         let theme = self.theme;
         let crop_enabled = self.image_size.is_some();
         let exporting = self.exporting;
-        let share_tooltip = match self.export_status {
-            ExportStatus::Rendering => "Rendering screenshot",
-            ExportStatus::Encoding => "Preparing upload",
-            ExportStatus::Uploading => "Uploading screenshot",
-            ExportStatus::Idle => "Create shareable link",
-        };
-
         let tools = div()
             .flex()
             .flex_row()
@@ -2900,17 +2602,6 @@ impl ScreenshotEditorWindow {
                             .on_click(cx.listener(|this, _, window, cx| {
                                 cx.stop_propagation();
                                 this.export_image(ExportDestination::File, window, cx);
-                            })),
-                    )
-                    .child(
-                        ui::EditorButton::plain(&theme, "screenshot-share")
-                            .left_icon("icons/link.svg")
-                            .icon_size(px(16.))
-                            .disabled(exporting)
-                            .tooltip(&theme, share_tooltip)
-                            .on_click(cx.listener(|this, _, window, cx| {
-                                cx.stop_propagation();
-                                this.share_screenshot(window, cx);
                             })),
                     )
                     .child(

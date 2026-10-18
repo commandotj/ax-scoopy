@@ -171,7 +171,7 @@ function AppearanceSection(props: {
 	return (
 		<Section
 			title="Appearance"
-			description="Match Cap to your system theme or pick a fixed look."
+			description="Match Scoopy to your system theme or pick a fixed look."
 		>
 			<SectionCard padded>
 				<div
@@ -479,18 +479,18 @@ function Inner(props: {
 				{ostype === "macos" && (
 					<Section
 						title="App"
-						description="Choose how Cap shows up on your system."
+						description="Choose how Scoopy shows up on your system."
 					>
 						<SectionRows>
 							<ToggleSettingItem
 								label="Always show dock icon"
-								description="Keep Cap in the dock even when no windows are open."
+								description="Keep Scoopy in the dock even when no windows are open."
 								value={!settings.hideDockIcon}
 								onChange={(v) => handleChange("hideDockIcon", !v)}
 							/>
 							<ToggleSettingItem
 								label="System notifications"
-								description="Show notifications for clipboard copies, saved files, and more. You may need to allow Cap in your system's notification settings."
+								description="Show notifications for clipboard copies, saved files, and more. You may need to allow Scoopy in your system's notification settings."
 								value={!!settings.enableNotifications}
 								onChange={async (value) => {
 									if (value) {
@@ -575,7 +575,7 @@ function Inner(props: {
 						/>
 						<ToggleSettingItem
 							label="Delete Instant recordings after upload"
-							description="Cap removes the local file once it has uploaded successfully."
+							description="Scoopy removes the local file once it has uploaded successfully."
 							value={settings.deleteInstantRecordingsAfterUpload ?? false}
 							onChange={(v) =>
 								handleChange("deleteInstantRecordingsAfterUpload", v)
@@ -803,7 +803,7 @@ function StorageSection(props: {
 	const isCustom = () => props.recordingsPath !== null;
 
 	return (
-		<Section title="Storage" description="Where Cap saves your recordings.">
+		<Section title="Storage" description="Where Scoopy saves your recordings.">
 			<SectionCard padded>
 				<div class="flex flex-col gap-3">
 					<div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-3 border border-gray-4 min-w-0">
@@ -836,7 +836,7 @@ function TelemetryCard(props: {
 			<SectionRows>
 				<ToggleSettingItem
 					label="Share anonymous telemetry"
-					description="Cap uses anonymous telemetry to improve reliability and fix bugs. We never collect recording contents, window titles, file paths, or personal information."
+					description="Scoopy uses anonymous telemetry to improve reliability and fix bugs. We never collect recording contents, window titles, file paths, or personal information."
 					value={props.value}
 					onChange={props.onChange}
 				/>
@@ -876,14 +876,14 @@ function UpdatesSection(props: {
 	);
 
 	return (
-		<Section title="Updates" description="Choose which Cap builds you receive.">
+		<Section title="Updates" description="Choose which Scoopy builds you receive.">
 			<SectionCard>
 				<div class="flex flex-col gap-3 px-4 py-4">
 					<div class="flex justify-between items-start gap-4">
 						<div class="flex flex-col gap-0.5 min-w-0">
 							<p class="text-[13px] text-gray-12">Update channel</p>
 							<p class="text-xs leading-snug text-gray-10">
-								Which release channel Cap updates from.
+								Which release channel Scoopy updates from.
 							</p>
 						</div>
 						<SegmentedControl
@@ -960,12 +960,12 @@ function ServerURLSetting(props: {
 	return (
 		<Section
 			title="Self-host"
-			description="Only change this if you are running your own instance of Cap Web."
+			description="Only change this if you are running your own instance of Scoopy Web."
 		>
 			<SectionCard padded>
 				<div class="flex flex-col gap-3">
 					<label class="flex flex-col gap-1.5">
-						<span class="text-[13px] text-gray-12">Cap Server URL</span>
+						<span class="text-[13px] text-gray-12">Scoopy Server URL</span>
 						<Input
 							class="bg-gray-3"
 							value={value()}
@@ -1266,7 +1266,7 @@ function ExcludedWindowsCard(props: {
 			title="Excluded windows"
 			description={
 				props.isWindows
-					? "Hide windows from recordings. On Windows, only Cap-related windows can be excluded."
+					? "Hide windows from recordings. On Windows, only Scoopy-related windows can be excluded."
 					: "Hide windows from recordings."
 			}
 			right={
@@ -1299,7 +1299,7 @@ function ExcludedWindowsCard(props: {
 							<IconLucideAlertTriangle class="mt-0.5 size-4 shrink-0 text-amber-11" />
 							<div class="min-w-0 flex-1 space-y-1">
 								<p class="text-xs font-medium text-amber-11">
-									Recommended Cap windows are not excluded
+									Recommended Scoopy windows are not excluded
 								</p>
 								<p class="text-[10px] leading-snug text-amber-11">
 									Camera, settings, or recording windows can appear as black

@@ -40,7 +40,7 @@ alias cap-demo='node <skilldir>/cap-demo.mjs'
   Chromium** under `~/Library/Caches/ms-playwright`; if none is cached, run
   `npx playwright install chromium` once.
 - **`python3`** and **`ffmpeg`/`ffprobe`** on PATH.
-- The **`cap` CLI** on PATH (Cap Desktop, https://cap.so) with macOS
+- The **`cap` CLI** on PATH (Scoopy) with macOS
   **screen-recording permission** granted to it. Both stages otherwise resolve
   the binary from `CAP_BIN`; if neither is set they error clearly.
 

@@ -44,16 +44,16 @@ pub fn acquire() {
             Ok(Some(lock)) => lock,
             Ok(None) => std::process::exit(0),
             Err(error) => {
-                tracing::error!(%error, "Could not acquire the Cap GPUI instance lock");
+                tracing::error!(%error, "Could not acquire the Scoopy GPUI instance lock");
                 std::process::exit(1);
             }
         };
         if INSTANCE_LOCK.set(lock).is_err() {
-            tracing::error!("The Cap GPUI instance lock was initialized twice");
+            tracing::error!("The Scoopy GPUI instance lock was initialized twice");
             std::process::exit(1);
         }
         if let Err(error) = publish_macos_pidfile(&path) {
-            tracing::error!(%error, "Could not publish the Cap GPUI instance pidfile");
+            tracing::error!(%error, "Could not publish the Scoopy GPUI instance pidfile");
             std::process::exit(1);
         }
     }
@@ -67,11 +67,11 @@ pub fn acquire() {
         && is_cap_gpui(pid)
     {
         match forward_linux_reopen(&path, pid as u32) {
-            Ok(()) => tracing::info!(pid, "Requested the existing Cap GPUI controls"),
+            Ok(()) => tracing::info!(pid, "Requested the existing Scoopy GPUI controls"),
             Err(error) => tracing::warn!(
                 pid,
                 %error,
-                "Could not reopen Cap GPUI; the existing instance remains unchanged"
+                "Could not reopen Scoopy GPUI; the existing instance remains unchanged"
             ),
         }
         std::process::exit(0);
@@ -88,13 +88,13 @@ pub fn acquire() {
 
     #[cfg(target_os = "linux")]
     if let Err(error) = start_linux_reopen(&path) {
-        tracing::error!(%error, "could not start Cap GPUI activation");
+        tracing::error!(%error, "could not start Scoopy GPUI activation");
         std::process::exit(1);
     }
 
     #[cfg(target_os = "macos")]
     if let Err(error) = start_deep_link_forwarding(&path) {
-        tracing::error!(%error, "could not start Cap GPUI deep-link forwarding");
+        tracing::error!(%error, "could not start Scoopy GPUI deep-link forwarding");
         std::process::exit(1);
     }
 }
@@ -123,9 +123,9 @@ fn is_cap_gpui(pid: i32) -> bool {
 
 fn is_cap_gpui_image(path: &Path) -> bool {
     #[cfg(windows)]
-    const IMAGE_NAMES: [&str; 2] = ["Cap.exe", "cap-gpui.exe"];
+    const IMAGE_NAMES: [&str; 4] = ["Scoopy.exe", "Cap.exe", "scoopy.exe", "cap-gpui.exe"];
     #[cfg(not(windows))]
-    const IMAGE_NAMES: [&str; 2] = ["Cap", "cap-gpui"];
+    const IMAGE_NAMES: [&str; 4] = ["Scoopy", "Cap", "scoopy", "cap-gpui"];
 
     let Some(name) = path.file_name().and_then(std::ffi::OsStr::to_str) else {
         return false;
@@ -602,7 +602,7 @@ fn parse_linux_reopen_action(raw: &str) -> std::io::Result<crate::deeplink::Deep
         )
     };
     if raw.len() > MAX_FORWARDED_DEEP_LINK_BYTES
-        || !(raw.starts_with("cap-desktop://") || raw.starts_with("cap://"))
+        || !(raw.starts_with("scoopy://"))
     {
         return Err(invalid());
     }
@@ -1120,7 +1120,7 @@ fn is_forwardable_deep_link(url: &str) -> bool {
     !url.is_empty()
         && url.len() <= MAX_FORWARDED_DEEP_LINK_BYTES
         && reqwest::Url::parse(url)
-            .is_ok_and(|parsed| matches!(parsed.scheme(), "cap-desktop" | "cap"))
+            .is_ok_and(|parsed| matches!(parsed.scheme(), "scoopy"))
 }
 
 #[cfg(any(windows, target_os = "macos", test))]
@@ -1257,9 +1257,9 @@ mod tests {
     #[test]
     fn gpui_process_image_must_match_exactly() {
         #[cfg(windows)]
-        let names = ["cap-gpui.exe", "Cap.exe"];
+        let names = ["cap-gpui.exe", "Cap.exe", "Scoopy.exe", "scoopy.exe"];
         #[cfg(not(windows))]
-        let names = ["cap-gpui", "Cap"];
+        let names = ["cap-gpui", "Cap", "Scoopy", "scoopy"];
 
         for name in names {
             assert!(is_cap_gpui_image(Path::new(name)));
@@ -1508,12 +1508,12 @@ mod tests {
 
     #[test]
     fn forwarded_deep_links_only_accept_cap_schemes() {
-        assert!(is_forwardable_deep_link("cap-desktop://auth?token=test"));
-        assert!(is_forwardable_deep_link("cap://action?value=test"));
+        assert!(is_forwardable_deep_link("scoopy://auth?token=test"));
+        assert!(is_forwardable_deep_link("scoopy://action?value=test"));
         assert!(!is_forwardable_deep_link("https://cap.so"));
-        assert!(!is_forwardable_deep_link("cap-desktop-evil://auth"));
+        assert!(!is_forwardable_deep_link("scoopy-evil://auth"));
         assert!(!is_forwardable_deep_link(&format!(
-            "cap://action?value={}",
+            "scoopy://action?value={}",
             "x".repeat(MAX_FORWARDED_DEEP_LINK_BYTES)
         )));
     }
@@ -1526,7 +1526,7 @@ mod tests {
             }
         });
         let url = reqwest::Url::parse_with_params(
-            "cap-desktop://action",
+            "scoopy://action",
             &[("value", action.to_string())],
         )
         .unwrap();
@@ -1624,7 +1624,7 @@ mod tests {
     #[test]
     fn forwarded_deep_links_require_the_owner_secret_and_bounded_payload() {
         let secret = 0x0123_4567_89ab_cdef_u64;
-        let url = "cap-desktop://auth?token=test";
+        let url = "scoopy://auth?token=test";
         let mut payload = secret.to_be_bytes().to_vec();
         payload.extend_from_slice(&(url.len() as u32).to_be_bytes());
         payload.extend_from_slice(url.as_bytes());
@@ -1862,7 +1862,7 @@ int main(int argc, char **argv) {
         let mut activated = None;
         let result = acquire_macos_instance(
             &path,
-            ["cap://action?value=\"stop_recording\"".into()].into_iter(),
+            ["scoopy://action?value=\"stop_recording\"".into()].into_iter(),
             |pid| activated = Some(pid),
         )
         .unwrap();
@@ -1938,7 +1938,7 @@ int main(int argc, char **argv) {
         assert!(
             acquire_macos_instance(
                 &path,
-                ["cap-desktop://auth?token=fixture".into()].into_iter(),
+                ["scoopy://auth?token=fixture".into()].into_iter(),
                 |pid| activated = Some(pid)
             )
             .unwrap()
@@ -1966,7 +1966,7 @@ int main(int argc, char **argv) {
         };
         write_forwarding_endpoint(&path.with_extension("ipc"), endpoint).unwrap();
         let before = identity(&path.with_extension("ipc"));
-        let url = "cap-desktop://auth?token=fixture".to_string();
+        let url = "scoopy://auth?token=fixture".to_string();
         let error = forward_macos_deep_links(&path, 789, [url.clone()].into_iter()).unwrap_err();
         assert_eq!(error.kind(), std::io::ErrorKind::TimedOut);
         assert!(forward_macos_deep_links(&path, 123, std::iter::repeat_n(url, 33)).is_err());
@@ -2050,7 +2050,7 @@ int main(int argc, char **argv) {
                     );
                     acknowledge_reopen(&mut stream, || queued.send(()).is_ok()).unwrap();
                 } else {
-                    let url = "cap-desktop://auth?token=fixture";
+                    let url = "scoopy://auth?token=fixture";
                     let mut expected = endpoint.secret.to_be_bytes().to_vec();
                     expected.extend_from_slice(&(url.len() as u32).to_be_bytes());
                     expected.extend_from_slice(url.as_bytes());
@@ -2065,7 +2065,7 @@ int main(int argc, char **argv) {
             send_macos_forwarded_request(endpoint, None, Instant::now(), Duration::from_secs(2));
         let deep_link = send_macos_forwarded_request(
             endpoint,
-            Some("cap-desktop://auth?token=fixture"),
+            Some("scoopy://auth?token=fixture"),
             Instant::now(),
             Duration::from_secs(2),
         );
@@ -2180,8 +2180,8 @@ int main(int argc, char **argv) {
             urls
         });
         let urls = [
-            "cap-desktop://auth?token=fixture".to_string(),
-            "cap://action?value=\"stop_recording\"".to_string(),
+            "scoopy://auth?token=fixture".to_string(),
+            "scoopy://action?value=\"stop_recording\"".to_string(),
         ];
         let mut activated = None;
         let result = acquire_macos_instance(
@@ -2359,7 +2359,7 @@ mod linux_reopen_tests {
 
     fn action_url(action: &DeepLinkAction) -> String {
         reqwest::Url::parse_with_params(
-            "cap-desktop://action",
+            "scoopy://action",
             &[("value", serde_json::to_string(action).unwrap())],
         )
         .unwrap()
@@ -2509,7 +2509,7 @@ mod linux_reopen_tests {
         );
         assert!(written.is_empty());
         let oversized = format!(
-            "cap://action?value={}",
+            "scoopy://action?value={}",
             "x".repeat(MAX_FORWARDED_DEEP_LINK_BYTES)
         );
         assert!(linux_reopen_action_payload([oversized]).unwrap().is_empty());
@@ -2527,10 +2527,10 @@ mod linux_reopen_tests {
             b"".as_slice(),
             b"not a URL",
             b"https://action?value=%22stop_recording%22",
-            b"cap://auth?token=private-secret",
-            b"cap://action?value=private-secret",
-            b"cap://action?value=%22private-secret%22",
-            b"cap://action?value=%FF\xff",
+            b"scoopy://auth?token=private-secret",
+            b"scoopy://action?value=private-secret",
+            b"scoopy://action?value=%22private-secret%22",
+            b"scoopy://action?value=%FF\xff",
         ] {
             let (mut server, mut client) = UnixStream::pair().unwrap();
             client
@@ -2550,7 +2550,7 @@ mod linux_reopen_tests {
                 .unwrap()
                 .is_empty()
         );
-        for scheme in ["cap", "cap-desktop"] {
+        for scheme in ["scoopy"] {
             let raw = format!("{scheme}://action?value=%22stop_recording%22");
             assert_eq!(
                 parse_linux_reopen_action(&raw).unwrap(),
@@ -2559,8 +2559,8 @@ mod linux_reopen_tests {
             assert!(!linux_reopen_action_payload([raw]).unwrap().is_empty());
         }
         for raw in [
-            "cap://auth?token=private-secret",
-            "cap://action?value=private-secret",
+            "scoopy://auth?token=private-secret",
+            "scoopy://action?value=private-secret",
         ] {
             assert!(
                 linux_reopen_action_payload([raw.into()])
@@ -2570,7 +2570,7 @@ mod linux_reopen_tests {
         }
         let valid = action_url(&DeepLinkAction::OpenSettings { page: None });
         let mixed = linux_reopen_action_payload([
-            "cap://action?value=private-secret".into(),
+            "scoopy://action?value=private-secret".into(),
             valid.clone(),
         ])
         .unwrap();
