@@ -1,6 +1,6 @@
 # cap-rendering-skia
 
-A new rendering backend for Cap using Skia, designed to replace the current wgpu-based renderer.
+A new rendering backend for Scoopy using Skia, designed to replace the current wgpu-based renderer.
 
 ## Status
 

@@ -28,7 +28,7 @@ Open `scripts/av-sync/av-sync-stimulus.html` in a browser, click **Start & go
 full-screen**. Optional: `av-sync-stimulus.html?interval=1.5` to change spacing
 (pass the same value to `--interval` later).
 
-## 3. Record with Cap (≥ 60 s; longer is better for drift)
+## 3. Record with Scoopy (≥ 60 s; longer is better for drift)
 
 Record one of these modes, then **stop**:
 
@@ -44,7 +44,7 @@ Run each mode you care about for **2–5 minutes** so any drift is visible
 
 ## 4. Locate the files
 
-Inside the recording folder (open it from the editor, or your Cap recordings
+Inside the recording folder (open it from the editor, or your Scoopy recordings
 directory):
 
 - **Instant mode:** `content/output.mp4` — video + audio in one file.
@@ -95,7 +95,7 @@ differs between machines (latency) and is not the metric.
 It's normal for the tool to detect only ~half the flashes (a brief flash vs
 on-change screen capture) and to drop a few outliers; as long as the surviving
 events agree (tight stddev, no significant trend), sync is good. A reference run
-of Cap's own pipeline (screen + system audio) landed at a stable ~150 ms offset
+of Scoopy's own pipeline (screen + system audio) landed at a stable ~150 ms offset
 (stddev ~8 ms) with no significant trend.
 
 ## The matrix to cover

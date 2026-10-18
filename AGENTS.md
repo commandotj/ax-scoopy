@@ -49,16 +49,16 @@ Additionally, `unused_must_use = "deny"` applies to all Rust code: every `Result
 
 ## Project Structure & Modules
 - Turborepo monorepo:
-  - `apps/desktop-gpui` (GPUI, ships as Cap), `apps/desktop` (Tauri v2 + SolidStart; last shipped in 0.6.0, kept for the dev harness), `apps/cli` (Rust CLI).
+  - `apps/desktop-gpui` (GPUI, ships as Scoopy), `apps/desktop` (Tauri v2 + SolidStart; last shipped in 0.6.0, kept for the dev harness), `apps/cli` (Rust CLI).
   - `packages/*` shared libs (e.g., `ui`, `ui-solid`, `utils`, `web-api-contract`).
   - `crates/*` Rust media/recording/rendering/camera crates.
   - `scripts/*` for tooling.
-- The repo has no hosted backend: there is no web app, no API, and no database. Marketing and lifecycle email copy lives in the private repo [CapSoftware/cap-marketing](https://github.com/CapSoftware/cap-marketing).
+- The repo has no hosted backend: there is no web app, no API, and no database.
 
 ## Build, Test, Develop
 - Install: `bun install`; setup: `bun run cap-setup`.
 - Dev: `bun run dev`. Desktop only: `bun run dev:desktop`.
-- Build: `bun run build` (Turbo). Desktop release: `bun run gpui:build <target>` (Cap ships as the GPUI app only).
+- Build: `bun run build` (Turbo). Desktop release: `bun run gpui:build <target>` (Scoopy ships as the GPUI app only).
 - Quality: `bun run lint`, `bun run format`, `bun run typecheck`. Rust: `cargo build -p <crate>`, `cargo test -p <crate>`.
 
 ## Coding Style & Naming

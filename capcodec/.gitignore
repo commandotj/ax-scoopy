@@ -1,9 +1,0 @@
-/build/
-/bench/out/
-__pycache__/
-*.pyc
-*.yuv
-*.264
-*.h264
-*.mkv
-/tmp/

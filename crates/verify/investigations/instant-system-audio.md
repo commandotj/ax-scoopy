@@ -1,7 +1,7 @@
 # Instant system audio investigation
 
 Opened 2026-10-16 by the suite integration executor under coordinator decision C.
-Status: product cause confirmed by the mixer arrival-schedule probe. The fix is tracked on [fix/instant-mixer-input-alignment](https://github.com/CapSoftware/Cap/tree/fix/instant-mixer-input-alignment). This track is separate from AVFoundation decoding.
+Status: product cause confirmed by the mixer arrival-schedule probe. The fix is tracked on the `fix/instant-mixer-input-alignment` branch. This track is separate from AVFoundation decoding.
 
 | Evidence | System offset | Mic offset |
 | --- | --- | --- |

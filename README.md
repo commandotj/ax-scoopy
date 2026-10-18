@@ -12,7 +12,8 @@
 
 Scoopy records your screen, camera and microphone, and edits the result into a finished video
 file on your own machine. It is local-first and local-only: no server, no remote service, and
-everything stays on your disk.
+everything stays on your disk. Scoopy is inspired by [Cap](https://github.com/CapSoftware/Cap) and
+designed for local only.
 
 Use it for product demos, bug reports, onboarding, tutorials, design reviews, engineering
 walkthroughs, async standups, or any moment where showing the work beats scheduling another call.
