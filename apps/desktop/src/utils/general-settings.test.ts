@@ -13,20 +13,20 @@ import {
 describe("general-settings", () => {
 	it("normalizes transcription hints from text input", () => {
 		expect(
-			parseTranscriptionHints(" Cap \n\nTypeScript\nCap\nGitHub\n"),
-		).toEqual(["Cap", "TypeScript", "GitHub"]);
+			parseTranscriptionHints(" Scoopy \n\nTypeScript\nScoopy\nGitHub\n"),
+		).toEqual(["Scoopy", "TypeScript", "GitHub"]);
 	});
 
 	it("formats transcription hints for the textarea", () => {
-		expect(formatTranscriptionHints(["Cap", "TypeScript", "Cap"])).toBe(
-			"Cap\nTypeScript",
+		expect(formatTranscriptionHints(["Scoopy", "TypeScript", "Scoopy"])).toBe(
+			"Scoopy\nTypeScript",
 		);
 	});
 
 	it("normalizes transcription hints from a list", () => {
 		expect(
-			normalizeTranscriptionHints([" Cap ", "", "TypeScript", "Cap", "GitHub"]),
-		).toEqual(["Cap", "TypeScript", "GitHub"]);
+			normalizeTranscriptionHints([" Scoopy ", "", "TypeScript", "Scoopy", "GitHub"]),
+		).toEqual(["Scoopy", "TypeScript", "GitHub"]);
 	});
 
 	it("defaults transcription hints when missing", () => {

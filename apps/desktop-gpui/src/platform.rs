@@ -31,7 +31,7 @@ impl LinuxFileDialogError {
         match self {
             Self::Busy => "A file dialog is already open. Finish or cancel it before trying again.".into(),
             Self::BeforeDispatch(error) | Self::NativeResponse(error) => format!("The file dialog could not complete: {error}"),
-            Self::Indeterminate(_) | Self::RestartRequired => "Cap could not confirm that the file dialog closed. Close any remaining file dialog and restart Cap before trying again.".into(),
+            Self::Indeterminate(_) | Self::RestartRequired => "Scoopy could not confirm that the file dialog closed. Close any remaining file dialog and restart Scoopy before trying again.".into(),
         }
     }
 }
@@ -2720,7 +2720,7 @@ mod file_dialog_tests {
         assert!(
             LinuxFileDialogError::RestartRequired
                 .message()
-                .contains("restart Cap")
+                .contains("restart Scoopy")
         );
     }
 

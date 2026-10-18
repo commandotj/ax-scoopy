@@ -1779,10 +1779,10 @@ async fn append_cap_project_to_editor_project(
                     .await
             }
             RecordingMetaInner::Instant(InstantRecordingMeta::InProgress { .. }) => {
-                Err("Source Cap project is still recording".to_string())
+                Err("Source Scoopy project is still recording".to_string())
             }
             RecordingMetaInner::Instant(InstantRecordingMeta::Failed { error }) => {
-                Err(format!("Source Cap project failed: {error}"))
+                Err(format!("Source Scoopy project failed: {error}"))
             }
             RecordingMetaInner::Studio(_) => unreachable!(),
         };
@@ -1790,7 +1790,7 @@ async fn append_cap_project_to_editor_project(
 
     let source_segments = studio_segments_for_import(source_studio_meta);
     if source_segments.is_empty() {
-        return Err("Source Cap project has no recording segments".to_string());
+        return Err("Source Scoopy project has no recording segments".to_string());
     }
 
     let source_timeline = source_timeline_segments_for_import(&source_meta, &source_segments)?;
@@ -1851,7 +1851,7 @@ async fn append_cap_project_to_editor_project(
     };
 
     if copied_segments.is_empty() {
-        return Err("Source Cap project has no importable recording segments".to_string());
+        return Err("Source Scoopy project has no importable recording segments".to_string());
     }
 
     {
@@ -1907,7 +1907,7 @@ pub async fn add_existing_recording_to_editor(
         crate::wait_for_recording_ready(&app, &source_path).await?;
         append_cap_project_to_editor_project(app, target_project_path, source_path).await?
     } else {
-        return Err("Select an MP4 file or a Cap project folder".to_string());
+        return Err("Select an MP4 file or a Scoopy project folder".to_string());
     };
     let imported_count =
         u32::try_from(imported_count).map_err(|_| "Too many recordings imported".to_string())?;

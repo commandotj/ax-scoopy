@@ -102,7 +102,7 @@ fn existing_clean_capture_stop(store: &HotkeysStore) -> Result<bool, String> {
     for (action, hotkey) in &store.hotkeys {
         if Shortcut::from(*hotkey) == shortcut {
             if !matches!(action, HotkeyAction::StopRecording) {
-                return Err("Ctrl+Shift+F9 is assigned to another Cap action. Change that shortcut before starting clean Studio capture.".into());
+                return Err("Ctrl+Shift+F9 is assigned to another Scoopy action. Change that shortcut before starting clean Studio capture.".into());
             }
             existing_stop = true;
         }
@@ -166,7 +166,7 @@ fn microphone_available_for_confirmation(
         return Ok(false);
     };
     permission().map_err(|error| {
-        format!("{error} To record without a microphone, turn the microphone Off in Cap.")
+        format!("{error} To record without a microphone, turn the microphone Off in Scoopy.")
     })?;
     if !contains(name) {
         return Err(format!(
@@ -565,8 +565,10 @@ async fn run_wayland_stop(
         let bound = portal
             .bind_shortcuts(
                 &session,
-                &[NewShortcut::new(&id, "Start or stop Cap clean recording")
-                    .preferred_trigger(Some("CTRL+SHIFT+F9"))],
+                &[
+                    NewShortcut::new(&id, "Start or stop Scoopy clean recording")
+                        .preferred_trigger(Some("CTRL+SHIFT+F9")),
+                ],
                 None,
             )
             .await

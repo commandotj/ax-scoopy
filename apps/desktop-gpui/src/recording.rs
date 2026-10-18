@@ -1259,7 +1259,7 @@ pub(crate) fn ensure_finalization_storage(project_path: &std::path::Path) -> any
         .context("checking storage before saving the recording")?;
     if !storage.can_finalize() {
         return Err(anyhow!(
-            "Low storage. Your recording files are preserved at {}. Free up space, then recover the recording in Cap.",
+            "Low storage. Your recording files are preserved at {}. Free up space, then recover the recording in Scoopy.",
             project_path.display()
         ));
     }
@@ -1671,7 +1671,7 @@ fn persist_instant_meta(completed: &instant_recording::CompletedRecording) -> an
         .file_stem()
         .and_then(|name| name.to_str())
         .filter(|name| !name.is_empty())
-        .unwrap_or("Cap Recording")
+        .unwrap_or("Scoopy Recording")
         .to_string();
     let meta = match &completed.meta {
         InstantRecordingMeta::InProgress { .. } => InstantRecordingMeta::Failed {
@@ -1701,7 +1701,7 @@ fn persist_in_progress_instant_meta(project_path: &std::path::Path) -> anyhow::R
         .file_stem()
         .and_then(|name| name.to_str())
         .filter(|name| !name.is_empty())
-        .unwrap_or("Cap Recording")
+        .unwrap_or("Scoopy Recording")
         .to_string();
 
     let meta = cap_project::RecordingMeta {
@@ -2255,7 +2255,7 @@ fn create_project_dir(
 /// as the Tauri recording and screenshot paths do.
 pub(crate) fn project_bundle_filename(name: &str) -> String {
     let name = name.replace([':', '/'], ".");
-    format!("{}.cap", sanitize_filename::sanitize(&name))
+    format!("{}.scoopy", sanitize_filename::sanitize(&name))
 }
 
 fn format_recording_project_name(
@@ -2399,7 +2399,7 @@ mod tests {
         let filename = project_bundle_filename(
             "NATO fighter jets | News World | Metro News : / * ? < > (Window)",
         );
-        assert!(filename.ends_with(".cap"));
+        assert!(filename.ends_with(".scoopy"));
         assert!(!filename.chars().any(|c| "\\/:*?\"<>|".contains(c)));
 
         #[cfg(windows)]

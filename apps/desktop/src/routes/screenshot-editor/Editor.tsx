@@ -203,7 +203,7 @@ function Dialogs() {
 	const path = () => editorInstance()?.path ?? "";
 	const imagePath = () => {
 		const p = path();
-		if (p.endsWith(".cap")) {
+		if (p.endsWith(".scoopy") || p.endsWith(".cap")) {
 			return `${p}/original.png`;
 		}
 		return p;

@@ -812,7 +812,7 @@ fn launch_linux_activation(
     path: Option<&std::path::Path>,
     launch: impl FnOnce(&std::path::Path, &[String]) -> Result<(), String>,
 ) -> Result<(), String> {
-    let path = path.ok_or_else(|| "Cap GPUI isn't included in this build".to_string())?;
+    let path = path.ok_or_else(|| "Scoopy GPUI isn't included in this build".to_string())?;
     launch(path, &[])
 }
 
@@ -875,7 +875,7 @@ fn spawn_detached(path: &std::path::Path, args: &[String]) -> Result<(), String>
 
     let mut child = command
         .spawn()
-        .map_err(|error| format!("Failed to launch Cap GPUI: {error}"))?;
+        .map_err(|error| format!("Failed to launch Scoopy GPUI: {error}"))?;
     // Reap the child when it exits so it never lingers as a zombie.
     std::thread::spawn(move || {
         let _ = child.wait();
@@ -916,7 +916,7 @@ pub async fn gpui_app_available(app: AppHandle) -> bool {
 #[specta::specta]
 pub async fn switch_to_gpui_app(app: AppHandle) -> Result<(), String> {
     let path =
-        binary_path(&app).ok_or_else(|| "Cap GPUI isn't included in this build".to_string())?;
+        binary_path(&app).ok_or_else(|| "Scoopy GPUI isn't included in this build".to_string())?;
     crate::prepare_app_exit(&app, || {
         let uses_shared_store = own_store_is_shared(&app);
         let previous_shared_flag = if uses_shared_store {
@@ -1120,7 +1120,7 @@ fn redirect_decision(app: &AppHandle) -> Result<bool, String> {
         }
         app.dialog()
             .message(
-                "The native Cap app exited unexpectedly last time, so the classic app has been restored.",
+                "The native Scoopy app exited unexpectedly last time, so the classic app has been restored.",
             )
             .show(|_| {});
         return Ok(false);
@@ -1175,18 +1175,21 @@ mod tests {
         let result = super::launch_linux_activation(None, |_, _| {
             panic!("a missing GPUI binary must not be launched")
         });
-        assert_eq!(result.unwrap_err(), "Cap GPUI isn't included in this build");
+        assert_eq!(
+            result.unwrap_err(),
+            "Scoopy GPUI isn't included in this build"
+        );
     }
 
     #[test]
     fn linux_activation_preserves_launch_failure() {
         let path = std::path::Path::new("/opt/cap/cap-gpui");
         let result = super::launch_linux_activation(Some(path), |_, _| {
-            Err("Failed to launch Cap GPUI: permission denied".into())
+            Err("Failed to launch Scoopy GPUI: permission denied".into())
         });
         assert_eq!(
             result.unwrap_err(),
-            "Failed to launch Cap GPUI: permission denied"
+            "Failed to launch Scoopy GPUI: permission denied"
         );
     }
 

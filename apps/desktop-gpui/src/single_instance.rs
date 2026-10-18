@@ -29,7 +29,7 @@ enum ForwardedRequest {
 const REOPEN_ACK: u8 = 1;
 
 fn pidfile() -> PathBuf {
-    crate::store::app_data_dir().join("cap-gpui.pid")
+    crate::store::app_data_dir().join("scoopy-gpui.pid")
 }
 
 pub fn acquire() {
@@ -64,7 +64,7 @@ pub fn acquire() {
         && let Ok(pid) = raw.trim().parse::<i32>()
         && pid > 0
         && pid != std::process::id() as i32
-        && is_cap_gpui(pid)
+        && is_scoopy_gpui(pid)
     {
         match forward_linux_reopen(&path, pid as u32) {
             Ok(()) => tracing::info!(pid, "Requested the existing Scoopy GPUI controls"),
@@ -101,10 +101,10 @@ pub fn acquire() {
 
 /// Linux zombies retain their comm name but lose their exe link.
 #[cfg(unix)]
-fn is_cap_gpui(pid: i32) -> bool {
+fn is_scoopy_gpui(pid: i32) -> bool {
     #[cfg(target_os = "linux")]
     {
-        std::fs::read_link(format!("/proc/{pid}/exe")).is_ok_and(|path| is_cap_gpui_image(&path))
+        std::fs::read_link(format!("/proc/{pid}/exe")).is_ok_and(|path| is_scoopy_gpui_image(&path))
     }
     #[cfg(target_os = "macos")]
     {
@@ -114,18 +114,24 @@ fn is_cap_gpui(pid: i32) -> bool {
         let length =
             unsafe { libc::proc_pidpath(pid, buffer.as_mut_ptr().cast(), buffer.len() as u32) };
         length > 0
-            && buffer
-                .split(|byte| *byte == 0)
-                .next()
-                .is_some_and(|path| is_cap_gpui_image(Path::new(std::ffi::OsStr::from_bytes(path))))
+            && buffer.split(|byte| *byte == 0).next().is_some_and(|path| {
+                is_scoopy_gpui_image(Path::new(std::ffi::OsStr::from_bytes(path)))
+            })
     }
 }
 
-fn is_cap_gpui_image(path: &Path) -> bool {
+fn is_scoopy_gpui_image(path: &Path) -> bool {
     #[cfg(windows)]
-    const IMAGE_NAMES: [&str; 4] = ["Scoopy.exe", "Cap.exe", "scoopy.exe", "cap-gpui.exe"];
+    const IMAGE_NAMES: [&str; 6] = [
+        "Scoopy.exe",
+        "scoopy.exe",
+        "scoopy-gpui.exe",
+        "Cap.exe",
+        "cap.exe",
+        "cap-gpui.exe",
+    ];
     #[cfg(not(windows))]
-    const IMAGE_NAMES: [&str; 4] = ["Scoopy", "Cap", "scoopy", "cap-gpui"];
+    const IMAGE_NAMES: [&str; 6] = ["Scoopy", "scoopy", "scoopy-gpui", "Cap", "cap", "cap-gpui"];
 
     let Some(name) = path.file_name().and_then(std::ffi::OsStr::to_str) else {
         return false;
@@ -169,7 +175,7 @@ impl MacInstanceLock {
             || metadata.mode() & 0o077 != 0
         {
             return Err(std::io::Error::other(
-                "The Cap GPUI instance lock is not a private file",
+                "The Scoopy GPUI instance lock is not a private file",
             ));
         }
         if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
@@ -183,7 +189,9 @@ impl MacInstanceLock {
         let current = path.symlink_metadata()?;
         if !current.is_file() || current.dev() != metadata.dev() || current.ino() != metadata.ino()
         {
-            return Err(std::io::Error::other("The Cap GPUI instance lock changed"));
+            return Err(std::io::Error::other(
+                "The Scoopy GPUI instance lock changed",
+            ));
         }
         Ok(Some(Self {
             file,
@@ -201,7 +209,7 @@ impl Drop for MacInstanceLock {
         if self.owner_pid == unsafe { libc::getpid() }
             && unsafe { libc::flock(self.file.as_raw_fd(), libc::LOCK_UN) } != 0
         {
-            tracing::warn!(error = %std::io::Error::last_os_error(), "Could not release the Cap GPUI instance lock");
+            tracing::warn!(error = %std::io::Error::last_os_error(), "Could not release the Scoopy GPUI instance lock");
         }
     }
 }
@@ -218,7 +226,7 @@ fn read_macos_instance_file(path: &Path) -> std::io::Result<String> {
     if !metadata.is_file() || metadata.len() > 128 {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            "Invalid Cap GPUI instance metadata",
+            "Invalid Scoopy GPUI instance metadata",
         ));
     }
     let mut bytes = Vec::new();
@@ -226,13 +234,13 @@ fn read_macos_instance_file(path: &Path) -> std::io::Result<String> {
     if bytes.len() > 128 {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            "Cap GPUI instance metadata changed",
+            "Scoopy GPUI instance metadata changed",
         ));
     }
     String::from_utf8(bytes).map_err(|_| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            "Invalid Cap GPUI instance metadata encoding",
+            "Invalid Scoopy GPUI instance metadata encoding",
         )
     })
 }
@@ -248,7 +256,7 @@ fn macos_instance_pid(path: &Path) -> std::io::Result<Option<u32>> {
         .trim()
         .parse::<i32>()
         .ok()
-        .filter(|pid| *pid > 0 && *pid != std::process::id() as i32 && is_cap_gpui(*pid))
+        .filter(|pid| *pid > 0 && *pid != std::process::id() as i32 && is_scoopy_gpui(*pid))
         .map(|pid| pid as u32))
 }
 
@@ -271,7 +279,7 @@ fn acquire_macos_instance(
     }
     if let Some(pid) = incumbent {
         if let Err(error) = forward_macos_deep_links(path, pid, arguments) {
-            tracing::warn!(pid, %error, "Could not forward to Cap GPUI; the existing instance remains unchanged");
+            tracing::warn!(pid, %error, "Could not forward to Scoopy GPUI; the existing instance remains unchanged");
         }
         if macos_instance_pid(path)? == Some(pid) {
             activate(pid);
@@ -279,7 +287,7 @@ fn acquire_macos_instance(
         return Ok(None);
     }
     if lock.is_none() {
-        tracing::warn!("Cap GPUI is still starting; the existing instance remains unchanged");
+        tracing::warn!("Scoopy GPUI is still starting; the existing instance remains unchanged");
     }
     Ok(lock)
 }
@@ -313,7 +321,9 @@ fn forward_macos_deep_links(
         .take(33)
         .collect::<Vec<_>>();
     if urls.len() > 32 {
-        return Err(std::io::Error::other("Too many forwarded Cap deep links"));
+        return Err(std::io::Error::other(
+            "Too many forwarded Scoopy deep links",
+        ));
     }
     let started = std::time::Instant::now();
     let timeout = std::time::Duration::from_secs(2);
@@ -332,7 +342,7 @@ fn forward_macos_deep_links(
         if macos_instance_pid(path)? != Some(pid) {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::NotConnected,
-                "The Cap GPUI instance changed before forwarding",
+                "The Scoopy GPUI instance changed before forwarding",
             ));
         }
         send_macos_forwarded_request(endpoint, url, started, timeout)?;
@@ -368,7 +378,7 @@ fn read_macos_forwarding_endpoint(
     {
         return Err(std::io::Error::new(
             std::io::ErrorKind::PermissionDenied,
-            "Cap GPUI endpoint is not private owner metadata",
+            "Scoopy GPUI endpoint is not private owner metadata",
         ));
     }
     let mut contents = String::new();
@@ -376,7 +386,7 @@ fn read_macos_forwarding_endpoint(
     if contents.len() > 128 {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            "Cap GPUI endpoint changed",
+            "Scoopy GPUI endpoint changed",
         ));
     }
     Ok(parse_forwarding_endpoint(&contents).filter(|endpoint| endpoint.pid == pid))
@@ -393,7 +403,7 @@ fn forwarding_time_remaining(
         .ok_or_else(|| {
             std::io::Error::new(
                 std::io::ErrorKind::TimedOut,
-                "Cap GPUI forwarding timed out",
+                "Scoopy GPUI forwarding timed out",
             )
         })
 }
@@ -425,7 +435,7 @@ fn send_macos_forwarded_request(
             Ok(0) => {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::WriteZero,
-                    "Cap GPUI closed its forwarding connection",
+                    "Scoopy GPUI closed its forwarding connection",
                 ));
             }
             Ok(written) => pending = &pending[written..],
@@ -445,7 +455,7 @@ fn send_macos_forwarded_request(
                 Ok(_) => {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::InvalidData,
-                        "Cap GPUI did not acknowledge the reopen request",
+                        "Scoopy GPUI did not acknowledge the reopen request",
                     ));
                 }
                 Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
@@ -467,7 +477,7 @@ fn acknowledge_reopen(
     if !enqueue() {
         return Err(std::io::Error::new(
             std::io::ErrorKind::BrokenPipe,
-            "Cap GPUI could not queue the reopen request",
+            "Scoopy GPUI could not queue the reopen request",
         ));
     }
     writer.write_all(&[REOPEN_ACK])
@@ -554,7 +564,7 @@ fn linux_reopen_address(
         std::env::var_os(name).hash(&mut scope);
     }
     std::os::unix::net::SocketAddr::from_abstract_name(format!(
-        "cap-gpui-reopen-{:016x}",
+        "scoopy-gpui-reopen-{:016x}",
         scope.finish()
     ))
 }
@@ -562,7 +572,7 @@ fn linux_reopen_address(
 #[cfg(target_os = "linux")]
 fn linux_reopen_payload(owner: LinuxInstanceIdentity) -> [u8; 56] {
     let mut bytes = [0; 56];
-    bytes[..8].copy_from_slice(b"CAPREOP1");
+    bytes[..8].copy_from_slice(b"SCPREOP1");
     bytes[8..12].copy_from_slice(&owner.pid.to_be_bytes());
     bytes[12..20].copy_from_slice(&owner.started.to_be_bytes());
     bytes[20..].copy_from_slice(&owner.boot);
@@ -578,12 +588,12 @@ fn write_linux_reopen_actions(
     if actions.len() > MAX_FORWARDED_DEEP_LINK_BYTES {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            "Too many forwarded Cap action bytes",
+            "Too many forwarded Scoopy action bytes",
         ));
     }
     let mut header = linux_reopen_payload(owner);
     if !actions.is_empty() {
-        header[..8].copy_from_slice(b"CAPREOP2");
+        header[..8].copy_from_slice(b"SCPREOP2");
     }
     writer.write_all(&header)?;
     if !actions.is_empty() {
@@ -598,12 +608,10 @@ fn parse_linux_reopen_action(raw: &str) -> std::io::Result<crate::deeplink::Deep
     let invalid = || {
         std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            "Invalid forwarded Cap action URL",
+            "Invalid forwarded Scoopy action URL",
         )
     };
-    if raw.len() > MAX_FORWARDED_DEEP_LINK_BYTES
-        || !(raw.starts_with("scoopy://"))
-    {
+    if raw.len() > MAX_FORWARDED_DEEP_LINK_BYTES || !(raw.starts_with("scoopy://")) {
         return Err(invalid());
     }
     let url = reqwest::Url::parse(raw).map_err(|_| invalid())?;
@@ -625,7 +633,7 @@ fn linux_reopen_action_payload(
         {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                "Too many forwarded Cap actions",
+                "Too many forwarded Scoopy actions",
             ));
         }
         payload.extend_from_slice(&(argument.len() as u32).to_be_bytes());
@@ -642,7 +650,7 @@ fn read_linux_reopen_actions(
     let invalid = || {
         std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            "Invalid forwarded Cap action payload",
+            "Invalid forwarded Scoopy action payload",
         )
     };
     let mut request = [0; 56];
@@ -651,7 +659,7 @@ fn read_linux_reopen_actions(
     if request == header {
         return Ok(Vec::new());
     }
-    header[..8].copy_from_slice(b"CAPREOP2");
+    header[..8].copy_from_slice(b"SCPREOP2");
     if request != header {
         return Err(std::io::Error::new(
             std::io::ErrorKind::PermissionDenied,
@@ -757,13 +765,13 @@ fn start_linux_reopen(path: &Path) -> std::io::Result<()> {
     let listener = std::os::unix::net::UnixListener::bind_addr(&address)?;
     let requests = linux_reopen_channel().0.clone();
     std::thread::Builder::new()
-        .name("cap-gpui-activation".into())
+        .name("scoopy-gpui-activation".into())
         .spawn(move || {
             for connection in listener.incoming() {
                 let result = connection
                     .and_then(|mut stream| receive_linux_reopen(&mut stream, owner, &requests));
                 if let Err(error) = result {
-                    tracing::warn!(%error, "Rejected a Cap GPUI activation request");
+                    tracing::warn!(%error, "Rejected a Scoopy GPUI activation request");
                 }
             }
         })?;
@@ -821,7 +829,7 @@ fn forward_linux_reopen(path: &Path, pid: u32) -> std::io::Result<()> {
     let address = linux_reopen_address(path, owner)?;
     let (send, receive) = std::sync::mpsc::sync_channel(1);
     std::thread::Builder::new()
-        .name("cap-gpui-reopen-request".into())
+        .name("scoopy-gpui-reopen-request".into())
         .spawn(move || {
             let _ = send.send(send_linux_reopen(address, owner, &actions));
         })?;
@@ -862,7 +870,7 @@ pub fn init_linux_reopen(cx: &mut gpui::App) {
                 if linux_reopen_allowed(current.phase, current.mode(), current.instant_cleanup_safe()) {
                     crate::app_windows::show_main_window(cx);
                 } else {
-                    tracing::info!("Cap controls remain hidden while recording is changing state or cannot pause");
+                    tracing::info!("Scoopy controls remain hidden while recording is changing state or cannot pause");
                 }
             });
         }
@@ -880,7 +888,7 @@ fn acquire_windows_instance(path: &Path) {
 
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     path.hash(&mut hasher);
-    let name = format!("Local\\CapGpui-{:016x}", hasher.finish())
+    let name = format!("Local\\ScoopyGpui-{:016x}", hasher.finish())
         .encode_utf16()
         .chain(std::iter::once(0))
         .collect::<Vec<_>>();
@@ -890,7 +898,7 @@ fn acquire_windows_instance(path: &Path) {
     if mutex.is_null() {
         tracing::error!(
             error = last_error,
-            "could not acquire the Cap GPUI instance mutex"
+            "could not acquire the Scoopy GPUI instance mutex"
         );
         std::process::exit(1);
     }
@@ -898,11 +906,11 @@ fn acquire_windows_instance(path: &Path) {
     if last_error == ERROR_ALREADY_EXISTS {
         for _ in 0..40 {
             if let Some(pid) = windows_instance_pid(path) {
-                tracing::info!(pid, "Cap GPUI is already running; bringing it forward");
+                tracing::info!(pid, "Scoopy GPUI is already running; bringing it forward");
                 if forward_windows_deep_links(path, pid) {
                     activate_windows_instance(pid);
                 } else if let Err(error) = reopen_windows_instance(path, pid) {
-                    tracing::warn!(%error, "could not reopen the running Cap GPUI");
+                    tracing::warn!(%error, "could not reopen the running Scoopy GPUI");
                     activate_windows_instance(pid);
                 }
                 break;
@@ -916,12 +924,12 @@ fn acquire_windows_instance(path: &Path) {
 
     if INSTANCE_MUTEX.set(mutex as usize).is_err() {
         let _ = unsafe { CloseHandle(mutex) };
-        tracing::error!("the Cap GPUI instance mutex was initialized twice");
+        tracing::error!("the Scoopy GPUI instance mutex was initialized twice");
         std::process::exit(1);
     }
 
     if let Err(error) = start_deep_link_forwarding(path) {
-        tracing::error!(%error, "could not start Cap GPUI deep-link forwarding");
+        tracing::error!(%error, "could not start Scoopy GPUI deep-link forwarding");
         std::process::exit(1);
     }
 }
@@ -952,7 +960,7 @@ fn start_deep_link_forwarding(path: &Path) -> std::io::Result<()> {
     }
 
     std::thread::Builder::new()
-        .name("cap-gpui-deep-link".into())
+        .name("scoopy-gpui-deep-link".into())
         .spawn(move || {
             for connection in listener.incoming() {
                 match connection {
@@ -964,16 +972,16 @@ fn start_deep_link_forwarding(path: &Path) -> std::io::Result<()> {
                                 let result = stream.set_write_timeout(Some(std::time::Duration::from_secs(2)))
                                     .and_then(|()| acknowledge_reopen(&mut stream, crate::deeplink::submit_reopen));
                                 if let Err(error) = result {
-                                    tracing::warn!(%error, "could not acknowledge the Cap GPUI reopen request");
+                                    tracing::warn!(%error, "could not acknowledge the Scoopy GPUI reopen request");
                                 }
                             }
                             Err(error) => {
-                                tracing::warn!(%error, "rejected a forwarded Cap deep link");
+                                tracing::warn!(%error, "rejected a forwarded Scoopy deep link");
                             }
                         }
                     }
                     Err(error) => {
-                        tracing::warn!(%error, "could not accept a forwarded Cap deep link");
+                        tracing::warn!(%error, "could not accept a forwarded Scoopy deep link");
                     }
                 }
             }
@@ -1030,7 +1038,7 @@ fn forward_windows_deep_links(path: &Path, pid: u32) -> bool {
     }
 
     let Some(endpoint) = windows_forwarding_endpoint(path, pid) else {
-        tracing::warn!("could not find the running Cap GPUI deep-link endpoint");
+        tracing::warn!("could not find the running Scoopy GPUI deep-link endpoint");
         return true;
     };
 
@@ -1043,7 +1051,7 @@ fn forward_windows_deep_links(path: &Path, pid: u32) -> bool {
                 stream.write_all(url.as_bytes())
             });
         if let Err(error) = result {
-            tracing::warn!(%error, "could not forward a Cap deep link to the running instance");
+            tracing::warn!(%error, "could not forward a Scoopy deep link to the running instance");
         }
     }
     true
@@ -1071,7 +1079,7 @@ fn reopen_windows_instance(path: &Path, pid: u32) -> std::io::Result<()> {
     let endpoint = windows_forwarding_endpoint(path, pid).ok_or_else(|| {
         std::io::Error::new(
             std::io::ErrorKind::NotFound,
-            "the running Cap GPUI has no forwarding endpoint",
+            "the running Scoopy GPUI has no forwarding endpoint",
         )
     })?;
     unsafe { AllowSetForegroundWindow(pid) };
@@ -1096,7 +1104,7 @@ fn send_windows_reopen(endpoint: ForwardingEndpoint) -> std::io::Result<()> {
     if acknowledgment[0] != REOPEN_ACK {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            "Cap GPUI did not acknowledge the reopen request",
+            "Scoopy GPUI did not acknowledge the reopen request",
         ));
     }
     Ok(())
@@ -1119,8 +1127,7 @@ fn parse_forwarding_endpoint(contents: &str) -> Option<ForwardingEndpoint> {
 fn is_forwardable_deep_link(url: &str) -> bool {
     !url.is_empty()
         && url.len() <= MAX_FORWARDED_DEEP_LINK_BYTES
-        && reqwest::Url::parse(url)
-            .is_ok_and(|parsed| matches!(parsed.scheme(), "scoopy"))
+        && reqwest::Url::parse(url).is_ok_and(|parsed| matches!(parsed.scheme(), "scoopy"))
 }
 
 #[cfg(any(windows, target_os = "macos", test))]
@@ -1192,7 +1199,7 @@ fn windows_instance_pid(path: &Path) -> Option<u32> {
     }
 
     let image = PathBuf::from(std::ffi::OsString::from_wide(&image[..len as usize]));
-    is_cap_gpui_image(&image).then_some(pid)
+    is_scoopy_gpui_image(&image).then_some(pid)
 }
 
 #[cfg(windows)]
@@ -1249,8 +1256,9 @@ fn activate_windows_instance(pid: u32) {
 #[cfg(test)]
 mod tests {
     use super::{
-        ForwardedRequest, ForwardingEndpoint, MAX_FORWARDED_DEEP_LINK_BYTES, is_cap_gpui_image,
-        is_forwardable_deep_link, parse_forwarding_endpoint, read_forwarded_request,
+        ForwardedRequest, ForwardingEndpoint, MAX_FORWARDED_DEEP_LINK_BYTES,
+        is_forwardable_deep_link, is_scoopy_gpui_image, parse_forwarding_endpoint,
+        read_forwarded_request,
     };
     use std::path::Path;
 
@@ -1262,24 +1270,24 @@ mod tests {
         let names = ["cap-gpui", "Cap", "Scoopy", "scoopy"];
 
         for name in names {
-            assert!(is_cap_gpui_image(Path::new(name)));
-            assert!(is_cap_gpui_image(Path::new(&name.to_ascii_uppercase())));
+            assert!(is_scoopy_gpui_image(Path::new(name)));
+            assert!(is_scoopy_gpui_image(Path::new(&name.to_ascii_uppercase())));
         }
-        assert!(!is_cap_gpui_image(Path::new("not-cap-gpui")));
-        assert!(!is_cap_gpui_image(Path::new("cap-gpui-helper")));
-        assert!(!is_cap_gpui_image(Path::new("Cap Helper")));
-        assert!(!is_cap_gpui_image(Path::new("cap-cli")));
+        assert!(!is_scoopy_gpui_image(Path::new("not-cap-gpui")));
+        assert!(!is_scoopy_gpui_image(Path::new("cap-gpui-helper")));
+        assert!(!is_scoopy_gpui_image(Path::new("Cap Helper")));
+        assert!(!is_scoopy_gpui_image(Path::new("cap-cli")));
     }
 
     #[cfg(target_os = "linux")]
     #[test]
     fn linux_process_check_distinguishes_live_unlinked_and_exited_processes() {
         let directory = std::env::temp_dir().join(format!(
-            "cap-gpui-process-test-{}",
+            "scoopy-gpui-process-test-{}",
             crate::store::new_uuid_v4()
         ));
         std::fs::create_dir(&directory).unwrap();
-        let binary = directory.join("cap-gpui");
+        let binary = directory.join("scoopy-gpui");
         std::fs::copy("/bin/sleep", &binary).unwrap();
         // A test thread that forks while the copy's write descriptor is open
         // holds it until its exec, and exec of the copy fails with ETXTBSY
@@ -1304,9 +1312,9 @@ mod tests {
         {
             std::thread::sleep(std::time::Duration::from_millis(1));
         }
-        let live = super::is_cap_gpui(pid);
+        let live = super::is_scoopy_gpui(pid);
         std::fs::remove_file(&binary).unwrap();
-        let unlinked = super::is_cap_gpui(pid);
+        let unlinked = super::is_scoopy_gpui(pid);
         child.kill().unwrap();
         let started = std::time::Instant::now();
         let mut zombie = false;
@@ -1320,7 +1328,7 @@ mod tests {
             }
             std::thread::sleep(std::time::Duration::from_millis(1));
         }
-        let exited = super::is_cap_gpui(pid);
+        let exited = super::is_scoopy_gpui(pid);
         child.wait().unwrap();
         std::fs::remove_dir(directory).unwrap();
 
@@ -1328,14 +1336,14 @@ mod tests {
         assert!(unlinked);
         assert!(zombie);
         assert!(!exited);
-        assert!(!super::is_cap_gpui(pid));
-        assert!(!super::is_cap_gpui(std::process::id() as i32));
+        assert!(!super::is_scoopy_gpui(pid));
+        assert!(!super::is_scoopy_gpui(std::process::id() as i32));
     }
 
     #[cfg(target_os = "linux")]
     #[test]
     fn linux_acquire_child_probe() {
-        if std::env::var_os("CAP_GPUI_ACQUIRE_CHILD_PROBE").is_none() {
+        if std::env::var_os("SCOOPY_GPUI_ACQUIRE_CHILD_PROBE").is_none() {
             return;
         }
         super::acquire();
@@ -1353,7 +1361,7 @@ mod tests {
     impl LinuxAcquireFixture {
         pub(super) fn new() -> Self {
             let directory = std::env::temp_dir().join(format!(
-                "cap-gpui-acquire-test-{}",
+                "scoopy-gpui-acquire-test-{}",
                 crate::store::new_uuid_v4()
             ));
             std::fs::create_dir(&directory).unwrap();
@@ -1364,7 +1372,7 @@ mod tests {
         }
 
         pub(super) fn start_incumbent(&mut self) -> u32 {
-            let binary = self.directory.join("cap-gpui");
+            let binary = self.directory.join("scoopy-gpui");
             std::fs::copy("/bin/sleep", &binary).unwrap();
             let child = std::process::Command::new(&binary)
                 .arg("30")
@@ -1387,7 +1395,7 @@ mod tests {
                     "single_instance::tests::linux_acquire_child_probe",
                     "--test-threads=1",
                 ])
-                .env("CAP_GPUI_ACQUIRE_CHILD_PROBE", "1")
+                .env("SCOOPY_GPUI_ACQUIRE_CHILD_PROBE", "1")
                 .env("CAP_GPUI_APP_DATA_DIR", &self.directory)
                 .stdout(std::process::Stdio::null())
                 .spawn()
@@ -1424,7 +1432,7 @@ mod tests {
         let mut fixture = LinuxAcquireFixture::new();
         let launched = fixture.launch_again().to_string();
         assert_eq!(
-            std::fs::read_to_string(fixture.directory.join("cap-gpui.pid")).unwrap(),
+            std::fs::read_to_string(fixture.directory.join("scoopy-gpui.pid")).unwrap(),
             launched,
         );
         assert_eq!(
@@ -1436,7 +1444,7 @@ mod tests {
             .map(|entry| entry.unwrap().file_name().into_string().unwrap())
             .collect::<Vec<_>>();
         entries.sort();
-        assert_eq!(entries, ["acquire-returned", "cap-gpui.pid"]);
+        assert_eq!(entries, ["acquire-returned", "scoopy-gpui.pid"]);
     }
 
     #[cfg(target_os = "linux")]
@@ -1446,13 +1454,13 @@ mod tests {
 
         let mut fixture = LinuxAcquireFixture::new();
         let incumbent = fixture.start_incumbent();
-        let pidfile = fixture.directory.join("cap-gpui.pid");
+        let pidfile = fixture.directory.join("scoopy-gpui.pid");
         let original = incumbent.to_string();
         std::fs::write(&pidfile, &original).unwrap();
         let before = std::fs::metadata(&pidfile).unwrap();
         for unlinked in [false, true] {
             if unlinked {
-                std::fs::remove_file(fixture.directory.join("cap-gpui")).unwrap();
+                std::fs::remove_file(fixture.directory.join("scoopy-gpui")).unwrap();
             }
             fixture.launch_again();
             assert!(fixture.children[0].try_wait().unwrap().is_none());
@@ -1474,7 +1482,7 @@ mod tests {
         let incumbent = fixture.start_incumbent();
         fixture.children[0].kill().unwrap();
         fixture.children[0].wait().unwrap();
-        let pidfile = fixture.directory.join("cap-gpui.pid");
+        let pidfile = fixture.directory.join("scoopy-gpui.pid");
         for stale in [
             incumbent.to_string(),
             "not-a-pid".to_string(),
@@ -1507,10 +1515,10 @@ mod tests {
     }
 
     #[test]
-    fn forwarded_deep_links_only_accept_cap_schemes() {
+    fn forwarded_deep_links_only_accept_scoopy_schemes() {
         assert!(is_forwardable_deep_link("scoopy://auth?token=test"));
         assert!(is_forwardable_deep_link("scoopy://action?value=test"));
-        assert!(!is_forwardable_deep_link("https://cap.so"));
+        assert!(!is_forwardable_deep_link("https://scoopy.so"));
         assert!(!is_forwardable_deep_link("scoopy-evil://auth"));
         assert!(!is_forwardable_deep_link(&format!(
             "scoopy://action?value={}",
@@ -1522,14 +1530,12 @@ mod tests {
     fn forwarded_project_actions_use_the_existing_deep_link_protocol() {
         let action = serde_json::json!({
             "open_editor": {
-                "project_path": "/tmp/Recording With Spaces.cap"
+                "project_path": "/tmp/Recording With Spaces.scoopy"
             }
         });
-        let url = reqwest::Url::parse_with_params(
-            "scoopy://action",
-            &[("value", action.to_string())],
-        )
-        .unwrap();
+        let url =
+            reqwest::Url::parse_with_params("scoopy://action", &[("value", action.to_string())])
+                .unwrap();
 
         assert!(is_forwardable_deep_link(url.as_str()));
         let secret = 0x0123_4567_89ab_cdef_u64;
@@ -1545,7 +1551,7 @@ mod tests {
         assert!(matches!(
             crate::deeplink::DeepLinkAction::try_from(&authenticated),
             Ok(crate::deeplink::DeepLinkAction::OpenEditor { project_path })
-                if project_path == Path::new("/tmp/Recording With Spaces.cap")
+                if project_path == Path::new("/tmp/Recording With Spaces.scoopy")
         ));
     }
 
@@ -1555,7 +1561,7 @@ mod tests {
         use std::os::unix::fs::{PermissionsExt, symlink};
 
         let root = std::env::temp_dir().join(format!(
-            "cap-gpui-forwarding-endpoint-{}",
+            "scoopy-gpui-forwarding-endpoint-{}",
             std::process::id()
         ));
         std::fs::create_dir_all(&root).unwrap();
@@ -1682,7 +1688,7 @@ mod macos_tests {
     impl Fixture {
         fn new() -> Self {
             let directory = std::env::temp_dir().join(format!(
-                "cap-gpui-macos-instance-{}",
+                "scoopy-gpui-macos-instance-{}",
                 crate::store::new_uuid_v4()
             ));
             std::fs::DirBuilder::new()
@@ -1696,11 +1702,11 @@ mod macos_tests {
         }
 
         fn pidfile(&self) -> PathBuf {
-            self.directory.join("cap-gpui.pid")
+            self.directory.join("scoopy-gpui.pid")
         }
 
         fn incumbent(&mut self) -> u32 {
-            let binary = self.directory.join("cap-gpui");
+            let binary = self.directory.join("scoopy-gpui");
             let source = self.directory.join("incumbent.c");
             let ready = self.directory.join("incumbent.ready");
             std::fs::write(
@@ -1745,7 +1751,7 @@ int main(int argc, char **argv) {
             wait_until(|| {
                 assert_eq!(child.try_wait().unwrap(), None, "Instance fixture exited");
                 std::fs::read(&ready).is_ok_and(|contents| contents == b"ready")
-                    && is_cap_gpui(pid as i32)
+                    && is_scoopy_gpui(pid as i32)
             });
             pid
         }
@@ -1758,9 +1764,9 @@ int main(int argc, char **argv) {
                         "single_instance::macos_tests::acquire_child_probe",
                         "--test-threads=1",
                     ])
-                    .env("CAP_GPUI_MACOS_INSTANCE_PROBE", &self.directory)
-                    .env("CAP_GPUI_MACOS_INSTANCE_LABEL", label)
-                    .env("CAP_GPUI_APP_DATA_DIR", &self.directory)
+                    .env("SCOOPY_GPUI_MACOS_INSTANCE_PROBE", &self.directory)
+                    .env("SCOOPY_GPUI_MACOS_INSTANCE_LABEL", label)
+                    .env("SCOOPY_GPUI_APP_DATA_DIR", &self.directory)
                     .stdout(Stdio::null())
                     .spawn()
                     .unwrap(),
@@ -2244,19 +2250,20 @@ int main(int argc, char **argv) {
 
     #[test]
     fn acquire_child_probe() {
-        let Some(directory) = std::env::var_os("CAP_GPUI_MACOS_INSTANCE_PROBE").map(PathBuf::from)
+        let Some(directory) =
+            std::env::var_os("SCOOPY_GPUI_MACOS_INSTANCE_PROBE").map(PathBuf::from)
         else {
             return;
         };
-        let label = std::env::var("CAP_GPUI_MACOS_INSTANCE_LABEL").unwrap();
+        let label = std::env::var("SCOOPY_GPUI_MACOS_INSTANCE_LABEL").unwrap();
         assert!(matches!(label.as_str(), "a" | "b" | "metadata"));
         if label == "metadata" {
-            assert!(read_macos_instance_file(&directory.join("cap-gpui.pid")).is_err());
+            assert!(read_macos_instance_file(&directory.join("scoopy-gpui.pid")).is_err());
             return;
         }
         std::fs::write(directory.join(format!("ready-{label}")), "ready").unwrap();
         wait_until(|| directory.join("go").exists());
-        let path = directory.join("cap-gpui.pid");
+        let path = directory.join("scoopy-gpui.pid");
         let owner = acquire_macos_instance(&path, std::iter::empty(), |_| {}).unwrap();
         if owner.is_some() {
             publish_macos_pidfile(&path).unwrap();
@@ -2401,8 +2408,8 @@ mod linux_reopen_tests {
         let payload =
             linux_reopen_action_payload([action_url(&DeepLinkAction::StopRecording)]).unwrap();
         let mut framed = packet(owner, &payload);
-        assert_eq!(&framed[..8], b"CAPREOP2");
-        framed[..8].copy_from_slice(b"CAPREOP3");
+        assert_eq!(&framed[..8], b"SCPREOP2");
+        framed[..8].copy_from_slice(b"SCPREOP3");
         assert_eq!(
             read_linux_reopen_actions(&mut framed.as_slice(), owner)
                 .unwrap_err()
@@ -2415,7 +2422,7 @@ mod linux_reopen_tests {
     fn client_requires_the_current_owner_acknowledgement() {
         let owner = linux_instance_identity(std::process::id()).unwrap();
         let address = std::os::unix::net::SocketAddr::from_abstract_name(format!(
-            "cap-gpui-owner-ack-{}",
+            "scoopy-gpui-owner-ack-{}",
             crate::store::new_uuid_v4()
         ))
         .unwrap();
@@ -2435,7 +2442,7 @@ mod linux_reopen_tests {
         let owner = linux_instance_identity(std::process::id()).unwrap();
         let expected = vec![
             DeepLinkAction::OpenEditor {
-                project_path: "/tmp/recording.cap".into(),
+                project_path: "/tmp/recording.scoopy".into(),
             },
             DeepLinkAction::OpenSettings {
                 page: Some("general".into()),
@@ -2488,7 +2495,7 @@ mod linux_reopen_tests {
         let payload = raw_action_payload(url.as_bytes()).repeat(MAX_LINUX_REOPEN_ACTIONS + 1);
         assert!(read_linux_reopen_actions(&mut packet(owner, &payload).as_slice(), owner).is_err());
         let mut oversized = linux_reopen_payload(owner).to_vec();
-        oversized[..8].copy_from_slice(b"CAPREOP2");
+        oversized[..8].copy_from_slice(b"SCPREOP2");
         oversized.extend_from_slice(&((MAX_FORWARDED_DEEP_LINK_BYTES + 1) as u32).to_be_bytes());
         let mut oversized = std::io::Cursor::new(oversized);
         assert_eq!(
@@ -2647,7 +2654,7 @@ mod linux_reopen_tests {
         let pid = fixture.start_incumbent();
         let owner = linux_instance_identity(pid).unwrap();
         let address = std::os::unix::net::SocketAddr::from_abstract_name(format!(
-            "cap-gpui-wrong-peer-{}",
+            "scoopy-gpui-wrong-peer-{}",
             crate::store::new_uuid_v4()
         ))
         .unwrap();
@@ -2661,13 +2668,13 @@ mod linux_reopen_tests {
     fn long_instance_directories_use_no_filesystem_socket() {
         let directory = std::env::temp_dir()
             .join(format!(
-                "cap-gpui-reopen-scope-{}",
+                "scoopy-gpui-reopen-scope-{}",
                 crate::store::new_uuid_v4()
             ))
             .join("a".repeat(150));
         std::fs::create_dir_all(&directory).unwrap();
         let owner = linux_instance_identity(std::process::id()).unwrap();
-        let address = linux_reopen_address(&directory.join("cap-gpui.pid"), owner).unwrap();
+        let address = linux_reopen_address(&directory.join("scoopy-gpui.pid"), owner).unwrap();
         assert!(address.as_pathname().is_none());
         assert!(address.as_abstract_name().unwrap().len() < 107);
         assert!(std::fs::read_dir(&directory).unwrap().next().is_none());

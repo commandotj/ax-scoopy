@@ -1551,7 +1551,7 @@ impl MainWindow {
         };
         if !recover
             && !crate::platform::confirm_dialog(
-                "Cap",
+                "Scoopy",
                 "Are you sure you want to delete this recording?",
                 "Yes",
                 "No",
@@ -2329,7 +2329,7 @@ impl MainWindow {
             }
             let available = storage.available_bytes as f64 / 1_073_741_824.0;
             let detail = if can_start {
-                format!("Only {available:.2} GB is available on your recording drive. Cap will stop automatically if storage gets too low, preserving your recording.")
+                format!("Only {available:.2} GB is available on your recording drive. Scoopy will stop automatically if storage gets too low, preserving your recording.")
             } else {
                 format!("Only {available:.2} GB is available on your recording drive. Free up space so at least 512 MB is available before recording.")
             };
@@ -3308,7 +3308,7 @@ impl MainWindow {
                         .flex_col()
                         .gap(px(8.))
                         .text_size(px(12.))
-                        .child("Recording paused. Cap will hide before resuming.")
+                        .child("Recording paused. Scoopy will hide before resuming.")
                         .child(
                             div()
                                 .id("resume-clean-recording")
@@ -4365,7 +4365,7 @@ impl MainWindow {
     ) {
         cx.spawn_in(window, async move |this, cx| {
             if !crate::platform::confirm_dialog(
-                "Cap",
+                "Scoopy",
                 "Are you sure you want to delete this recording?",
                 "Yes",
                 "No",
@@ -4400,7 +4400,7 @@ impl MainWindow {
     ) {
         cx.spawn_in(window, async move |this, cx| {
             if !crate::platform::confirm_dialog(
-                "Cap",
+                "Scoopy",
                 "Are you sure you want to delete this screenshot?",
                 "Yes",
                 "No",

@@ -166,7 +166,7 @@ function FrameSettings() {
 									<div class="w-40">
 										<Input
 											value={frame().url}
-											placeholder="cap.so"
+											placeholder="scoopy.so"
 											onInput={(e) =>
 												updateFrame({ url: e.currentTarget.value })
 											}

@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest";
 import { getExistingRecordingPickerOptions } from "./existing-recording-picker";
 
 describe("existing recording picker", () => {
-	it("selects Cap project directories on Windows", () => {
+	it("selects Scoopy project directories on Windows", () => {
 		expect(
-			getExistingRecordingPickerOptions("windows", "C:\\Cap\\recordings"),
+			getExistingRecordingPickerOptions("windows", "C:\\Scoopy\\recordings"),
 		).toEqual({
-			defaultPath: "C:\\Cap\\recordings",
+			defaultPath: "C:\\Scoopy\\recordings",
 			directory: true,
 			multiple: false,
 		});
@@ -17,9 +17,9 @@ describe("existing recording picker", () => {
 		"preserves the filtered file picker on %s",
 		(platform) => {
 			expect(
-				getExistingRecordingPickerOptions(platform, "/Cap/recordings"),
+				getExistingRecordingPickerOptions(platform, "/Scoopy/recordings"),
 			).toEqual({
-				defaultPath: "/Cap/recordings",
+				defaultPath: "/Scoopy/recordings",
 				filters: [{ name: "Scoopy Recording", extensions: ["cap"] }],
 				multiple: false,
 			});

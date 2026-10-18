@@ -24,7 +24,9 @@ impl GpuDeviceHealth {
 
     pub fn ensure_available(&self) -> Result<(), &'static str> {
         if self.lost.load(Ordering::Acquire) {
-            return Err("The graphics device was lost. Restart Cap to generate an export preview.");
+            return Err(
+                "The graphics device was lost. Restart Scoopy to generate an export preview.",
+            );
         }
         Ok(())
     }
@@ -82,7 +84,7 @@ mod tests {
         for _ in 0..9 {
             assert_eq!(
                 preview_pipeline(&editor_health, &editor_device).unwrap_err(),
-                "The graphics device was lost. Restart Cap to generate an export preview."
+                "The graphics device was lost. Restart Scoopy to generate an export preview."
             );
         }
         assert_eq!(reports.load(Ordering::Relaxed), 1);

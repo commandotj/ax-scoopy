@@ -9337,7 +9337,7 @@ impl EditorWindow {
                             .text_size(px(13.))
                             .font_weight(FontWeight::MEDIUM)
                             .text_color(Hsla::from(theme.editor.text_3))
-                            .child(".cap"),
+                            .child(".scoopy"),
                     ),
             )
             .child(

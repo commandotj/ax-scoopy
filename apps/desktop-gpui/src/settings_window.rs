@@ -851,7 +851,7 @@ impl SettingsWindow {
     fn delete_recording(&mut self, path: PathBuf, window: &mut Window, cx: &mut Context<Self>) {
         cx.spawn_in(window, async move |this, cx| {
             let confirmed = crate::platform::confirm_dialog(
-                "Cap",
+                "Scoopy",
                 "Are you sure you want to delete this recording?",
                 "Yes",
                 "No",
@@ -978,7 +978,7 @@ impl SettingsWindow {
     fn delete_screenshot(&mut self, path: PathBuf, window: &mut Window, cx: &mut Context<Self>) {
         cx.spawn_in(window, async move |this, cx| {
             let confirmed = crate::platform::confirm_dialog(
-                "Cap",
+                "Scoopy",
                 "Are you sure you want to delete this screenshot?",
                 "Yes",
                 "No",
@@ -2460,7 +2460,7 @@ impl SettingsWindow {
 
         self.section(
             "Appearance",
-            Some("Match Cap to your system theme or pick a fixed look."),
+            Some("Match Scoopy to your system theme or pick a fixed look."),
             None,
             vec![self.card(true).child(tiles).into_any_element()],
         )
@@ -2470,13 +2470,13 @@ impl SettingsWindow {
     fn render_app_section(&self, cx: &mut Context<Self>) -> impl IntoElement {
         self.section(
             "App",
-            Some("Choose how Cap shows up on your system."),
+            Some("Choose how Scoopy shows up on your system."),
             None,
             vec![
                 self.rows(vec![
                     self.setting_row(
                         "Always show dock icon",
-                        Some("Keep Cap in the dock even when no windows are open."),
+                        Some("Keep Scoopy in the dock even when no windows are open."),
                         // The row is the *inverse* of the stored key.
                         self.toggle(
                             "hide-dock-icon",
@@ -2887,7 +2887,7 @@ impl SettingsWindow {
                     ),
                     self.setting_row(
                         "Delete Instant recordings after upload",
-                        Some("Cap removes the local file once it has uploaded successfully."),
+                        Some("Scoopy removes the local file once it has uploaded successfully."),
                         self.toggle(
                             "delete-after-upload",
                             settings.delete_instant_recordings_after_upload,
@@ -3084,7 +3084,7 @@ impl SettingsWindow {
 
         self.section(
             "Storage",
-            Some("Where Cap saves your recordings."),
+            Some("Where Scoopy saves your recordings."),
             None,
             vec![
                 self.card(true)
@@ -3459,7 +3459,7 @@ impl SettingsWindow {
                                 div()
                                     .text_size(px(12.))
                                     .font_weight(FontWeight::MEDIUM)
-                                    .child("Recommended Cap windows are not excluded"),
+                                    .child("Recommended Scoopy windows are not excluded"),
                             )
                             .child(div().text_size(px(10.)).line_height(px(14.)).child(format!(
                                 "Camera, settings, or recording windows can appear as black \
@@ -3522,7 +3522,7 @@ impl SettingsWindow {
                                     .text_size(px(12.))
                                     .line_height(px(16.))
                                     .text_color(theme.settings_muted())
-                                    .child("Which release channel Cap updates from."),
+                                    .child("Which release channel Scoopy updates from."),
                             ),
                     )
                     .child(self.segmented::<UpdateChannel>(
@@ -3557,7 +3557,7 @@ impl SettingsWindow {
 
         self.section(
             "Updates",
-            Some("Choose which Cap builds you receive."),
+            Some("Choose which Scoopy builds you receive."),
             None,
             vec![self.card(false).child(body).into_any_element()],
         )
@@ -3577,7 +3577,7 @@ impl SettingsWindow {
                     .flex()
                     .flex_col()
                     .gap(px(6.))
-                    .child(div().text_size(px(13.)).child("Cap Server URL"))
+                    .child(div().text_size(px(13.)).child("Scoopy Server URL"))
                     .child(self.text_field(Field::ServerUrl, cx)),
             )
             .child(
@@ -3619,7 +3619,7 @@ impl SettingsWindow {
 
         self.section(
             "Self-host",
-            Some("Only change this if you are running your own instance of Cap Web."),
+            Some("Only change this if you are running your own instance of Scoopy Web."),
             None,
             vec![self.card(true).child(body).into_any_element()],
         )
@@ -3668,7 +3668,7 @@ impl SettingsWindow {
                     self.setting_row(
                         "Share anonymous telemetry",
                         Some(
-                            "Cap uses anonymous telemetry to improve reliability and fix bugs. We \
+                            "Scoopy uses anonymous telemetry to improve reliability and fix bugs. We \
                          never collect recording contents, window titles, file paths, or \
                          personal information.",
                         ),

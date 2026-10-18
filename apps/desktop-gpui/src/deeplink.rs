@@ -286,7 +286,7 @@ pub fn init(cx: &mut App) {
     cx.spawn(async move |cx| {
         while let Ok(action) = rx.recv_async().await {
             cx.update(|cx| {
-                tracing::info!("executing Cap action");
+                tracing::info!("executing Scoopy action");
                 if let Err(error) = action.execute(cx) {
                     tracing::error!(%error, "failed to handle deep link action");
                 }

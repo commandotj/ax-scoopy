@@ -163,8 +163,6 @@ fn print_changes(changes: &[PlannedChange]) -> Result<(), String> {
     Ok(())
 }
 
-
-
 fn confirm() -> Result<(), String> {
     if !std::io::stdin().is_terminal() {
         return Err("Non-interactive installation requires --yes".to_string());
@@ -307,7 +305,7 @@ impl AgentsArgs {
                 match format {
                     OutputFormat::Json => write_json(&result),
                     OutputFormat::Text => {
-                        println!("Installed Cap agent components for {}.", result.target);
+                        println!("Installed Scoopy agent components for {}.", result.target);
                         Ok(())
                     }
                 }

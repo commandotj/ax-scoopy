@@ -3740,7 +3740,7 @@ pub fn capture_exclusion_hides_ui() -> bool {
                 %reason,
                 "Skipping window capture exclusion: this desktop is viewed through a \
                  capture-based stream, so excluded windows would be invisible to the user. \
-                 Cap's windows will appear in recordings."
+                 Scoopy's windows will appear in recordings."
             ),
             None => info!("Window capture exclusion re-enabled"),
         }

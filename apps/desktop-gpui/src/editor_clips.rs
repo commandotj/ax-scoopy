@@ -2030,12 +2030,12 @@ impl PreparedMp4Import {
 async fn pick_existing_recording_path(_cx: &mut gpui::AsyncWindowContext) -> Option<PathBuf> {
     #[cfg(target_os = "macos")]
     {
-        crate::platform::open_image_panel(&["cap"])
+        crate::platform::open_image_panel(&["scoopy"])
     }
     #[cfg(target_os = "linux")]
     {
         crate::platform::open_file_panel_async(
-            &[("Cap Recording", &["cap"])],
+            &[("Scoopy Recording", &["scoopy"])],
             Some(crate::recording::recordings_dir()),
             _cx,
         )
@@ -2045,7 +2045,7 @@ async fn pick_existing_recording_path(_cx: &mut gpui::AsyncWindowContext) -> Opt
     {
         rfd::FileDialog::new()
             .set_directory(crate::recording::recordings_dir())
-            .add_filter("Cap Recording", &["cap"])
+            .add_filter("Scoopy Recording", &["scoopy"])
             .pick_file()
     }
 }
@@ -3266,7 +3266,7 @@ pub(crate) fn append_cap_project_to_editor(
         return Err("Cannot import a recording into itself".to_string());
     }
     if !is_cap_project_path(source_path) {
-        return Err("Select a Cap project folder".to_string());
+        return Err("Select a Scoopy project folder".to_string());
     }
 
     let source_meta = RecordingMeta::load_for_project(source_path)
@@ -3277,17 +3277,17 @@ pub(crate) fn append_cap_project_to_editor(
     };
     match source_studio_meta.status() {
         StudioRecordingStatus::InProgress => {
-            return Err("Source Cap project is still recording".to_string());
+            return Err("Source Scoopy project is still recording".to_string());
         }
         StudioRecordingStatus::Failed { error } => {
-            return Err(format!("Source Cap project failed: {error}"));
+            return Err(format!("Source Scoopy project failed: {error}"));
         }
         StudioRecordingStatus::Complete | StudioRecordingStatus::NeedsRemux => {}
     }
 
     let source_segments = studio_segments_for_import(source_studio_meta);
     if source_segments.is_empty() {
-        return Err("Source Cap project has no recording segments".to_string());
+        return Err("Source Scoopy project has no recording segments".to_string());
     }
 
     let source_timeline = source_timeline_segments_for_import(&source_meta, &source_segments)?;
@@ -3353,7 +3353,7 @@ pub(crate) fn append_cap_project_to_editor(
     };
 
     if copied_segments.is_empty() {
-        return Err("Source Cap project has no importable recording segments".to_string());
+        return Err("Source Scoopy project has no importable recording segments".to_string());
     }
 
     {
@@ -3451,10 +3451,8 @@ mod tests {
         }
     }
 
-    const MP4_WITHOUT_AUDIO: &[u8] =
-        include_bytes!("../tests/fixtures/test-no-audio.mp4");
-    const MP4_WITH_AUDIO: &[u8] =
-        include_bytes!("../tests/fixtures/test-with-audio.mp4");
+    const MP4_WITHOUT_AUDIO: &[u8] = include_bytes!("../tests/fixtures/test-no-audio.mp4");
+    const MP4_WITH_AUDIO: &[u8] = include_bytes!("../tests/fixtures/test-with-audio.mp4");
 
     struct ImportFixture {
         root: PathBuf,

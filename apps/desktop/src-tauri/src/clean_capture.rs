@@ -578,7 +578,7 @@ impl Inner {
             shortcut: self.lease.as_ref().map(|lease| {
                 lease.stop_description.clone().unwrap_or_else(|| {
                     if lease.wayland {
-                        "the Cap Stop tray icon".to_string()
+                        "the Scoopy Stop tray icon".to_string()
                     } else {
                         STOP_SHORTCUT.to_string()
                     }
@@ -1499,7 +1499,7 @@ pub async fn prepare(
     };
     let main = CapWindowId::Main
         .get(app)
-        .ok_or("Open Cap before starting this recording")?;
+        .ok_or("Open Scoopy before starting this recording")?;
 
     let app_state = app.state::<crate::ArcLock<crate::App>>();
     let mut app_state = app_state.write().await;
@@ -1604,7 +1604,7 @@ fn hide_windows(app: &AppHandle) -> Result<(), String> {
             native_id(&window)?;
             set_native_visibility(&window, false)?;
             if window.is_visible().map_err(|e| e.to_string())? {
-                return Err("Cap could not hide its recording windows safely".into());
+                return Err("Scoopy could not hide its recording windows safely".into());
             }
         }
     }
@@ -3094,7 +3094,7 @@ pub(crate) fn admit_wayland_window_creation(app: &AppHandle) -> Result<(), Strin
     if inner.lease.as_ref().is_some_and(|lease| {
         lease.wayland && wayland_blocks_mapping(lease.phase) && lease.phase != Phase::Stopping
     }) {
-        return Err("Pause or stop recording before opening another Cap window".into());
+        return Err("Pause or stop recording before opening another Scoopy window".into());
     }
     Ok(())
 }

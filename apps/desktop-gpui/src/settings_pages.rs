@@ -254,7 +254,7 @@ const STUDIO_OUTCOMES: [(store::PostStudioBehaviour, OutcomeOption); 3] = [
         store::PostStudioBehaviour::ShowOverlay,
         OutcomeOption {
             icon: "icons/app-window.svg",
-            label: "Show Cap",
+            label: "Show Scoopy",
             hint: "Back to the recorder",
         },
     ),
@@ -355,7 +355,7 @@ fn shortcut_effect(
         "openRecordingPickerArea" => format!("select an area, then {}", picker_outcome(mode)),
         "openRecordingPickerWindow" => format!("choose a window, then {}", picker_outcome(mode)),
         "openRecordingPickerDisplay" => format!("choose a display, then {}", picker_outcome(mode)),
-        "openRecordingPicker" => "open Cap so you can choose what to record".into(),
+        "openRecordingPicker" => "open Scoopy so you can choose what to record".into(),
         "cycleRecordingMode" => "switch between Studio, Instant and Screenshot mode".into(),
         "stopRecording" => "stop the current recording".into(),
         "togglePauseRecording" => "pause the current recording, or resume it".into(),
@@ -724,7 +724,7 @@ impl SettingsWindow {
             self.render_outcome_panel(
                 "outcome-screenshot",
                 "After a screenshot",
-                "For every screenshot, from a shortcut or from Cap",
+                "For every screenshot, from a shortcut or from Scoopy",
                 &SCREENSHOT_OUTCOMES
                     .iter()
                     .map(|(value, option)| {
@@ -811,7 +811,7 @@ impl SettingsWindow {
             .into_any_element(),
             self.section(
                 "Recording",
-                Some("Start a recording without opening Cap first."),
+                Some("Start a recording without opening Scoopy first."),
                 None,
                 vec![card("shortcuts-recording", recording, cx)],
             )
@@ -1277,7 +1277,7 @@ impl SettingsWindow {
             self.section(
                 "Command Line",
                 Some(
-                    "Install the Cap command for terminals, agents, scripts, and local automation.",
+                    "Install the Scoopy command for terminals, agents, scripts, and local automation.",
                 ),
                 None,
                 vec![self.card(true).child(body).into_any_element()],
@@ -1793,7 +1793,7 @@ pub(crate) enum SwitchBack {
 const CLASSIC_WAIT_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 
 const SWITCH_SENTENCES: &[&str] = &[
-    "Switching back to the classic Cap app.",
+    "Switching back to the classic Scoopy app.",
     "Your recordings and settings stay exactly where they are.",
 ];
 const SWITCH_SENTENCE_MS: u64 = 2000;
@@ -1972,7 +1972,7 @@ impl SettingsWindow {
                             .font_weight(FontWeight::SEMIBOLD)
                             .text_center()
                             .text_color(white)
-                            .child("Opening the classic Cap app"),
+                            .child("Opening the classic Scoopy app"),
                     )
                     .child(
                         div()
@@ -1980,7 +1980,7 @@ impl SettingsWindow {
                             .text_size(px(14.))
                             .text_center()
                             .text_color(gpui::hsla(0., 0., 1., 0.7))
-                            .child("This window will close when the classic Cap app is ready."),
+                            .child("This window will close when the classic Scoopy app is ready."),
                     );
             }
             SwitchBack::Failed(error) => {
@@ -2071,7 +2071,7 @@ impl SettingsWindow {
     fn finish_switch_back(&mut self, cx: &mut Context<Self>) {
         if !dev_supervisor_available() {
             self.pages.switch_back = Some(SwitchBack::Failed(
-                "Couldn't find the classic Cap app to switch back to.".to_string(),
+                "Couldn't find the classic Scoopy app to switch back to.".to_string(),
             ));
             cx.notify();
             return;
@@ -2084,7 +2084,7 @@ impl SettingsWindow {
 
         if !store::set_store_setting(GENERAL_SETTINGS, "enableGpuiApp", Value::Bool(false)) {
             self.pages.switch_back = Some(SwitchBack::Failed(
-                "Couldn't save your app preference. Cap is still open.".to_string(),
+                "Couldn't save your app preference. Scoopy is still open.".to_string(),
             ));
             cx.notify();
             return;
@@ -2102,7 +2102,7 @@ impl SettingsWindow {
                 .await;
             let mut failure = result
                 .err()
-                .map(|error| format!("Couldn't open the classic Cap app: {error}"));
+                .map(|error| format!("Couldn't open the classic Scoopy app: {error}"));
             let started = std::time::Instant::now();
             while failure.is_none() {
                 match store::classic_pending_path().try_exists() {
@@ -2114,7 +2114,7 @@ impl SettingsWindow {
                     Ok(true) => {}
                     Err(error) => {
                         failure = Some(format!(
-                            "Couldn't check whether the classic Cap app opened: {error}"
+                            "Couldn't check whether the classic Scoopy app opened: {error}"
                         ));
                         break;
                     }
@@ -2131,7 +2131,7 @@ impl SettingsWindow {
                     .await;
             }
             let message =
-                failure.unwrap_or_else(|| "Couldn't open the classic Cap app.".to_string());
+                failure.unwrap_or_else(|| "Couldn't open the classic Scoopy app.".to_string());
             tracing::error!("{message}");
             store::clear_classic_pending();
             store::set_store_setting(GENERAL_SETTINGS, "enableGpuiApp", Value::Bool(true));
@@ -2227,11 +2227,11 @@ mod cli_install {
 
     fn target_path() -> Result<PathBuf, String> {
         let exe =
-            env::current_exe().map_err(|e| format!("Could not locate Cap executable: {e}"))?;
+            env::current_exe().map_err(|e| format!("Could not locate Scoopy executable: {e}"))?;
         let exe = resolve_path_for_target_lookup(exe);
         let dir = exe
             .parent()
-            .ok_or_else(|| "Could not locate Cap executable directory".to_string())?;
+            .ok_or_else(|| "Could not locate Scoopy executable directory".to_string())?;
 
         for candidate in cli_binary_candidates(dir) {
             if candidate.exists() {
@@ -2540,7 +2540,7 @@ mod cli_install {
         let installed = target_exists && shim_points_to(&shim_path, &target_path)?;
         let conflict = if shim_exists && !installed && !shim_is_cap_managed(&shim_path) {
             Some(format!(
-                "{} already exists and is not managed by Cap",
+                "{} already exists and is not managed by Scoopy",
                 display_path(&shim_path)
             ))
         } else if !target_exists {
@@ -2605,7 +2605,7 @@ mod cli_install {
             // to clobber a genuinely foreign file.
             if !shim_points_to(&shim_path, &target_path)? && !shim_is_cap_managed(&shim_path) {
                 return Err(format!(
-                    "{} already exists and is not managed by Cap",
+                    "{} already exists and is not managed by Scoopy",
                     display_path(&shim_path)
                 ));
             }
@@ -2740,7 +2740,7 @@ mod cli_install {
             .create(true)
             .append(true)
             .open(profile)
-            .and_then(|mut file| writeln!(file, "\n# Added by Cap\n{line}"))
+            .and_then(|mut file| writeln!(file, "\n# Added by Scoopy\n{line}"))
             .is_ok()
     }
 

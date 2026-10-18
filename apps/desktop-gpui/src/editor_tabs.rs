@@ -3318,7 +3318,7 @@ impl EditorWindow {
                                 .text_size(px(12.))
                                 .text_color(Hsla::from(theme.editor.text_3))
                                 .child(
-                                    "Cap calculated these offsets automatically to keep audio in \
+                                    "Scoopy calculated these offsets automatically to keep audio in \
                                      sync with the video. Adjust them if anything still sounds \
                                      off.",
                                 )

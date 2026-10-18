@@ -20,7 +20,7 @@ export default function UpgradeRedirect() {
 	return (
 		<div class="flex flex-col items-center justify-center gap-3 h-full text-gray-12">
 			<Show when={failed()} fallback={<p>Opening pricing in your browser…</p>}>
-				<p>Couldn't open your browser. Visit cap.so/pricing to view plans.</p>
+				<p>Couldn't open your browser. Visit scoopy.so/pricing to view plans.</p>
 				<Button variant="gray" onClick={() => void openPricing()}>
 					Try again
 				</Button>

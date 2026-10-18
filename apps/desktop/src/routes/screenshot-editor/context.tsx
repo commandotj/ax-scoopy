@@ -286,8 +286,9 @@ function createScreenshotEditorContext() {
 			};
 
 			const pathStr = instance.path;
-			const isCapDir = pathStr.endsWith(".cap");
-			const imagePath = isCapDir ? `${pathStr}/original.png` : pathStr;
+			const isBundleDir =
+				pathStr.endsWith(".scoopy") || pathStr.endsWith(".cap");
+			const imagePath = isBundleDir ? `${pathStr}/original.png` : pathStr;
 			loadImage(imagePath);
 		}
 

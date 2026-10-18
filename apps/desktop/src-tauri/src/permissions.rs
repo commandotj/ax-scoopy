@@ -661,7 +661,7 @@ fn camera_access_result(status: OSPermissionStatus) -> Result<(), String> {
                 .into(),
         ),
         OSPermissionStatus::Denied => Err(
-            "Camera access is blocked. Allow Cap in System Settings > Privacy & Security > Camera, then select your camera again. If access is restricted, contact your administrator."
+            "Camera access is blocked. Allow Scoopy in System Settings > Privacy & Security > Camera, then select your camera again. If access is restricted, contact your administrator."
                 .into(),
         ),
     }
@@ -684,7 +684,7 @@ fn microphone_access_result(status: OSPermissionStatus) -> Result<(), String> {
                 .into(),
         ),
         OSPermissionStatus::Denied => Err(
-            "Microphone access is blocked. Allow Cap in System Settings > Privacy & Security > Microphone, then select your microphone again."
+            "Microphone access is blocked. Allow Scoopy in System Settings > Privacy & Security > Microphone, then select your microphone again."
                 .into(),
         ),
     }

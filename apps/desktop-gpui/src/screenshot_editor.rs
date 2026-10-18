@@ -2045,7 +2045,7 @@ impl ScreenshotEditorWindow {
         let bundle = self.bundle.clone();
         cx.spawn_in(window, async move |_this, cx| {
             if !crate::platform::confirm_dialog(
-                "Cap",
+                "Scoopy",
                 "Are you sure you want to delete this screenshot?",
                 "Yes",
                 "No",

@@ -432,7 +432,7 @@ export default function Settings(props: RouteSectionProps) {
 
 			if (!update) {
 				await dialog.message(
-					"You're already using the latest version of Cap.",
+					"You're already using the latest version of Scoopy.",
 					{
 						title: "No Update Available",
 						kind: "info",
@@ -442,8 +442,8 @@ export default function Settings(props: RouteSectionProps) {
 			}
 
 			const shouldUpdate = await dialog.confirm(
-				`Version ${update.version} of Cap is available, would you like to install it?`,
-				{ title: "Update Cap", okLabel: "Update", cancelLabel: "Ignore" },
+				`Version ${update.version} of Scoopy is available, would you like to install it?`,
+				{ title: "Update Scoopy", okLabel: "Update", cancelLabel: "Ignore" },
 			);
 
 			if (shouldUpdate) navigate("/update");
@@ -451,8 +451,8 @@ export default function Settings(props: RouteSectionProps) {
 			console.error("Failed to check for updates:", e);
 			const openDownload = await dialog
 				.confirm(
-					"Couldn't check for updates automatically. You can download the latest version of Cap from cap.so/download \u2014 your data won't be lost.",
-					{ title: "Update Cap", okLabel: "Download", cancelLabel: "Later" },
+					"Couldn't check for updates automatically. You can download the latest version of Scoopy from scoopy.so/download \u2014 your data won't be lost.",
+					{ title: "Update Scoopy", okLabel: "Download", cancelLabel: "Later" },
 				)
 				.catch(() => false);
 			if (openDownload) await shell.open("https://cap.so/download");

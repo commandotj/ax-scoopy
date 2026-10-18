@@ -147,7 +147,7 @@ const MODES: [ModeDetail; 3] = [
 const FAQ: [(&str, &str); 4] = [
     (
         "Where are my recordings stored?",
-        "All recordings stay on your computer. Nothing is uploaded, and Cap works with no account and no network.",
+        "All recordings stay on your computer. Nothing is uploaded, and Scoopy works with no account and no network.",
     ),
     (
         "What's the difference between Instant and Studio?",
@@ -1008,7 +1008,7 @@ impl OnboardingWindow {
                     .child(logo),
             )
             .child(
-                copy("Welcome to Cap", 48., gpui::white())
+                copy("Welcome to Scoopy", 48., gpui::white())
                     .font_weight(FontWeight::BOLD)
                     .line_height(px(48.))
                     .mt(px(40.))
@@ -1140,7 +1140,7 @@ impl OnboardingWindow {
             .gap(px(24.))
             .child(self.heading(
                 "Permissions Required",
-                "Cap needs a few permissions to record your screen and capture audio.",
+                "Scoopy needs a few permissions to record your screen and capture audio.",
                 Some("icons/shield.svg"),
             ))
             .child(div().flex().flex_col().w(px(CARD_W)).gap(px(8.)).children(
@@ -1164,7 +1164,7 @@ impl OnboardingWindow {
                         .child(glyph("icons/triangle-alert.svg", 16., theme.amber_11))
                         .child(
                             copy(
-                                "Granted it in System Settings? Relaunch Cap to apply.",
+                                "Granted it in System Settings? Relaunch Scoopy to apply.",
                                 11.,
                                 theme.amber_11,
                             )
@@ -1180,7 +1180,7 @@ impl OnboardingWindow {
                             )
                             .radius(px(8.))
                             .icon("icons/rotate-ccw.svg")
-                            .label("Relaunch Cap")
+                            .label("Relaunch Scoopy")
                             .on_click(cx.listener(|_, _, _, cx| permissions::relaunch(cx))),
                         ),
                 )
@@ -1191,7 +1191,7 @@ impl OnboardingWindow {
     fn render_overview(&self) -> AnyElement {
         let theme = self.theme;
         div().flex().flex_col().items_center().justify_center().min_h_full().px(px(40.)).gap(px(32.))
-            .child(self.heading("One app, every workflow", "Whether you need speed, studio quality, or a quick screenshot — Cap has a mode for it.", None))
+            .child(self.heading("One app, every workflow", "Whether you need speed, studio quality, or a quick screenshot — Scoopy has a mode for it.", None))
             .child(div().flex().gap(px(16.)).w_full().max_w(px(540.)).children(MODES.iter().enumerate().map(|(index, mode)| {
                 let card = self.card().flex_1().min_w_0().flex().flex_col().items_center().gap(px(12.)).p(px(20.)).rounded(px(16.))
                     .child(self.card().size(px(48.)).rounded(px(16.)).flex().items_center().justify_center()
@@ -1308,7 +1308,7 @@ impl OnboardingWindow {
             .gap(px(32.))
             .child(self.heading(
                 "Switch modes anytime",
-                "Toggle between modes with a single click from the main Cap window.",
+                "Toggle between modes with a single click from the main Scoopy window.",
                 None,
             ))
             .child(
@@ -1388,11 +1388,11 @@ impl OnboardingWindow {
     fn render_shortcuts(&self) -> AnyElement {
         let theme = self.theme;
         div().flex().flex_col().items_center().justify_center().min_h_full().px(px(48.)).gap(px(24.))
-            .child(self.heading("Make Cap yours", "Customize everything from keyboard shortcuts to storage. Cap adapts to your workflow.", Some("icons/settings.svg")))
+            .child(self.heading("Make Scoopy yours", "Customize everything from keyboard shortcuts to storage. Scoopy adapts to your workflow.", Some("icons/settings.svg")))
             .child(div().flex().flex_col().w_full().max_w(px(420.)).gap(px(8.)).children([
                 ("Keyboard Shortcuts", "Global hotkeys for recording, screenshots, and switching modes"),
                 ("Custom S3 Storage", "Connect your own S3-compatible bucket for full control over your recordings"),
-                ("Custom Domain", "Use your own domain for shareable links instead of cap.so"),
+                ("Custom Domain", "Use your own domain for shareable links instead of scoopy.so"),
                 ("Recording Preferences", "FPS, quality, countdown timer, cursor effects, and more"),
             ].into_iter().map(|(title, description)| {
                 self.card().px(px(16.)).py(px(12.)).flex().flex_col().gap(px(4.))
@@ -1483,9 +1483,9 @@ impl OnboardingWindow {
         let disabled = self.step == Step::Permissions && !self.state.necessary_granted();
         let last = self.permissions_only || self.step == Step::Faq;
         let label = if self.permissions_only {
-            "Continue to Cap"
+            "Continue to Scoopy"
         } else if last {
-            "Start Using Cap"
+            "Start Using Scoopy"
         } else {
             "Continue"
         };
@@ -1906,7 +1906,7 @@ impl OnboardingWindow {
                     .rounded(px(8.))
                     .bg(theme.body_fill(3))
                     .child(
-                        copy("cap.so/s/m4k92x", 11., theme.gray_11)
+                        copy("scoopy.so/s/m4k92x", 11., theme.gray_11)
                             .flex_1()
                             .min_w_0(),
                     )
@@ -2026,7 +2026,7 @@ impl OnboardingWindow {
                             .items_center()
                             .gap(px(8.))
                             .child(self.demo_window_dots())
-                            .child(copy("Cap Editor", 10., theme.gray_11)),
+                            .child(copy("Scoopy Editor", 10., theme.gray_11)),
                     )
                     .child(
                         copy("Export", 9., gpui::white())

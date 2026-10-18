@@ -20,9 +20,9 @@ import {
 // The mirror of this sequence lives in `render_switch_overlay` in the native
 // app's `settings_pages.rs`.
 const SWITCH_SENTENCES = [
-	"Switching to the native Cap app.",
+	"Switching to the native Scoopy app.",
 	"It will look almost identical. That is the point.",
-	"Same Cap, rebuilt fully native for performance.",
+	"Same Scoopy, rebuilt fully native for performance.",
 	"Experimental. Your recordings and settings come with you.",
 ];
 const SENTENCE_MS = 1300;

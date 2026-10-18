@@ -1689,8 +1689,8 @@ function createUpdateCheck() {
 		let shouldUpdate: boolean | undefined;
 		try {
 			shouldUpdate = await dialog.confirm(
-				`Version ${update.version} of Cap is available, would you like to install it?`,
-				{ title: "Update Cap", okLabel: "Update", cancelLabel: "Ignore" },
+				`Version ${update.version} of Scoopy is available, would you like to install it?`,
+				{ title: "Update Scoopy", okLabel: "Update", cancelLabel: "Ignore" },
 			);
 		} catch (e) {
 			console.error("Failed to show update dialog:", e);
@@ -1713,8 +1713,8 @@ function createUpdateReadyToast() {
 				<div class="flex flex-col gap-2.5 px-4 py-3 rounded-xl border shadow-lg bg-gray-1 border-gray-4 text-gray-12 w-[min(24rem,calc(100vw-2rem))]">
 					<p class="text-sm">
 						{update.installed
-							? `Cap ${update.version} has been installed — restart to apply`
-							: `Cap ${update.version} is ready to install`}
+							? `Scoopy ${update.version} has been installed — restart to apply`
+							: `Scoopy ${update.version} is ready to install`}
 					</p>
 					<div class="flex gap-2 items-center">
 						<button
@@ -1730,7 +1730,7 @@ function createUpdateReadyToast() {
 										toast.error(
 											typeof error === "string"
 												? error
-												: "Unable to restart Cap safely.",
+												: "Unable to restart Scoopy safely.",
 										);
 									})
 									.finally(() => setInstallingUpdate(false));
@@ -3024,18 +3024,18 @@ function Page() {
 							: "Clean Studio recording"
 					}
 				>
-					<strong>Record without Cap's preview and controls</strong>
+					<strong>Record without Scoopy's preview and controls</strong>
 					<p class="text-sm">
 						{cleanCapture.data?.mode === "instant"
-							? "Any selected camera will be included in the video with its preview appearance. Cap's preview and controls will hide."
-							: "Any selected camera will keep recording as a separate editable track. Cap's preview and controls will hide."}
+							? "Any selected camera will be included in the video with its preview appearance. Scoopy's preview and controls will hide."
+							: "Any selected camera will keep recording as a separate editable track. Scoopy's preview and controls will hide."}
 					</p>
 					<p class="text-sm">
 						Press <strong>{cleanCapture.data?.shortcut}</strong> to start, then
 						use it to stop.{" "}
 						{cleanCapture.data?.mode === "instant"
-							? "Open Cap to stop and show controls."
-							: "Open Cap to pause and show controls."}
+							? "Open Scoopy to stop and show controls."
+							: "Open Scoopy to pause and show controls."}
 					</p>
 					<button
 						type="button"
@@ -3400,7 +3400,7 @@ function Page() {
 						<Show when={cleanCapture.data?.phase === "paused"}>
 							<div class="mb-3 flex items-center justify-between gap-2 rounded-lg bg-gray-3 p-2 text-sm">
 								<div class="min-w-0">
-									<span>Recording paused. Cap will hide before resuming.</span>
+									<span>Recording paused. Scoopy will hide before resuming.</span>
 								</div>
 								<button
 									type="button"

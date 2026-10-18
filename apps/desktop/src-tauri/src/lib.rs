@@ -820,7 +820,7 @@ fn build_macos_app_menu(app_handle: &AppHandle) -> tauri::Result<Menu<tauri::Wry
         .product_name
         .as_ref()
         .map(|name| format!("Quit {name}"))
-        .unwrap_or_else(|| "Quit Cap".to_string());
+        .unwrap_or_else(|| "Quit Scoopy".to_string());
 
     let window_menu = Submenu::with_id_and_items(
         app_handle,
@@ -3641,7 +3641,7 @@ fn show_exit_blocked(app: &AppHandle, reason: ExitBlocked) {
     );
     app.dialog()
         .message(reason.message())
-        .title("Cap is still busy")
+        .title("Scoopy is still busy")
         .kind(tauri_plugin_dialog::MessageDialogKind::Warning)
         .show(|_| {});
 }
@@ -3744,7 +3744,7 @@ fn restart_app(app: AppHandle) -> Result<(), String> {
             app.request_restart();
             Ok(())
         }
-        Ok(false) => Err("Cap is already shutting down.".into()),
+        Ok(false) => Err("Scoopy is already shutting down.".into()),
         Err(reason) => Err(reason.message().into()),
     }
 }
@@ -3770,7 +3770,7 @@ pub async fn request_app_exit(app: AppHandle) {
             warn!(%error, "Quit canceled because an editor title could not be saved");
             app.dialog()
                 .message(format!(
-                    "{error}\n\nCap is still open. Your title is still in the editor."
+                    "{error}\n\nScoopy is still open. Your title is still in the editor."
                 ))
                 .title("Title not saved")
                 .kind(tauri_plugin_dialog::MessageDialogKind::Warning)
@@ -7115,7 +7115,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                 if let Err(error) = app.run_on_main_thread(move || {
                     handle_single_instance(&handle, args);
                 }) {
-                    warn!(%error, "Could not queue Cap activation");
+                    warn!(%error, "Could not queue Scoopy activation");
                 }
             }
             #[cfg(not(target_os = "linux"))]
@@ -7980,7 +7980,7 @@ fn handle_single_instance(app: &AppHandle, args: Vec<String>) {
 
     let action_urls = args
         .iter()
-        .filter(|arg| arg.starts_with("cap-desktop://"))
+        .filter(|arg| arg.starts_with("scoopy-desktop://") || arg.starts_with("cap-desktop://"))
         .filter_map(|arg| tauri::Url::parse(arg).ok())
         .collect::<Vec<_>>();
     if !action_urls.is_empty() {
@@ -7990,7 +7990,7 @@ fn handle_single_instance(app: &AppHandle, args: Vec<String>) {
 
     let Some(cap_file) = args
         .iter()
-        .find(|arg| arg.ends_with(".cap"))
+        .find(|arg| arg.ends_with(".scoopy") || arg.ends_with(".cap"))
         .map(PathBuf::from)
     else {
         let app = app.clone();
@@ -8001,7 +8001,7 @@ fn handle_single_instance(app: &AppHandle, args: Vec<String>) {
             .show(&app)
             .await
             {
-                warn!(%error, "Could not show Cap recording controls");
+                warn!(%error, "Could not show Scoopy recording controls");
             }
         });
         return;
@@ -8088,7 +8088,7 @@ struct StartupOpenQueue {
 impl StartupOpenQueue {
     fn request(&mut self, urls: Vec<tauri::Url>) -> Result<Option<StartupOpenDispatch>, String> {
         if self.cancelled {
-            return Err("Cap startup stopped before the project could be opened".into());
+            return Err("Scoopy startup stopped before the project could be opened".into());
         }
         if self.destination == Some(StartupOpenDestination::Desktop) {
             return Ok(Some(StartupOpenDispatch {
@@ -8105,7 +8105,7 @@ impl StartupOpenQueue {
                 continue;
             }
             if self.urls.len() + self.gpui_dispatched.len() + additions.len() >= 64 {
-                return Err("Too many projects were requested while Cap was starting".into());
+                return Err("Too many projects were requested while Scoopy was starting".into());
             }
             additions.push(url);
         }
@@ -8181,11 +8181,11 @@ impl Drop for StartupOpenGuard {
 fn queue_macos_startup_urls(app: &AppHandle, urls: Vec<tauri::Url>) -> Result<(), String> {
     let gate = app
         .try_state::<StartupOpenGate>()
-        .ok_or_else(|| "Cap startup is not ready to receive projects".to_string())?;
+        .ok_or_else(|| "Scoopy startup is not ready to receive projects".to_string())?;
     let dispatch = gate
         .0
         .lock()
-        .map_err(|_| "Cap startup file-open state is unavailable".to_string())?
+        .map_err(|_| "Scoopy startup file-open state is unavailable".to_string())?
         .request(urls)?;
     if let Some(dispatch) = dispatch {
         dispatch_macos_startup_urls(app, dispatch);
@@ -8229,7 +8229,7 @@ fn dispatch_macos_startup_urls(app: &AppHandle, dispatch: StartupOpenDispatch) {
 
     if dispatch.destination == StartupOpenDestination::Gpui {
         let Some(redirect) = app.try_state::<gpui_app::StartupRedirectState>() else {
-            warn!("Cap GPUI startup forwarding state is unavailable");
+            warn!("Scoopy GPUI startup forwarding state is unavailable");
             return;
         };
         if redirect.begin_forwarding() {
@@ -9253,12 +9253,12 @@ fn open_project_from_path(path: &Path, app: AppHandle) -> Result<(), String> {
     {
         let gate = app
             .try_state::<StartupOpenGate>()
-            .ok_or_else(|| "Cap startup is not ready to receive projects".to_string())?;
+            .ok_or_else(|| "Scoopy startup is not ready to receive projects".to_string())?;
         let ready = {
             let queue = gate
                 .0
                 .lock()
-                .map_err(|_| "Cap startup file-open state is unavailable".to_string())?;
+                .map_err(|_| "Scoopy startup file-open state is unavailable".to_string())?;
             !queue.cancelled && queue.destination == Some(StartupOpenDestination::Desktop)
         };
         if !ready {

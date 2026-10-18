@@ -91,10 +91,10 @@ fn sanitize_filename(name: &str) -> String {
 
 /// The `(1)`-suffix uniquing loop from `start_video_import` (`import.rs:1370-1376`).
 fn unique_project_path(recordings_dir: &Path, sanitized_name: &str) -> PathBuf {
-    let mut project_path = recordings_dir.join(format!("{sanitized_name}.cap"));
+    let mut project_path = recordings_dir.join(format!("{sanitized_name}.scoopy"));
     let mut counter = 1;
     while project_path.exists() {
-        project_path = recordings_dir.join(format!("{sanitized_name} ({counter}).cap"));
+        project_path = recordings_dir.join(format!("{sanitized_name} ({counter}).scoopy"));
         counter += 1;
     }
     project_path
@@ -624,7 +624,10 @@ fn run_image_import(source_path: &Path, tx: &flume::Sender<ImportProgress>) {
     let project_name = generate_project_name(source_path, "Imported Image");
     // `import.rs:1947-1948`: `:` becomes `.` the way recording bundles spell
     // timestamps, then the reserved characters go.
-    let bundle_name = format!("{}.cap", sanitize_filename(&project_name.replace(':', ".")));
+    let bundle_name = format!(
+        "{}.scoopy",
+        sanitize_filename(&project_name.replace(':', "."))
+    );
 
     let placeholder_path = screenshots_dir.join(&bundle_name);
     let early = ProgressSink {
@@ -1897,8 +1900,7 @@ mod tests {
         ffmpeg::init().unwrap();
         let root = temp_dir("cancel-conversion");
         let source = root.join("source.mp4");
-        let source_bytes =
-            include_bytes!("../tests/fixtures/test-with-audio.mp4");
+        let source_bytes = include_bytes!("../tests/fixtures/test-with-audio.mp4");
         std::fs::write(&source, source_bytes).unwrap();
         std::fs::write(root.join("recording-meta.json"), b"{}").unwrap();
         let cancelled = AtomicBool::new(false);
@@ -2017,15 +2019,15 @@ mod tests {
         let dir = temp_dir("unique");
 
         let first = unique_project_path(&dir, "Video 2026-01-01 at 10.00.00");
-        assert!(first.ends_with("Video 2026-01-01 at 10.00.00.cap"));
+        assert!(first.ends_with("Video 2026-01-01 at 10.00.00.scoopy"));
         std::fs::create_dir_all(&first).unwrap();
 
         let second = unique_project_path(&dir, "Video 2026-01-01 at 10.00.00");
-        assert!(second.ends_with("Video 2026-01-01 at 10.00.00 (1).cap"));
+        assert!(second.ends_with("Video 2026-01-01 at 10.00.00 (1).scoopy"));
         std::fs::create_dir_all(&second).unwrap();
 
         let third = unique_project_path(&dir, "Video 2026-01-01 at 10.00.00");
-        assert!(third.ends_with("Video 2026-01-01 at 10.00.00 (2).cap"));
+        assert!(third.ends_with("Video 2026-01-01 at 10.00.00 (2).scoopy"));
 
         std::fs::remove_dir_all(&dir).ok();
     }

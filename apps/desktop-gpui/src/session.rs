@@ -1699,7 +1699,8 @@ impl RecordingSession {
                         {
                             return;
                         }
-                        this.error = Some(format!("Restart could not hide Cap windows: {error}"));
+                        this.error =
+                            Some(format!("Restart could not hide Scoopy windows: {error}"));
                         this.finish(cx);
                     })
                     .ok();
@@ -1862,7 +1863,7 @@ impl RecordingSession {
                 if let Err(error) = result {
                     this.update(cx, |this, cx| {
                         if ticket.is_current(this.phase, this.recording_generation, this.terminal_operation, None, false) && this.active.is_none() {
-                            this.error = Some(format!("Restart could not hide Cap windows: {error}"));
+                            this.error = Some(format!("Restart could not hide Scoopy windows: {error}"));
                             this.finish(cx);
                         }
                     }).ok();

@@ -6,7 +6,7 @@ export async function openPricingPage() {
 		await commands.showWindow("Upgrade");
 	} catch {
 		toast.error(
-			"Couldn't open your browser. Visit cap.so/pricing to view plans.",
+			"Couldn't open your browser. Visit scoopy.so/pricing to view plans.",
 		);
 	}
 }

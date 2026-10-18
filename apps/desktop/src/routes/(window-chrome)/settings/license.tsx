@@ -117,7 +117,7 @@ export default function Page() {
 										>
 											View plans & pricing ↗
 										</Button>
-										<p>Opens cap.so/pricing in your browser.</p>
+										<p>Opens scoopy.so/pricing in your browser.</p>
 									</div>
 								</SectionCard>
 							</Section>
