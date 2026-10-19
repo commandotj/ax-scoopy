@@ -1,5 +1,5 @@
-use cap_project::StudioRecordingMeta;
-use cap_recording::recovery::{RecoveryError, RecoveryManager};
+use scoopy_project::StudioRecordingMeta;
+use scoopy_recording::recovery::{RecoveryError, RecoveryManager};
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -20,7 +20,7 @@ pub(crate) fn finalization_storage_error(path: &Path) -> String {
 
 fn ensure_finalization_storage_with(
     path: &Path,
-    inspect: impl FnOnce(&Path) -> std::io::Result<cap_utils::disk_space::RecordingStorage>,
+    inspect: impl FnOnce(&Path) -> std::io::Result<scoopy_utils::disk_space::RecordingStorage>,
 ) -> Result<(), String> {
     let storage = inspect(path)
         .map_err(|error| format!("Could not check available space for this recording: {error}"))?;
@@ -35,16 +35,16 @@ pub(crate) fn ensure_finalization_storage(
     display_path: &Path,
 ) -> Result<(), String> {
     ensure_finalization_storage_with(display_path, |_| {
-        cap_utils::disk_space::recording_storage(work_path)
+        scoopy_utils::disk_space::recording_storage(work_path)
     })
 }
 
-fn is_storage_full_remux_error(error: &cap_enc_ffmpeg::remux::RemuxError) -> bool {
+fn is_storage_full_remux_error(error: &scoopy_enc_ffmpeg::remux::RemuxError) -> bool {
     match error {
-        cap_enc_ffmpeg::remux::RemuxError::Io(error) => {
+        scoopy_enc_ffmpeg::remux::RemuxError::Io(error) => {
             error.kind() == std::io::ErrorKind::StorageFull
         }
-        cap_enc_ffmpeg::remux::RemuxError::Ffmpeg(ffmpeg::Error::Other { errno }) => {
+        scoopy_enc_ffmpeg::remux::RemuxError::Ffmpeg(ffmpeg::Error::Other { errno }) => {
             *errno == ffmpeg::error::ENOSPC
         }
         _ => false,
@@ -74,7 +74,7 @@ fn recovery_error_message(path: &Path, error: RecoveryError) -> String {
 fn parse_recording_date(pretty_name: &str) -> Option<NaiveDate> {
     let date_part = pretty_name
         .strip_prefix("Scoopy ")
-        .or_else(|| pretty_name.strip_prefix("Cap "))?;
+        .or_else(|| pretty_name.strip_prefix("Scoopy "))?;
     let date_str = date_part.split(" at ").next()?;
     NaiveDate::parse_from_str(date_str, "%Y-%m-%d").ok()
 }

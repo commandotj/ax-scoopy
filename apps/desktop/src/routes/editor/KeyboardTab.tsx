@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { Select as KSelect } from "@kobalte/core/select";
 import { cx } from "cva";
 import { batch, createMemo, createSignal, Show } from "solid-js";
@@ -10,8 +10,8 @@ import {
 } from "~/store/keyboard";
 import type { OrganizationBrandColorSwatch } from "~/utils/organization-branding";
 import { commands } from "~/utils/tauri";
-import IconCapChevronDown from "~icons/cap/chevron-down";
-import IconCapCircleCheck from "~icons/cap/circle-check";
+import IconScoopyChevronDown from "~icons/scoopy/chevron-down";
+import IconScoopyCircleCheck from "~icons/scoopy/circle-check";
 import { useEditorContext } from "./context";
 import {
 	generateForStableKeyboardTimeline,
@@ -220,7 +220,7 @@ export function KeyboardTab(props: {
 										}
 									</KSelect.Value>
 									<KSelect.Icon>
-										<IconCapChevronDown class="shrink-0 size-3.5 text-ed-text-3" />
+										<IconScoopyChevronDown class="shrink-0 size-3.5 text-ed-text-3" />
 									</KSelect.Icon>
 								</KSelect.Trigger>
 								<KSelect.Portal>
@@ -320,7 +320,7 @@ export function KeyboardTab(props: {
 									)}
 								</KSelect.Value>
 								<KSelect.Icon>
-									<IconCapChevronDown class="shrink-0 size-3.5 text-ed-text-3" />
+									<IconScoopyChevronDown class="shrink-0 size-3.5 text-ed-text-3" />
 								</KSelect.Icon>
 							</KSelect.Trigger>
 							<KSelect.Portal>
@@ -356,7 +356,7 @@ export function KeyboardTab(props: {
 										{selectItemProps.item.rawValue.label}
 									</KSelect.ItemLabel>
 									<KSelect.ItemIndicator class="ml-auto text-ed-accent">
-										<IconCapCircleCheck />
+										<IconScoopyCircleCheck />
 									</KSelect.ItemIndicator>
 								</MenuItem>
 							)}
@@ -372,7 +372,7 @@ export function KeyboardTab(props: {
 									}
 								</KSelect.Value>
 								<KSelect.Icon>
-									<IconCapChevronDown class="shrink-0 size-3.5 transition-transform transform text-ed-text-3 data-expanded:rotate-180" />
+									<IconScoopyChevronDown class="shrink-0 size-3.5 transition-transform transform text-ed-text-3 data-expanded:rotate-180" />
 								</KSelect.Icon>
 							</KSelect.Trigger>
 							<KSelect.Portal>

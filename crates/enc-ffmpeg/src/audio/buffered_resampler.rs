@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use cap_media_info::AudioInfo;
+use scoopy_media_info::AudioInfo;
 use ffmpeg::software::resampling;
 
 /// Consumes audio frames, resmaples them, buffers the results,
@@ -286,9 +286,9 @@ mod test {
 
     fn create_resampler(out_rate: u32) -> BufferedResampler {
         BufferedResampler::new(
-            AudioInfo::new_raw(format::Sample::U8(cap_media_info::Type::Packed), IN_RATE, 1),
+            AudioInfo::new_raw(format::Sample::U8(scoopy_media_info::Type::Packed), IN_RATE, 1),
             AudioInfo::new_raw(
-                format::Sample::U8(cap_media_info::Type::Packed),
+                format::Sample::U8(scoopy_media_info::Type::Packed),
                 out_rate,
                 1,
             ),
@@ -298,7 +298,7 @@ mod test {
 
     fn make_input_frame(samples: usize, pts: i64) -> ffmpeg::frame::Audio {
         let mut frame = ffmpeg::frame::Audio::new(
-            cap_media_info::Sample::U8(cap_media_info::Type::Packed),
+            scoopy_media_info::Sample::U8(scoopy_media_info::Type::Packed),
             samples,
             ChannelLayout::MONO,
         );
@@ -382,15 +382,15 @@ mod test {
             // Real-world 44.1k -> 48k with device-sized buffers: pts rounding
             // must neither panic nor lose samples over a sustained stream.
             let mut bufferer = BufferedResampler::new(
-                AudioInfo::new_raw(format::Sample::U8(cap_media_info::Type::Packed), 44_100, 1),
-                AudioInfo::new_raw(format::Sample::U8(cap_media_info::Type::Packed), 48_000, 1),
+                AudioInfo::new_raw(format::Sample::U8(scoopy_media_info::Type::Packed), 44_100, 1),
+                AudioInfo::new_raw(format::Sample::U8(scoopy_media_info::Type::Packed), 48_000, 1),
             )
             .unwrap();
 
             let mut total = 0usize;
             for k in 0..64i64 {
                 let mut frame = ffmpeg::frame::Audio::new(
-                    cap_media_info::Sample::U8(cap_media_info::Type::Packed),
+                    scoopy_media_info::Sample::U8(scoopy_media_info::Type::Packed),
                     1024,
                     ChannelLayout::MONO,
                 );

@@ -1,5 +1,5 @@
 use anyhow::Context;
-use cap_media_info::{AudioInfo, VideoInfo};
+use scoopy_media_info::{AudioInfo, VideoInfo};
 use std::{
     path::{Path, PathBuf},
     time::Duration,

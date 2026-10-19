@@ -1,4 +1,4 @@
-# cap-camera-mediafoundation
+# scoopy-camera-mediafoundation
 
 Ergonomic Rust wrapper around Windows Media Foundation API for camera capture,
 providing safe abstractions while maintaining low-level control.

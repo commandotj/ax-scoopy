@@ -39,7 +39,7 @@ async function main() {
 	let cargoConfigContents = "";
 	let cargoBuildContents = "";
 	const sccachePath = await findExecutable("sccache");
-	const useSccache = env.CAP_USE_SCCACHE === "1";
+	const useSccache = env.SCOOPY_USE_SCCACHE === "1";
 
 	if (sccachePath && useSccache && (await canUseSccache(sccachePath))) {
 		cargoBuildContents += `\n[build]\nrustc-wrapper = "${sccachePath.replaceAll("\\", "/")}"\n`;
@@ -48,7 +48,7 @@ async function main() {
 		console.log("sccache not found, using rustc directly");
 	else if (!useSccache)
 		console.log(
-			`sccache found at ${sccachePath}, using rustc directly. Set CAP_USE_SCCACHE=1 to enable it.`,
+			`sccache found at ${sccachePath}, using rustc directly. Set SCOOPY_USE_SCCACHE=1 to enable it.`,
 		);
 
 	if (process.platform === "darwin") {
@@ -293,7 +293,7 @@ async function main() {
 			} else console.log("Using cached native-deps");
 
 			const onnxRuntimePath = await setupLinuxOnnxRuntime();
-			const debLibDir = path.join(nativeDepsDir, "cap-deb-libs");
+			const debLibDir = path.join(nativeDepsDir, "scoopy-deb-libs");
 			await fs.rm(debLibDir, { recursive: true, force: true }).catch(() => {});
 			await fs.mkdir(debLibDir, { recursive: true });
 
@@ -331,7 +331,7 @@ async function main() {
 			cargoConfigContents += `ORT_DYLIB_PATH = { relative = true, force = true, value = "${cargoConfigPath(
 				path.relative(__root, onnxRuntimePath),
 			)}" }\n`;
-			cargoConfigContents += `\n[target.${triple}]\nrustflags = ["-C", "link-arg=-Wl,-rpath,$ORIGIN", "-C", "link-arg=-Wl,-rpath,$ORIGIN/../lib/cap"]\n`;
+			cargoConfigContents += `\n[target.${triple}]\nrustflags = ["-C", "link-arg=-Wl,-rpath,$ORIGIN", "-C", "link-arg=-Wl,-rpath,$ORIGIN/../lib/scoopy"]\n`;
 		} else {
 			const onnxRuntimePath = await setupLinuxOnnxRuntime();
 			cargoConfigContents += `[env]\nORT_DYLIB_PATH = { relative = true, force = true, value = "${cargoConfigPath(
@@ -735,7 +735,7 @@ async function writeLinuxTauriConfig(sonameLibs) {
 	}
 	const appimageLibDir = path.join(
 		__root,
-		"target/native-deps/cap-appimage-libs",
+		"target/native-deps/scoopy-appimage-libs",
 	);
 	await fs.mkdir(appimageLibDir, { recursive: true });
 	await fs.copyFile(pulsePlugin, path.join(appimageLibDir, pluginName));
@@ -845,7 +845,7 @@ async function ensureMsvcVersion() {
 				`(e.g. __std_find_last_of_trivial_pos_*, __std_remove_8) that only exist in vcruntime140_1.lib from MSVC 14.42+.\n` +
 				`\nUpdate via the Visual Studio Installer, or from an elevated PowerShell:\n` +
 				`  winget upgrade --id Microsoft.VisualStudio.2022.BuildTools\n` +
-				`After updating, run: cargo clean -p cap-desktop && bun run dev:windows\n`,
+				`After updating, run: cargo clean -p scoopy-desktop && bun run dev:windows\n`,
 		);
 	}
 

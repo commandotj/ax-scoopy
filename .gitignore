@@ -8,7 +8,7 @@ lerna-debug.log*
 .deepsec
 
 node_modules
-apps/cli/skill/cap-demo/node_modules/
+apps/cli/skill/scoopy-demo/node_modules/
 dist
 dist-ssr
 *.local

@@ -8,11 +8,11 @@ use crate::{
     output_pipeline::NativeCameraFrame, screen_capture,
 };
 use anyhow::{Context, anyhow};
-use cap_enc_ffmpeg::h264::{H264EncoderBuilder, H264Preset};
-use cap_enc_ffmpeg::segmented_stream::{
+use scoopy_enc_ffmpeg::h264::{H264EncoderBuilder, H264Preset};
+use scoopy_enc_ffmpeg::segmented_stream::{
     DiskSpaceCallback, SegmentCompletedEvent, SegmentedVideoEncoder, SegmentedVideoEncoderConfig,
 };
-use cap_media_info::{AudioInfo, VideoInfo};
+use scoopy_media_info::{AudioInfo, VideoInfo};
 use std::{
     path::PathBuf,
     sync::{
@@ -26,7 +26,7 @@ use std::{
 use tracing::*;
 
 fn get_muxer_buffer_size() -> usize {
-    std::env::var("CAP_MUXER_BUFFER_SIZE")
+    std::env::var("SCOOPY_MUXER_BUFFER_SIZE")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(60)
@@ -322,9 +322,9 @@ impl MacOSFragmentedM4SMuxer {
             .name("m4s-segment-encoder".to_string())
             .spawn(move || {
                 let pixel_format = match video_config.pixel_format {
-                    cap_media_info::Pixel::NV12 => ffmpeg::format::Pixel::NV12,
-                    cap_media_info::Pixel::BGRA => ffmpeg::format::Pixel::BGRA,
-                    cap_media_info::Pixel::UYVY422 => ffmpeg::format::Pixel::UYVY422,
+                    scoopy_media_info::Pixel::NV12 => ffmpeg::format::Pixel::NV12,
+                    scoopy_media_info::Pixel::BGRA => ffmpeg::format::Pixel::BGRA,
+                    scoopy_media_info::Pixel::UYVY422 => ffmpeg::format::Pixel::UYVY422,
                     _ => ffmpeg::format::Pixel::NV12,
                 };
 
@@ -712,9 +712,9 @@ impl MacOSFragmentedM4SCameraMuxer {
             .name("m4s-camera-segment-encoder".to_string())
             .spawn(move || {
                 let pixel_format = match video_config.pixel_format {
-                    cap_media_info::Pixel::NV12 => ffmpeg::format::Pixel::NV12,
-                    cap_media_info::Pixel::BGRA => ffmpeg::format::Pixel::BGRA,
-                    cap_media_info::Pixel::UYVY422 => ffmpeg::format::Pixel::UYVY422,
+                    scoopy_media_info::Pixel::NV12 => ffmpeg::format::Pixel::NV12,
+                    scoopy_media_info::Pixel::BGRA => ffmpeg::format::Pixel::BGRA,
+                    scoopy_media_info::Pixel::UYVY422 => ffmpeg::format::Pixel::UYVY422,
                     _ => ffmpeg::format::Pixel::NV12,
                 };
 

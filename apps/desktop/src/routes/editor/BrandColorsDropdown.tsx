@@ -2,7 +2,7 @@ import { DropdownMenu as KDropdownMenu } from "@kobalte/core/dropdown-menu";
 import { cx } from "cva";
 import { For, Show } from "solid-js";
 import type { OrganizationBrandColorSwatch } from "~/utils/organization-branding";
-import IconCapChevronDown from "~icons/cap/chevron-down";
+import IconScoopyChevronDown from "~icons/scoopy/chevron-down";
 import { getColorPreviewBorderColor } from "./color-utils";
 import { DropdownItem, PopperContent, topLeftAnimateClasses } from "./ui";
 
@@ -38,7 +38,7 @@ export function BrandColorsDropdown(props: {
 							)}
 						</For>
 					</span>
-					<IconCapChevronDown class="size-3.5 shrink-0 text-ed-text-3" />
+					<IconScoopyChevronDown class="size-3.5 shrink-0 text-ed-text-3" />
 				</KDropdownMenu.Trigger>
 				<KDropdownMenu.Portal>
 					<PopperContent<typeof KDropdownMenu.Content>

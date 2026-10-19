@@ -1,5 +1,5 @@
-use cap_recording::screenshot::capture_screenshot;
-use cap_recording::sources::screen_capture::ScreenCaptureTarget;
+use scoopy_recording::screenshot::capture_screenshot;
+use scoopy_recording::sources::screen_capture::ScreenCaptureTarget;
 use image::{ImageEncoder, codecs::png::PngEncoder};
 use std::io::Cursor;
 
@@ -14,7 +14,7 @@ pub async fn capture_window_thumbnail(window: &scap_targets::Window) -> Option<S
 }
 
 async fn capture_target_thumbnail(target: ScreenCaptureTarget) -> Option<String> {
-    if cap_recording::screenshot::uses_wayland_portal() {
+    if scoopy_recording::screenshot::uses_wayland_portal() {
         return None;
     }
 

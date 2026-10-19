@@ -34,13 +34,13 @@ use std::{
     time::Duration,
 };
 
-use cap_editor::{TranscriptionAudioSource, TranscriptionAudioTake, append_transcription_audio};
-use cap_project::{
+use scoopy_editor::{TranscriptionAudioSource, TranscriptionAudioTake, append_transcription_audio};
+use scoopy_project::{
     CaptionSegment, CaptionSettings, CaptionTrackSegment, CaptionWord, CaptionsData,
     ProjectConfiguration, RecordingMeta, StudioRecordingMeta, TimelineConfiguration,
     TimelineSegment,
 };
-use cap_rendering::Video;
+use scoopy_rendering::Video;
 use ffmpeg::{
     ChannelLayout, codec as avcodec,
     format::{self as avformat},
@@ -83,14 +83,14 @@ pub fn is_parakeet_model(model: &str) -> bool {
     matches!(model, "best" | "best-max")
 }
 
-/// Tauri's `appLocalDataDir()` for the `so.cap.desktop` identifier: on macOS
+/// Tauri's `appLocalDataDir()` for the `me.systembug.scoopy` identifier: on macOS
 /// `~/Library/Application Support`, on Windows `%LOCALAPPDATA%` (deliberately
 /// *not* the roaming dir [`store::app_data_dir`] uses), on Linux
 /// `$XDG_DATA_HOME`/`~/.local/share`.
 fn app_local_data_dir() -> PathBuf {
     dirs::data_local_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("so.cap.desktop")
+        .join("me.systembug.scoopy")
 }
 
 pub fn models_dir() -> PathBuf {
@@ -779,7 +779,7 @@ fn invalidate_whisper_cache_for_path(model_path: &Path) {
 /// `get_whisper_context_blocking` (`captions.rs:691-707`), keyed by model path
 /// so switching small -> medium reloads instead of reusing the stale context.
 fn get_whisper_context(model_path: &str) -> Result<Arc<WhisperContext>, String> {
-    cap_utils::local_captions::ensure_whisper_cpu_support()?;
+    scoopy_utils::local_captions::ensure_whisper_cpu_support()?;
     let mut guard = WHISPER_CONTEXT
         .lock()
         .unwrap_or_else(PoisonError::into_inner);
@@ -903,7 +903,7 @@ fn schedule_parakeet_release() {}
 // Audio extraction
 // ---------------------------------------------------------------------------
 
-/// `cap_audio::AudioData::SAMPLE_RATE` -- the rate every source is decoded to
+/// `scoopy_audio::AudioData::SAMPLE_RATE` -- the rate every source is decoded to
 /// before mixing, matching the Tauri pipeline's intermediate format.
 const DECODE_SAMPLE_RATE: u32 = 48_000;
 /// `WHISPER_SAMPLE_RATE` (`captions.rs:66`).
@@ -1163,7 +1163,7 @@ fn extract_project_audio(project_path: &Path, output_path: &Path) -> Result<(), 
                 .duration;
                 let offsets = segment.calculate_audio_offsets();
                 let mut sources = Vec::new();
-                let mut push_source = |audio: &cap_project::AudioMeta, offset_secs: f64| {
+                let mut push_source = |audio: &scoopy_project::AudioMeta, offset_secs: f64| {
                     let path = meta.path(&audio.path);
                     if !path.exists() {
                         return;
@@ -1567,7 +1567,7 @@ fn process_with_parakeet(
         model
     } else {
         tracing::info!("Loading Parakeet TDT model from: {model_dir}");
-        cap_camera_effects::initialize_onnx_runtime().map_err(|error| format!("{error:#}"))?;
+        scoopy_camera_effects::initialize_onnx_runtime().map_err(|error| format!("{error:#}"))?;
         let model = ParakeetTDT::from_pretrained(model_dir, None).map_err(|e| format!("{e}"))?;
         let loaded_model = Arc::new(Mutex::new(model));
 
@@ -1725,7 +1725,7 @@ fn transcribe_project_with(
 }
 
 /// `resolve_audio_extraction_source` (`captions.rs:221-243`), directory arm
-/// only -- the gpui editor always opens `.cap` bundles, so a plain media file
+/// only -- the gpui editor always opens `.scoopy` bundles, so a plain media file
 /// is refused rather than decoded.
 fn extract_audio_from_video(video_path: &Path, output_path: &Path) -> Result<(), String> {
     let metadata = std::fs::metadata(video_path)
@@ -1910,7 +1910,7 @@ fn caption_word_chunks(words: &[CaptionWord]) -> Vec<&[CaptionWord]> {
 // ---------------------------------------------------------------------------
 
 pub fn source_caption_id(track_id: &str) -> &str {
-    cap_project::source_caption_id(track_id)
+    scoopy_project::source_caption_id(track_id)
 }
 
 struct SourceToEditedMapping {
@@ -1960,7 +1960,7 @@ pub fn derive_caption_track_segments(
     timeline: &TimelineConfiguration,
     recording_durations: &[f64],
 ) -> Vec<CaptionTrackSegment> {
-    cap_project::derive_caption_track_segments(source_segments, timeline, recording_durations)
+    scoopy_project::derive_caption_track_segments(source_segments, timeline, recording_durations)
 }
 
 /// `heldTimeBefore` (`timeline-holds.ts:45-50`): how much hold-extended
@@ -2321,7 +2321,7 @@ mod tests {
     #[test]
     fn model_paths_match_the_tauri_layout() {
         let base = models_dir();
-        assert!(base.ends_with("so.cap.desktop/transcription_models"));
+        assert!(base.ends_with("me.systembug.scoopy/transcription_models"));
         assert_eq!(model_path("best"), base.join("parakeet-best"));
         assert_eq!(model_path("best-max"), base.join("parakeet-best-max"));
         assert_eq!(model_path("small"), base.join("small.bin"));
@@ -2446,14 +2446,14 @@ mod tests {
             "zoomSegments": []
         }));
         let source = vec![
-            caption("capA", 1.0, 2.0, &[("a", 1.0, 2.0)]),
-            caption("capB", 6.0, 7.0, &[("b", 6.0, 7.0)]),
+            caption("scoopyA", 1.0, 2.0, &[("a", 1.0, 2.0)]),
+            caption("scoopyB", 6.0, 7.0, &[("b", 6.0, 7.0)]),
         ];
 
         let track = derive_caption_track_segments(&source, &timeline, &[10.0]);
         assert_eq!(
             track.iter().map(|s| s.id.as_str()).collect::<Vec<_>>(),
-            vec!["capB", "capA"]
+            vec!["scoopyB", "scoopyA"]
         );
         assert!((track[0].start - 1.0).abs() < 1e-6);
         assert!((track[1].start - 4.0).abs() < 1e-6);
@@ -2465,7 +2465,7 @@ mod tests {
         assert_eq!(
             rederived
                 .iter()
-                .find(|s| s.id == "capA")
+                .find(|s| s.id == "scoopyA")
                 .and_then(|s| s.font_size_override),
             Some(42)
         );
@@ -2480,14 +2480,14 @@ mod tests {
             "zoomSegments": []
         }));
         let source = vec![
-            caption("capA", 1.0, 2.0, &[("a", 1.0, 2.0)]),
-            caption("capB", 6.0, 7.0, &[("b", 6.0, 7.0)]),
+            caption("scoopyA", 1.0, 2.0, &[("a", 1.0, 2.0)]),
+            caption("scoopyB", 6.0, 7.0, &[("b", 6.0, 7.0)]),
         ];
 
         let track = derive_caption_track_segments(&source, &timeline, &[10.0]);
         assert_eq!(
             track.iter().map(|s| s.id.as_str()).collect::<Vec<_>>(),
-            vec!["capA"]
+            vec!["scoopyA"]
         );
     }
 

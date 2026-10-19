@@ -126,12 +126,12 @@ fn is_scoopy_gpui_image(path: &Path) -> bool {
         "Scoopy.exe",
         "scoopy.exe",
         "scoopy-gpui.exe",
-        "Cap.exe",
-        "cap.exe",
-        "cap-gpui.exe",
+        "Scoopy.exe",
+        "scoopy.exe",
+        "scoopy-gpui.exe",
     ];
     #[cfg(not(windows))]
-    const IMAGE_NAMES: [&str; 6] = ["Scoopy", "scoopy", "scoopy-gpui", "Cap", "cap", "cap-gpui"];
+    const IMAGE_NAMES: [&str; 6] = ["Scoopy", "scoopy", "scoopy-gpui", "Scoopy", "scoopy", "scoopy-gpui"];
 
     let Some(name) = path.file_name().and_then(std::ffi::OsStr::to_str) else {
         return false;
@@ -1265,18 +1265,18 @@ mod tests {
     #[test]
     fn gpui_process_image_must_match_exactly() {
         #[cfg(windows)]
-        let names = ["cap-gpui.exe", "Cap.exe", "Scoopy.exe", "scoopy.exe"];
+        let names = ["scoopy-gpui.exe", "Scoopy.exe", "Scoopy.exe", "scoopy.exe"];
         #[cfg(not(windows))]
-        let names = ["cap-gpui", "Cap", "Scoopy", "scoopy"];
+        let names = ["scoopy-gpui", "Scoopy", "Scoopy", "scoopy"];
 
         for name in names {
             assert!(is_scoopy_gpui_image(Path::new(name)));
             assert!(is_scoopy_gpui_image(Path::new(&name.to_ascii_uppercase())));
         }
-        assert!(!is_scoopy_gpui_image(Path::new("not-cap-gpui")));
-        assert!(!is_scoopy_gpui_image(Path::new("cap-gpui-helper")));
-        assert!(!is_scoopy_gpui_image(Path::new("Cap Helper")));
-        assert!(!is_scoopy_gpui_image(Path::new("cap-cli")));
+        assert!(!is_scoopy_gpui_image(Path::new("not-scoopy-gpui")));
+        assert!(!is_scoopy_gpui_image(Path::new("scoopy-gpui-helper")));
+        assert!(!is_scoopy_gpui_image(Path::new("Scoopy Helper")));
+        assert!(!is_scoopy_gpui_image(Path::new("scoopy-cli")));
     }
 
     #[cfg(target_os = "linux")]
@@ -1396,7 +1396,7 @@ mod tests {
                     "--test-threads=1",
                 ])
                 .env("SCOOPY_GPUI_ACQUIRE_CHILD_PROBE", "1")
-                .env("CAP_GPUI_APP_DATA_DIR", &self.directory)
+                .env("SCOOPY_GPUI_APP_DATA_DIR", &self.directory)
                 .stdout(std::process::Stdio::null())
                 .spawn()
                 .unwrap();

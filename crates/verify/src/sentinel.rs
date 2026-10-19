@@ -1,13 +1,13 @@
 //! Machine-starvation sentinel for the engine suites.
 //!
 //! A test that measures wall-clock behaviour (real-time playback) can fail
-//! because the runner stopped scheduling the process, not because Cap is
+//! because the runner stopped scheduling the process, not because Scoopy is
 //! wrong. To tell the two apart from evidence rather than by guessing, every
 //! test process runs one high-priority thread that sleeps a fixed short
 //! interval and records how late it wakes. A wake gap of
 //! [`STARVATION_GAP_MS`] or more means the machine did not run the process
 //! for that long. The series is kept in memory for [`crate::report`] (per
-//! case) and appended to `<CAP_VERIFY_REPORT_DIR>/sentinel-<pid>.log`, so a
+//! case) and appended to `<SCOOPY_VERIFY_REPORT_DIR>/sentinel-<pid>.log`, so a
 //! test killed by its timeout still leaves its evidence.
 //!
 //! Only classes that legitimately depend on wall-clock timing may be excused
@@ -41,7 +41,7 @@ fn state() -> &'static State {
             started: Instant::now(),
             gaps: Mutex::new(Vec::new()),
         };
-        let log = std::env::var_os("CAP_VERIFY_REPORT_DIR").and_then(|dir| {
+        let log = std::env::var_os("SCOOPY_VERIFY_REPORT_DIR").and_then(|dir| {
             let dir = std::path::PathBuf::from(dir);
             std::fs::create_dir_all(&dir).ok()?;
             let mut file = std::fs::OpenOptions::new()
@@ -62,7 +62,7 @@ fn state() -> &'static State {
             Some(file)
         });
         let _ = std::thread::Builder::new()
-            .name("cap-verify-sentinel".into())
+            .name("scoopy-verify-sentinel".into())
             .spawn(move || run(log));
         state
     })

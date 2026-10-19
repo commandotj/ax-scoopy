@@ -1,8 +1,8 @@
-use cap_export::{
+use scoopy_export::{
     ExporterBase,
     mp4::{ExportCompression, Mp4ExportSettings},
 };
-use cap_project::XY;
+use scoopy_project::XY;
 use std::{env, path::PathBuf, time::Instant};
 
 #[tokio::main]
@@ -10,7 +10,7 @@ async fn main() -> Result<(), String> {
     let project_path = env::args()
         .nth(1)
         .map(PathBuf::from)
-        .ok_or_else(|| "usage: export_startup_time <path-to-project.cap>".to_string())?;
+        .ok_or_else(|| "usage: export_startup_time <path-to-project.scoopy>".to_string())?;
 
     let settings = Mp4ExportSettings {
         fps: 60,

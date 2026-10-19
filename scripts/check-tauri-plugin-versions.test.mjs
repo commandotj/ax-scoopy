@@ -11,7 +11,7 @@ function bunLock(cli, api = "2.8.0") {
 		lockfileVersion: 2,
 		workspaces: {
 			"apps/desktop": {
-				name: "@cap/desktop",
+				name: "@scoopy/desktop",
 				dependencies: { "@tauri-apps/api": `^${api}` },
 				devDependencies: { "@tauri-apps/cli": `^${cli}` },
 			},
@@ -23,7 +23,7 @@ function bunLock(cli, api = "2.8.0") {
 		packages: {
 			"@tauri-apps/api": [`@tauri-apps/api@${api}`, "", {}],
 			"@tauri-apps/cli": ["@tauri-apps/cli@1.6.3", "", {}],
-			"@cap/desktop/@tauri-apps/cli": [`@tauri-apps/cli@${cli}`, "", {}],
+			"@scoopy/desktop/@tauri-apps/cli": [`@tauri-apps/cli@${cli}`, "", {}],
 		},
 	});
 }
@@ -101,7 +101,7 @@ test("plugin checks use resolved versions and the desktop workspace override", (
 	lock.packages["@tauri-apps/plugin-store"] = [
 		"@tauri-apps/plugin-store@2.5.0",
 	];
-	lock.packages["@cap/desktop/@tauri-apps/plugin-store"] = [
+	lock.packages["@scoopy/desktop/@tauri-apps/plugin-store"] = [
 		"@tauri-apps/plugin-store@2.4.3",
 	];
 	assert.equal(

@@ -25,11 +25,11 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 
-use cap_project::{
+use scoopy_project::{
     BackgroundSource, BorderConfiguration, CornerStyle, ProjectConfiguration, RecordingMeta,
     RecordingMetaInner, ShadowConfiguration, StudioRecordingMeta,
 };
-use cap_rendering::{
+use scoopy_rendering::{
     DecodedFrame, DecodedSegmentFrames, FrameRenderer, ProjectUniforms, RenderOptions,
     RenderVideoConstants, RenderedFrame, RendererLayers, ZoomTransformTimeline,
 };
@@ -50,7 +50,7 @@ use crate::screenshot_annotations::{self as annotations, AnnotationState, Tool};
 use crate::theme::Theme;
 use crate::ui;
 
-/// `ShowCapWindow::ScreenshotEditor`: 1240x800, min 800x600, resizable.
+/// `ShowScoopyWindow::ScreenshotEditor`: 1240x800, min 800x600, resizable.
 pub const SCREENSHOT_EDITOR_WIDTH: f32 = 1240.;
 pub const SCREENSHOT_EDITOR_HEIGHT: f32 = 800.;
 pub const SCREENSHOT_EDITOR_MIN_WIDTH: f32 = 800.;
@@ -89,15 +89,15 @@ struct LoadedScreenshot {
 const CHECKER_TILE: u32 = 240;
 const CHECKER_CELL: u32 = 10;
 
-/// The `.cap` bundle a screenshot path belongs to: the directory itself, or
-/// the parent of `original.png` -- `create_standalone_instance`'s cap_dir
+/// The `.scoopy` bundle a screenshot path belongs to: the directory itself, or
+/// the parent of `original.png` -- `create_standalone_instance`'s scoopy_dir
 /// resolution (`screenshot_editor.rs:205-215` over there).
 pub fn resolve_bundle(path: &Path) -> Option<PathBuf> {
-    if path.extension().and_then(|ext| ext.to_str()) == Some("cap") {
+    if path.extension().and_then(|ext| ext.to_str()) == Some("scoopy") {
         return Some(path.to_path_buf());
     }
     let parent = path.parent()?;
-    (parent.extension().and_then(|ext| ext.to_str()) == Some("cap")).then(|| parent.to_path_buf())
+    (parent.extension().and_then(|ext| ext.to_str()) == Some("scoopy")).then(|| parent.to_path_buf())
 }
 
 // ---------------------------------------------------------------------------
@@ -199,7 +199,7 @@ pub async fn run_still_renderer(
     setup_tx: flume::Sender<Result<(), String>>,
 ) {
     let options = RenderOptions {
-        screen_size: cap_project::XY::new(source.width, source.height),
+        screen_size: scoopy_project::XY::new(source.width, source.height),
         camera_size: None,
         preserve_screen_alpha: true,
     };
@@ -210,7 +210,7 @@ pub async fn run_still_renderer(
             options,
             source.studio_meta,
             source.meta,
-            Arc::new(cap_rendering::BackgroundTextureCache::default()),
+            Arc::new(scoopy_rendering::BackgroundTextureCache::default()),
         )),
         None => {
             RenderVideoConstants::new_with_options(options, source.meta, source.studio_meta).await
@@ -293,10 +293,10 @@ async fn render_still(
     layers: &mut RendererLayers,
     source: &DecodedFrame,
     config: &ProjectConfiguration,
-    resolution_base: Option<cap_project::XY<u32>>,
+    resolution_base: Option<scoopy_project::XY<u32>>,
 ) -> Result<RenderedFrame, String> {
     let segment_frames = DecodedSegmentFrames {
-        screen_size: cap_project::XY::new(source.width(), source.height()),
+        screen_size: scoopy_project::XY::new(source.width(), source.height()),
         screen_frame: Some(source.clone()),
         camera_frame: None,
         segment_time: 0.0,
@@ -306,9 +306,9 @@ async fn render_still(
 
     let resolution_base = resolution_base.unwrap_or_else(|| {
         let (base_w, base_h) = ProjectUniforms::get_base_size(&constants.options, config);
-        cap_project::XY::new(base_w, base_h)
+        scoopy_project::XY::new(base_w, base_h)
     });
-    let cursor_events = cap_project::CursorEvents::default();
+    let cursor_events = scoopy_project::CursorEvents::default();
     let mut zoom_timeline = ZoomTransformTimeline::from_project(
         config,
         &cursor_events,
@@ -352,7 +352,7 @@ async fn render_export_rgba(
     let display_size = ProjectUniforms::display_size(
         &constants.options,
         config,
-        cap_project::XY::new(base_width, base_height),
+        scoopy_project::XY::new(base_width, base_height),
     )
     .coord;
     let crop = ProjectUniforms::get_crop(&constants.options, config);
@@ -364,7 +364,7 @@ async fn render_export_rgba(
         1.0,
     );
 
-    let resolution_base = cap_project::XY::new(
+    let resolution_base = scoopy_project::XY::new(
         (((base_width as f64 * export_scale).ceil() as u32) + 3) & !3,
         (((base_height as f64 * export_scale).ceil() as u32) + 1) & !1,
     );
@@ -397,7 +397,7 @@ async fn render_export_rgba(
         ));
     }
     let rgba =
-        cap_gpui_kernels::frame::unpad_rows(&frame.data, row_bytes, padded, frame.height as usize)
+        scoopy_gpui_kernels::frame::unpad_rows(&frame.data, row_bytes, padded, frame.height as usize)
             .ok_or_else(|| "Invalid export buffer rows".to_string())?;
 
     // What the preview renders this config at: `get_base_size`, then the
@@ -407,7 +407,7 @@ async fn render_export_rgba(
     let preview = ProjectUniforms::get_output_size(
         &constants.options,
         config,
-        cap_project::XY::new(base_width, base_height),
+        scoopy_project::XY::new(base_width, base_height),
     );
 
     Ok(crate::screenshot_export::RawFrame {
@@ -824,7 +824,7 @@ impl HexTarget {
 enum ExportDestination {
     Clipboard,
     File,
-    /// `CAP_GPUI_AUTO_SCREENSHOT_EXPORT=<path>`: the harness destination --
+    /// `SCOOPY_GPUI_AUTO_SCREENSHOT_EXPORT=<path>`: the harness destination --
     /// the same GPU export, written straight to the path (a save panel
     /// cannot be driven without Accessibility).
     Harness(PathBuf),
@@ -1096,16 +1096,16 @@ impl ScreenshotEditorWindow {
             self.ensure_wallpapers(cx);
         }
         self.ensure_background_image(cx);
-        if let Ok(dest) = std::env::var("CAP_GPUI_AUTO_SCREENSHOT_EXPORT")
+        if let Ok(dest) = std::env::var("SCOOPY_GPUI_AUTO_SCREENSHOT_EXPORT")
             && !dest.trim().is_empty()
         {
             self.export_image(ExportDestination::Harness(PathBuf::from(dest)), window, cx);
         }
-        // `CAP_GPUI_AUTO_SCREENSHOT_CROP=1`: open the crop dialog once the
-        // image size is known -- the same reason as `CAP_GPUI_AUTO_CROP` on
+        // `SCOOPY_GPUI_AUTO_SCREENSHOT_CROP=1`: open the crop dialog once the
+        // image size is known -- the same reason as `SCOOPY_GPUI_AUTO_CROP` on
         // the video editor: unprivileged synthetic clicks are dropped, and the
         // dialog has to be up before a real drag inside it can be posted.
-        if std::env::var("CAP_GPUI_AUTO_SCREENSHOT_CROP").is_ok_and(|value| value == "1") {
+        if std::env::var("SCOOPY_GPUI_AUTO_SCREENSHOT_CROP").is_ok_and(|value| value == "1") {
             self.open_crop_dialog(window, cx);
         }
         cx.notify();
@@ -1543,7 +1543,7 @@ impl ScreenshotEditorWindow {
 
     // -- Hex fields -------------------------------------------------------------
 
-    fn hex_color(&self, target: HexTarget) -> Option<cap_project::Color> {
+    fn hex_color(&self, target: HexTarget) -> Option<scoopy_project::Color> {
         match (target, &self.project.background.source) {
             (HexTarget::BackgroundColor, BackgroundSource::Color { value, .. }) => Some(*value),
             (HexTarget::GradientFrom, BackgroundSource::Gradient { from, .. }) => Some(*from),
@@ -1562,7 +1562,7 @@ impl ScreenshotEditorWindow {
     fn set_hex_color(
         &mut self,
         target: HexTarget,
-        color: cap_project::Color,
+        color: scoopy_project::Color,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
@@ -2072,13 +2072,13 @@ impl ScreenshotEditorWindow {
 
     // -- Aspect ratio -------------------------------------------------------
 
-    const ASPECT_OPTIONS: [(Option<cap_project::AspectRatio>, &'static str); 6] = [
+    const ASPECT_OPTIONS: [(Option<scoopy_project::AspectRatio>, &'static str); 6] = [
         (None, "Auto"),
-        (Some(cap_project::AspectRatio::Wide), "Wide ⋅16:9"),
-        (Some(cap_project::AspectRatio::Vertical), "Vertical ⋅9:16"),
-        (Some(cap_project::AspectRatio::Square), "Square ⋅1:1"),
-        (Some(cap_project::AspectRatio::Classic), "Classic ⋅4:3"),
-        (Some(cap_project::AspectRatio::Tall), "Tall ⋅3:4"),
+        (Some(scoopy_project::AspectRatio::Wide), "Wide ⋅16:9"),
+        (Some(scoopy_project::AspectRatio::Vertical), "Vertical ⋅9:16"),
+        (Some(scoopy_project::AspectRatio::Square), "Square ⋅1:1"),
+        (Some(scoopy_project::AspectRatio::Classic), "Classic ⋅4:3"),
+        (Some(scoopy_project::AspectRatio::Tall), "Tall ⋅3:4"),
     ];
 
     /// `KSelect.Value` (`AspectRatioSelect.tsx:78-88`) -- the trigger shows the
@@ -2086,11 +2086,11 @@ impl ScreenshotEditorWindow {
     fn aspect_label(&self) -> &'static str {
         match &self.project.aspect_ratio {
             None => "Auto",
-            Some(cap_project::AspectRatio::Wide) => "16:9",
-            Some(cap_project::AspectRatio::Vertical) => "9:16",
-            Some(cap_project::AspectRatio::Square) => "1:1",
-            Some(cap_project::AspectRatio::Classic) => "4:3",
-            Some(cap_project::AspectRatio::Tall) => "3:4",
+            Some(scoopy_project::AspectRatio::Wide) => "16:9",
+            Some(scoopy_project::AspectRatio::Vertical) => "9:16",
+            Some(scoopy_project::AspectRatio::Square) => "1:1",
+            Some(scoopy_project::AspectRatio::Classic) => "4:3",
+            Some(scoopy_project::AspectRatio::Tall) => "3:4",
         }
     }
 
@@ -2853,7 +2853,7 @@ impl ScreenshotEditorWindow {
     /// beside a hex field. The swatch opens `<input type="color">` over there;
     /// there is no native colour panel wired to this window yet, so it is inert
     /// here (README deviation).
-    fn render_rgb_input(&self, target: HexTarget, value: cap_project::Color) -> impl IntoElement {
+    fn render_rgb_input(&self, target: HexTarget, value: scoopy_project::Color) -> impl IntoElement {
         let theme = self.theme;
         div()
             .flex()
@@ -3968,7 +3968,7 @@ impl ScreenshotEditorWindow {
     }
 
     /// `ScreenshotEditorSkeleton` (`screenshot-editor-skeleton.tsx`): the
-    /// header's three clusters as `rounded-lg` placeholders, and the Cap logo
+    /// header's three clusters as `rounded-lg` placeholders, and the Scoopy logo
     /// spinning over a flat preview.
     fn render_skeleton(&self, _window: &Window) -> impl IntoElement {
         let theme = self.theme;
@@ -4281,7 +4281,7 @@ fn mini_checker() -> Vec<AnyElement> {
     .collect()
 }
 
-/// The skeleton's `<div class="animate-spin"><IconCapLogo /></div>`. The app
+/// The skeleton's `<div class="animate-spin"><IconScoopyLogo /></div>`. The app
 /// has no bare logo glyph -- only the full lockup -- so the wordmark would spin
 /// with it; the lockup is drawn still instead, at the skeleton's opacity
 /// (README deviation).
@@ -4429,14 +4429,14 @@ fn render_input_key(project: &mut ProjectConfiguration) -> Option<Vec<u8>> {
 /// copied once and the swap runs over a clone, so the padded GPU buffer is
 /// walked a single time.
 fn frame_buffers(frame: &RenderedFrame) -> Option<(Arc<Vec<u8>>, Arc<RenderImage>)> {
-    let rgba = cap_gpui_kernels::frame::unpad_rows(
+    let rgba = scoopy_gpui_kernels::frame::unpad_rows(
         &frame.data,
         frame.width as usize * 4,
         frame.padded_bytes_per_row as usize,
         frame.height as usize,
     )?;
     let mut bgra = rgba.clone();
-    cap_gpui_kernels::frame::swap_red_blue(&mut bgra);
+    scoopy_gpui_kernels::frame::swap_red_blue(&mut bgra);
     let buffer = image::RgbaImage::from_raw(frame.width, frame.height, bgra)?;
     Some((
         Arc::new(rgba),
@@ -4545,7 +4545,7 @@ pub fn load_screenshot_project(
 
 /// `AspectRatio` derives no `PartialEq`; same discriminant comparison the
 /// video editor's `aspect_ratio_eq` uses.
-fn aspect_eq(a: &Option<cap_project::AspectRatio>, b: &Option<cap_project::AspectRatio>) -> bool {
+fn aspect_eq(a: &Option<scoopy_project::AspectRatio>, b: &Option<scoopy_project::AspectRatio>) -> bool {
     match (a, b) {
         (None, None) => true,
         (Some(a), Some(b)) => std::mem::discriminant(a) == std::mem::discriminant(b),
@@ -4682,10 +4682,10 @@ mod tests {
         config
     }
 
-    fn arrow(id: &str, stroke_width: f64) -> cap_project::Annotation {
-        cap_project::Annotation {
+    fn arrow(id: &str, stroke_width: f64) -> scoopy_project::Annotation {
+        scoopy_project::Annotation {
             id: id.into(),
-            annotation_type: cap_project::AnnotationType::Arrow,
+            annotation_type: scoopy_project::AnnotationType::Arrow,
             x: 120.,
             y: 80.,
             width: 300.,
@@ -4802,8 +4802,8 @@ mod tests {
             ]);
         }
         let studio_meta = StudioRecordingMeta::SingleSegment {
-            segment: cap_project::SingleSegment {
-                display: cap_project::VideoMeta {
+            segment: scoopy_project::SingleSegment {
+                display: scoopy_project::VideoMeta {
                     path: "original.png".into(),
                     fps: 0,
                     start_time: Some(0.0),
@@ -4815,8 +4815,8 @@ mod tests {
             },
         };
         let meta = RecordingMeta {
-            platform: Some(cap_project::Platform::default()),
-            project_path: std::env::temp_dir().join("screenshot-annotation-bench.cap"),
+            platform: Some(scoopy_project::Platform::default()),
+            project_path: std::env::temp_dir().join("screenshot-annotation-bench.scoopy"),
             pretty_name: "bench".into(),
             sharing: None,
             inner: RecordingMetaInner::Studio(Box::new(studio_meta.clone())),

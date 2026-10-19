@@ -1,7 +1,7 @@
 name: Engine verify (one platform)
 
 # Called by engine-verify.yml once per platform. Cases are split across
-# `shards` jobs by a stable hash of the case id (CAP_VERIFY_SHARD), so a suite
+# `shards` jobs by a stable hash of the case id (SCOOPY_VERIFY_SHARD), so a suite
 # whose test functions loop over many cases still spreads evenly.
 #
 # By default every shard builds for itself: with the Rust cache and
@@ -53,15 +53,15 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
   RUST_BACKTRACE: "1"
-  CAP_VERIFY_CARGO_PROFILE: ci-verify
-  CAP_VERIFY_NEXTEST_PROFILE: ci
-  CAP_VERIFY_LOCKED: "1"
-  CAP_VERIFY_CARGO_CONFIG: ${{ inputs.cargo-config }}
+  SCOOPY_VERIFY_CARGO_PROFILE: ci-verify
+  SCOOPY_VERIFY_NEXTEST_PROFILE: ci
+  SCOOPY_VERIFY_LOCKED: "1"
+  SCOOPY_VERIFY_CARGO_CONFIG: ${{ inputs.cargo-config }}
   # A case this runner cannot run fails unless scripts/verify/suites.json
   # allows it as unsupported on this platform (with the reason).
-  CAP_VERIFY_REQUIRE_SUPPORTED: "1"
+  SCOOPY_VERIFY_REQUIRE_SUPPORTED: "1"
   # Machine class for host-scoped expectations (crates/verify-expect hosts).
-  CAP_VERIFY_HOST: ${{ startsWith(inputs.runner, 'blacksmith-') && 'blacksmith' || 'github-hosted' }}
+  SCOOPY_VERIFY_HOST: ${{ startsWith(inputs.runner, 'blacksmith-') && 'blacksmith' || 'github-hosted' }}
 
 jobs:
   build:
@@ -120,7 +120,7 @@ jobs:
       matrix:
         shard: ${{ fromJSON(inputs.shard-list) }}
     env:
-      CAP_VERIFY_SHARD: ${{ inputs.shards > 1 && format('{0}/{1}', matrix.shard, inputs.shards) || '' }}
+      SCOOPY_VERIFY_SHARD: ${{ inputs.shards > 1 && format('{0}/{1}', matrix.shard, inputs.shards) || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -137,8 +137,8 @@ jobs:
       - name: Report location
         shell: bash
         run: |
-          echo "CAP_VERIFY_REPORT_DIR=$RUNNER_TEMP/verify-report" >> "$GITHUB_ENV"
-          echo "CAP_VERIFY_FLAKY_FILE=$RUNNER_TEMP/verify-report/flaky.txt" >> "$GITHUB_ENV"
+          echo "SCOOPY_VERIFY_REPORT_DIR=$RUNNER_TEMP/verify-report" >> "$GITHUB_ENV"
+          echo "SCOOPY_VERIFY_FLAKY_FILE=$RUNNER_TEMP/verify-report/flaky.txt" >> "$GITHUB_ENV"
 
       - name: Build
         if: ${{ !inputs.archive }}
@@ -182,7 +182,7 @@ jobs:
         if: contains(format(',{0},', inputs.suites), ',export,')
         shell: bash
         env:
-          CAP_VERIFY_TIER: ${{ inputs.tier }}
+          SCOOPY_VERIFY_TIER: ${{ inputs.tier }}
         run: |
           if [[ "${{ inputs.archive }}" == true ]]; then
             scripts/verify/run.sh "${{ inputs.tier }}" --suites "${{ inputs.suites }}" --prepare-fixtures --from-archive "$RUNNER_TEMP/verify.tar.zst"
@@ -206,7 +206,7 @@ jobs:
         if: always() && inputs.platform == 'linux' && matrix.shard == 1 && steps.test.outcome != 'skipped'
         continue-on-error: true
         shell: bash
-        run: python3 scripts/verify/guards.py --profile "$CAP_VERIFY_CARGO_PROFILE"
+        run: python3 scripts/verify/guards.py --profile "$SCOOPY_VERIFY_CARGO_PROFILE"
 
       - name: Summary
         if: always() && steps.test.outcome != 'skipped'
@@ -214,8 +214,8 @@ jobs:
         run: >-
           "$(command -v python3 || command -v python)" scripts/verify/summary.py
           --title "${{ inputs.platform }} ${{ inputs.tier }}${{ inputs.shards > 1 && format(' shard {0}/{1}', matrix.shard, inputs.shards) || '' }}"
-          --junit "$CAP_VERIFY_REPORT_DIR/junit.xml" --flaky "$CAP_VERIFY_FLAKY_FILE"
-          "$CAP_VERIFY_REPORT_DIR" >> "$GITHUB_STEP_SUMMARY"
+          --junit "$SCOOPY_VERIFY_REPORT_DIR/junit.xml" --flaky "$SCOOPY_VERIFY_FLAKY_FILE"
+          "$SCOOPY_VERIFY_REPORT_DIR" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload report
         if: always() && steps.test.outcome != 'skipped'

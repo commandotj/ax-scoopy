@@ -482,7 +482,7 @@ function StudioSoundCard() {
 						"bg-ed-ctl text-ed-text-2": !enabled(),
 					}}
 				>
-					<IconCapMicrophone class="size-4" />
+					<IconScoopyMicrophone class="size-4" />
 				</div>
 				<div class="flex flex-col flex-1 gap-0.5 min-w-0">
 					<span class="text-[13px] font-medium text-ed-text-1">
@@ -689,18 +689,18 @@ function ConfigSidebarContent() {
 			<KTabs.List class="flex sticky top-0 z-60 flex-row justify-around items-center px-2.5 h-[46px] border-b border-ed-line shrink-0 bg-ed-card">
 				<For
 					each={[
-						{ id: TAB_IDS.background, icon: IconCapImage },
+						{ id: TAB_IDS.background, icon: IconScoopyImage },
 						{
 							id: TAB_IDS.camera,
-							icon: IconCapCamera,
+							icon: IconScoopyCamera,
 							disabled: editorInstance.recordings.segments.every(
 								(s) => s.camera === null,
 							),
 						},
-						{ id: TAB_IDS.audio, icon: IconCapAudioOn },
+						{ id: TAB_IDS.audio, icon: IconScoopyAudioOn },
 						{
 							id: TAB_IDS.cursor,
-							icon: IconCapCursor,
+							icon: IconScoopyCursor,
 							disabled: !meta().hasRecordedCursorData,
 						},
 						{
@@ -709,9 +709,9 @@ function ConfigSidebarContent() {
 						},
 						{
 							id: TAB_IDS.captions,
-							icon: IconCapMessageBubble,
+							icon: IconScoopyMessageBubble,
 						},
-						// { id: "hotkeys" as const, icon: IconCapHotkeys },
+						// { id: "hotkeys" as const, icon: IconScoopyHotkeys },
 					].filter(
 						(item) =>
 							!selectedStyle() ||
@@ -820,7 +820,7 @@ function ConfigSidebarContent() {
 										</KSelect.Value>
 										<KSelect.Icon<ValidComponent>
 											as={(props) => (
-												<IconCapChevronDown
+												<IconScoopyChevronDown
 													{...props}
 													class="size-3.5 shrink-0 transform transition-transform data-expanded:rotate-180 text-ed-text-3"
 												/>
@@ -1256,7 +1256,7 @@ function ConfigSidebarContent() {
 														value().segments.map((s) => s.index),
 													)
 												}
-												leftIcon={<IconCapTrash />}
+												leftIcon={<IconScoopyTrash />}
 											>
 												Delete
 											</EditorButton>
@@ -1329,7 +1329,7 @@ function ConfigSidebarContent() {
 														value().segments.map((s) => s.index),
 													)
 												}
-												leftIcon={<IconCapTrash />}
+												leftIcon={<IconScoopyTrash />}
 											>
 												Delete
 											</EditorButton>
@@ -1396,7 +1396,7 @@ function ConfigSidebarContent() {
 														value().segments.map((s) => s.index),
 													)
 												}
-												leftIcon={<IconCapTrash />}
+												leftIcon={<IconScoopyTrash />}
 											>
 												Delete
 											</EditorButton>
@@ -1468,7 +1468,7 @@ function ConfigSidebarContent() {
 														value().segments.map((s) => s.index),
 													)
 												}
-												leftIcon={<IconCapTrash />}
+												leftIcon={<IconScoopyTrash />}
 											>
 												Delete
 											</EditorButton>
@@ -1535,7 +1535,7 @@ function ConfigSidebarContent() {
 														value().segments.map((s) => s.index),
 													)
 												}
-												leftIcon={<IconCapTrash />}
+												leftIcon={<IconScoopyTrash />}
 											>
 												Delete
 											</EditorButton>
@@ -1633,7 +1633,7 @@ function ConfigSidebarContent() {
 															value().segments.map((s) => s.index),
 														);
 													}}
-													leftIcon={<IconCapTrash />}
+													leftIcon={<IconScoopyTrash />}
 												>
 													Delete
 												</EditorButton>
@@ -1731,7 +1731,7 @@ function ConfigSidebarContent() {
 															value().segments.map((s) => s.index),
 														);
 													}}
-													leftIcon={<IconCapTrash />}
+													leftIcon={<IconScoopyTrash />}
 												>
 													Delete
 												</EditorButton>
@@ -1814,7 +1814,7 @@ function ConfigSidebarContent() {
 																		projectActions.deleteSceneSegment(idx);
 																	});
 															}}
-															leftIcon={<IconCapTrash />}
+															leftIcon={<IconScoopyTrash />}
 														>
 															Delete
 														</EditorButton>
@@ -2624,7 +2624,7 @@ function BackgroundConfig(props: {
 										onClick={() => fileInput.click()}
 										class="p-6 bg-ed-card-2 text-[13px] w-full rounded-xl border border-ed-line-strong border-dashed flex flex-col items-center justify-center gap-2 hover:bg-ed-ctl transition-colors duration-100"
 									>
-										<IconCapImage class="text-ed-text-3 size-6" />
+										<IconScoopyImage class="text-ed-text-3 size-6" />
 										<span class="text-ed-text-1">
 											Click to select or drag and drop image
 										</span>
@@ -2649,7 +2649,7 @@ function BackgroundConfig(props: {
 												}
 												class="p-2 text-white rounded-full transition-colors bg-black/50 hover:bg-black/70"
 											>
-												<IconCapCircleX class="w-4 h-4" />
+												<IconScoopyCircleX class="w-4 h-4" />
 											</button>
 										</div>
 									</div>
@@ -3152,7 +3152,7 @@ function BackgroundConfig(props: {
 					<ColorCorrectionSection target="screen" scrollRef={props.scrollRef} />
 				</Show>
 				{/* <ComingSoonTooltip>
-            <Field name="Inset" icon={<IconCapInset />}>
+            <Field name="Inset" icon={<IconScoopyInset />}>
               <Slider
                 disabled
                 value={[project.background.inset]}
@@ -3310,7 +3310,7 @@ function CameraConfig(props: { scrollRef: HTMLDivElement }) {
 									</KSelect.Value>
 									<KSelect.Icon<ValidComponent>
 										as={(iconProps) => (
-											<IconCapChevronDown
+											<IconScoopyChevronDown
 												{...iconProps}
 												class="size-3.5 shrink-0 transform transition-transform data-expanded:rotate-180 text-ed-text-3"
 											/>
@@ -3362,7 +3362,7 @@ function CameraConfig(props: { scrollRef: HTMLDivElement }) {
 									</KSelect.Value>
 									<KSelect.Icon<ValidComponent>
 										as={(props) => (
-											<IconCapChevronDown
+											<IconScoopyChevronDown
 												{...props}
 												class="size-3.5 shrink-0 transform transition-transform data-expanded:rotate-180 text-ed-text-3"
 											/>
@@ -3513,7 +3513,7 @@ function CameraConfig(props: { scrollRef: HTMLDivElement }) {
 					<ColorCorrectionSection target="camera" scrollRef={props.scrollRef} />
 				</Show>
 				{/* <ComingSoonTooltip>
-            <Field name="Shadow" icon={<IconCapShadow />}>
+            <Field name="Shadow" icon={<IconScoopyShadow />}>
               <Slider
                 disabled
                 value={[project.camera.shadow]}
@@ -3563,7 +3563,7 @@ function CornerStyleSelect(props: {
 					</KSelect.Value>
 					<KSelect.Icon<ValidComponent>
 						as={(iconProps) => (
-							<IconCapChevronDown
+							<IconScoopyChevronDown
 								{...iconProps}
 								class="size-3.5 shrink-0 transform transition-transform data-expanded:rotate-180 text-ed-text-3"
 							/>
@@ -5021,7 +5021,7 @@ function SceneSegmentConfig(props: {
 					onClick={() => {
 						projectActions.deleteSceneSegment(props.segmentIndex);
 					}}
-					leftIcon={<IconCapTrash />}
+					leftIcon={<IconScoopyTrash />}
 				>
 					Delete
 				</EditorButton>

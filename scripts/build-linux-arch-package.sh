@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -ne 2 ]]; then
-	printf 'Usage: %s <Cap.deb> <output-directory>\n' "$0" >&2
+	printf 'Usage: %s <Scoopy.deb> <output-directory>\n' "$0" >&2
 	exit 1
 fi
 
@@ -39,31 +39,31 @@ case "$architecture" in
 	*) printf 'Unsupported package architecture: %s\n' "$architecture" >&2; exit 1 ;;
 esac
 
-cp "$deb" "$work/Cap.deb"
-checksum="$(sha256sum "$work/Cap.deb" | cut -d ' ' -f 1)"
+cp "$deb" "$work/Scoopy.deb"
+checksum="$(sha256sum "$work/Scoopy.deb" | cut -d ' ' -f 1)"
 cat > "$work/PKGBUILD" <<EOF
-pkgname=cap-bin
+pkgname=scoopy-bin
 pkgver=${version//-/_}
 pkgrel=1
 pkgdesc="Screen recording with Studio, Instant, and screenshot modes"
 arch=("$architecture")
-url="https://cap.so"
+url="https://example.com"
 license=("AGPL-3.0-only")
 depends=("libva" "libpulse" "libpipewire" "alsa-lib" "alsa-plugins" "libxkbcommon" "libxkbcommon-x11" "libx11" "openssl" "wayland" "libglvnd" "vulkan-icd-loader" "xdg-desktop-portal" "xdg-utils")
 optdepends=("xdg-desktop-portal-hyprland: screen capture on Hyprland and Omarchy" "vulkan-driver: hardware accelerated recording and editing")
 provides=("cap=\$pkgver")
-conflicts=("cap")
+conflicts=("scoopy")
 options=("!strip" "!debug")
-source=("Cap.deb")
-noextract=("Cap.deb")
+source=("Scoopy.deb")
+noextract=("Scoopy.deb")
 sha256sums=("$checksum")
 
 package() {
-	bsdtar -xOf "\$srcdir/Cap.deb" "$data_member" | bsdtar -xf - -C "\$pkgdir"
-	for binary in Cap cap-cli cap-muxer; do
+	bsdtar -xOf "\$srcdir/Scoopy.deb" "$data_member" | bsdtar -xf - -C "\$pkgdir"
+	for binary in Scoopy scoopy-cli scoopy-muxer; do
 		test -x "\$pkgdir/usr/bin/\$binary"
 	done
-	printf 'arch\n' > "\$pkgdir/usr/lib/cap/package-format"
+	printf 'arch\n' > "\$pkgdir/usr/lib/scoopy/package-format"
 }
 EOF
 

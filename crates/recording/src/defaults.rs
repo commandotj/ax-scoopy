@@ -13,7 +13,7 @@ pub const DEFAULT_OUT_OF_PROCESS_MUXER: bool = false;
 
 const COMPATIBILITY_MEMORY_THRESHOLD_BYTES: u64 = 16 * 1024 * 1024 * 1024;
 
-/// The studio/instant recording defaults shared by the desktop app and the `cap` CLI, so both
+/// The studio/instant recording defaults shared by the desktop app and the `scoopy` CLI, so both
 /// surfaces build recordings identically (fragmentation, fps cap, cursor capture, quality) instead
 /// of each maintaining its own copy. The desktop overlays the user's persisted settings on top.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

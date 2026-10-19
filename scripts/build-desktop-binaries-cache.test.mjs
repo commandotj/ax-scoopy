@@ -11,13 +11,13 @@ import {
 
 async function fixture(context) {
 	const directory = await fs.mkdtemp(
-		path.join(os.tmpdir(), "cap-sidecar-cache-"),
+		path.join(os.tmpdir(), "scoopy-sidecar-cache-"),
 	);
 	context.after(async () => fs.rm(directory, { recursive: true, force: true }));
 	const watched = path.join(directory, "source.rs");
 	const release = path.join(directory, "release.exe");
-	const cli = path.join(directory, "cap-cli.exe");
-	const exporter = path.join(directory, "cap-exporter.exe");
+	const cli = path.join(directory, "scoopy-cli.exe");
+	const exporter = path.join(directory, "scoopy-exporter.exe");
 	await fs.writeFile(watched, "source");
 	await fs.writeFile(release, "optimized");
 	await fs.writeFile(cli, "optimized");

@@ -21,7 +21,7 @@ fn is_installed_executable(executable: &Path) -> bool {
     executable
         .file_name()
         .is_some_and(|name| {
-            name.eq_ignore_ascii_case("Scoopy.exe") || name.eq_ignore_ascii_case("Cap.exe")
+            name.eq_ignore_ascii_case("Scoopy.exe") || name.eq_ignore_ascii_case("Scoopy.exe")
         })
         && !executable
             .components()
@@ -96,7 +96,7 @@ fn claim_url_scheme(scheme: &str, executable: &Path) -> Result<(), String> {
     if read_user_registry_string(&command_key).as_deref() == Some(command.as_str()) {
         return Ok(());
     }
-    write_user_registry_string(&class, None, "URL:so.cap.desktop protocol")?;
+    write_user_registry_string(&class, None, "URL:me.systembug.scoopy protocol")?;
     write_user_registry_string(&class, Some("URL Protocol"), "")?;
     write_user_registry_string(
         &format!("{class}\\DefaultIcon"),
@@ -116,16 +116,16 @@ mod tests {
             r"C:\Users\x\AppData\Local\Scoopy\Scoopy.exe"
         )));
         assert!(super::is_installed_executable(Path::new(
-            r"C:\Users\x\AppData\Local\Cap\Cap.exe"
+            r"C:\Users\x\AppData\Local\Scoopy\Scoopy.exe"
         )));
         assert!(!super::is_installed_executable(Path::new(
-            r"C:\src\Cap\apps\desktop-gpui\target\release\Scoopy.exe"
+            r"C:\src\Scoopy\apps\desktop-gpui\target\release\Scoopy.exe"
         )));
         assert!(!super::is_installed_executable(Path::new(
-            r"C:\Users\x\AppData\Local\Cap Classic\Cap Classic.exe"
+            r"C:\Users\x\AppData\Local\Scoopy Classic\Scoopy Classic.exe"
         )));
         assert!(!super::is_installed_executable(Path::new(
-            r"C:\Users\x\AppData\Local\Cap\cap-gpui.exe"
+            r"C:\Users\x\AppData\Local\Scoopy\scoopy-gpui.exe"
         )));
     }
 }

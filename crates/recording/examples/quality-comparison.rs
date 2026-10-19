@@ -1,4 +1,4 @@
-use cap_recording::{
+use scoopy_recording::{
     StudioQuality,
     memory_profiling::{CpuTracker, get_process_stats},
     screen_capture::ScreenCaptureTarget,
@@ -79,7 +79,7 @@ async fn run_recording(
 
     let dir = tempfile::tempdir()?;
 
-    let builder = cap_recording::studio_recording::Actor::builder(
+    let builder = scoopy_recording::studio_recording::Actor::builder(
         dir.path().into(),
         ScreenCaptureTarget::Display {
             id: Display::primary().id(),
@@ -95,7 +95,7 @@ async fn run_recording(
     let handle = builder
         .build(
             #[cfg(target_os = "macos")]
-            Some(cap_recording::SendableShareableContent::from(
+            Some(scoopy_recording::SendableShareableContent::from(
                 cidre::sc::ShareableContent::current()
                     .await
                     .expect("Failed to get shareable content"),
@@ -295,7 +295,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let phys = display.physical_size();
     let logical = display.logical_size();
 
-    println!("=== Cap Quality Comparison Test ===\n");
+    println!("=== Scoopy Quality Comparison Test ===\n");
     println!("Duration: {duration}s per recording");
     println!("Max FPS: {max_fps}");
     println!(

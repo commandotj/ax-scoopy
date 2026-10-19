@@ -1,5 +1,5 @@
 {
-	"name": "@cap/utils",
+	"name": "@scoopy/utils",
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",

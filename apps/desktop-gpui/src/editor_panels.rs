@@ -22,7 +22,7 @@
 //! multi-select case draws the header **and nothing else** -- reproduced, not
 //! filled in.
 
-use cap_project::{
+use scoopy_project::{
     AudioTrackSegment, Camera3DBlur, Camera3DBlurMode, Camera3DKeyframe, Camera3DProperties,
     Camera3DSegment, CaptionTrackSegment, KeyboardTrackSegment, MaskKind, MaskSegment, SceneMode,
     SceneSegment, SplitLayout, TextAlign, TextAnimation, TextBackgroundStyle, TextLayout,
@@ -576,7 +576,7 @@ pub static TEXT_PRESETS: &[TextPreset] = &[
         id: "code",
         group: "Code",
         name: "Code",
-        sample: "$ cap record",
+        sample: "$ scoopy record",
         center: None,
         style: TextPresetStyle {
             font_stack: MONO_STACK,
@@ -756,7 +756,7 @@ pub fn match_text_preset(segment: &TextSegment, installed: &[String]) -> Option<
 }
 
 /// The installed families, as `listSystemFonts` provides them to the source
-/// (`utils/fonts.ts:7-13`, which is `cap_rendering::system_font_families`
+/// (`utils/fonts.ts:7-13`, which is `scoopy_rendering::system_font_families`
 /// behind a Tauri command).
 ///
 /// Enumerating them builds a `fontdb` over the system's fonts, which is far too
@@ -803,7 +803,7 @@ pub fn warm_installed_fonts() {
         return;
     }
     std::thread::spawn(|| {
-        let families = cap_rendering::system_font_families();
+        let families = scoopy_rendering::system_font_families();
         tracing::info!(count = families.len(), "enumerated system fonts");
         let _ = INSTALLED_FONTS.set(families);
     });
@@ -2027,7 +2027,7 @@ pub fn camera3d_shot_label(segment: &Camera3DSegment) -> &'static str {
 /// [0, 1] view space to paint it at, or `None` when the pose folds the plate
 /// through the camera and there is nothing to draw.
 pub fn camera3d_projected_point(pose: &Camera3DProperties, x: f32, y: f32) -> Option<(f32, f32)> {
-    let projection = cap_rendering::camera3d::camera3d_inverse_homography(pose, 16.0 / 9.0, None)?;
+    let projection = scoopy_rendering::camera3d::camera3d_inverse_homography(pose, 16.0 / 9.0, None)?;
     let [[a, b, c], [d, e, f], [g, h, i]] = projection.inverse_rows;
     let x = x * projection.half_extents.0;
     let y = y * projection.half_extents.1;
@@ -2103,7 +2103,7 @@ impl Camera3DProperty {
         }
     }
 
-    fn track(self, tracks: &mut cap_project::Camera3DTracks) -> &mut Vec<Camera3DKeyframe> {
+    fn track(self, tracks: &mut scoopy_project::Camera3DTracks) -> &mut Vec<Camera3DKeyframe> {
         match self {
             Self::TiltX => &mut tracks.tilt_x,
             Self::TiltY => &mut tracks.tilt_y,
@@ -2117,7 +2117,7 @@ impl Camera3DProperty {
         }
     }
 
-    fn track_ref(self, tracks: &cap_project::Camera3DTracks) -> &[Camera3DKeyframe] {
+    fn track_ref(self, tracks: &scoopy_project::Camera3DTracks) -> &[Camera3DKeyframe] {
         match self {
             Self::TiltX => &tracks.tilt_x,
             Self::TiltY => &tracks.tilt_y,
@@ -2646,7 +2646,7 @@ impl EditorWindow {
                     .background
                     .as_ref()?;
                 let (width, height) = self.display_resolution()?;
-                let crop = background.crop.clone().unwrap_or(cap_project::Crop {
+                let crop = background.crop.clone().unwrap_or(scoopy_project::Crop {
                     position: XY::new(0, 0),
                     size: XY::new(width, height),
                 });
@@ -2812,7 +2812,7 @@ impl EditorWindow {
                     let Some(background) = segment.overrides.background.as_mut() else {
                         return false;
                     };
-                    let crop = background.crop.get_or_insert(cap_project::Crop {
+                    let crop = background.crop.get_or_insert(scoopy_project::Crop {
                         position: XY::new(0, 0),
                         size: XY::new(width, height),
                     });
@@ -2955,7 +2955,7 @@ impl EditorWindow {
             {
                 Some(position) => &mut project.clips[position],
                 None => {
-                    project.clips.push(cap_project::ClipConfiguration {
+                    project.clips.push(scoopy_project::ClipConfiguration {
                         index: clip as u32,
                         ..Default::default()
                     });
@@ -3008,12 +3008,12 @@ segment_editor!(edit_text_segment, text_segments, TextSegment);
 segment_editor!(
     edit_style_segment,
     style_segments,
-    cap_project::StyleSegment
+    scoopy_project::StyleSegment
 );
 segment_editor!(
     edit_image_segment,
     image_segments,
-    cap_project::ImageSegment
+    scoopy_project::ImageSegment
 );
 segment_editor!(edit_audio_segment, audio_segments, AudioTrackSegment);
 
@@ -8693,14 +8693,14 @@ impl ImageProperty {
             _ => (0., 100., 1.),
         }
     }
-    fn read(self, segment: &cap_project::ImageSegment) -> f32 {
+    fn read(self, segment: &scoopy_project::ImageSegment) -> f32 {
         match self {
             Self::Opacity => segment.opacity * 100.,
             Self::Rotation => segment.rotation,
             Self::Rounding => segment.rounding,
         }
     }
-    fn write(self, segment: &mut cap_project::ImageSegment, value: f32) {
+    fn write(self, segment: &mut scoopy_project::ImageSegment, value: f32) {
         if !value.is_finite() {
             return;
         }

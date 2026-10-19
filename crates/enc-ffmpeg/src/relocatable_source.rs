@@ -456,7 +456,7 @@ mod tests {
                 .unwrap()
                 .as_nanos();
             let root = std::env::temp_dir().join(format!(
-                "cap-revocable-source-probe-{}-{unique}-{sequence}",
+                "scoopy-revocable-source-probe-{}-{unique}-{sequence}",
                 std::process::id()
             ));
             fs::create_dir(&root).unwrap();

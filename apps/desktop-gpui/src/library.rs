@@ -23,11 +23,11 @@ use std::{
     time::UNIX_EPOCH,
 };
 
-use cap_project::{
+use scoopy_project::{
     InstantRecordingMeta, RecordingMeta, RecordingMetaInner, StudioRecordingMeta,
     StudioRecordingStatus,
 };
-use cap_recording::{recovery::RecoveryManager, upload_resume::UploadLock};
+use scoopy_recording::{recovery::RecoveryManager, upload_resume::UploadLock};
 use gpui::RenderImage;
 
 /// `RECENT_MEDIA_LIMIT` in `new-main/index.tsx:129`.
@@ -49,7 +49,7 @@ pub enum MediaKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct RecentItem {
     pub kind: MediaKind,
-    /// The `.cap` bundle. `openRecentMedia` routes on this; here it is what
+    /// The `.scoopy` bundle. `openRecentMedia` routes on this; here it is what
     /// the card reveals in Finder (see the README's deviation).
     pub bundle: PathBuf,
     /// `target.pretty_name` -- the card's title.
@@ -90,11 +90,11 @@ fn media_sort_time_millis(path: &Path) -> f64 {
 /// folders -- so switching the storage folder never hides existing recordings.
 /// Deduplicated by canonical path; directories that do not exist are skipped.
 ///
-/// `CAP_GPUI_RECORDINGS_DIR` collapses the whole list to that one directory.
+/// `SCOOPY_GPUI_RECORDINGS_DIR` collapses the whole list to that one directory.
 /// The override exists so a verification run stays out of the user's library,
 /// and a scan that still walked the real one would defeat it.
 pub fn known_recordings_dirs() -> Vec<PathBuf> {
-    if let Ok(dir) = std::env::var("CAP_GPUI_RECORDINGS_DIR")
+    if let Ok(dir) = std::env::var("SCOOPY_GPUI_RECORDINGS_DIR")
         && !dir.trim().is_empty()
     {
         return dedupe_existing_dirs(vec![PathBuf::from(dir)]);
@@ -193,7 +193,7 @@ impl RecordingMode {
         }
     }
 
-    /// `IconCapInstant` / `IconCapFilmCut`, the badge and tab glyphs.
+    /// `IconScoopyInstant` / `IconScoopyFilmCut`, the badge and tab glyphs.
     pub fn icon(self) -> &'static str {
         match self {
             Self::Studio => "icons/film-cut.svg",
@@ -235,7 +235,7 @@ impl RecordingStatus {
 /// carrying only the fields `recordings.tsx` reads.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RecordingItem {
-    /// The `.cap` bundle -- the `path` half of the tuple, and what every row
+    /// The `.scoopy` bundle -- the `path` half of the tuple, and what every row
     /// action takes.
     pub path: PathBuf,
     pub mode: RecordingMode,
@@ -339,7 +339,7 @@ fn recording_item(path: PathBuf, meta: RecordingMeta, sort_time_millis: f64) -> 
 /// Every subdirectory of every known recordings folder whose
 /// `recording-meta.json` parses; a directory whose meta is missing or corrupt
 /// is skipped without a word, because `get_recording_meta` returns `Err` and
-/// the `if let Ok` drops it. There is no `.cap` extension filter -- that is the
+/// the `if let Ok` drops it. There is no `.scoopy` extension filter -- that is the
 /// screenshots scan's rule, not this one. Sorted newest first by
 /// `sort_time_millis`, which is the directory's own creation time recomputed on
 /// every call.
@@ -432,7 +432,7 @@ pub fn find_incomplete_recordings() -> Vec<IncompleteRecordingItem> {
 fn is_recording_after_recovery_cutoff(pretty_name: &str, sort_time_millis: f64) -> bool {
     let stripped = pretty_name
         .strip_prefix("Scoopy ")
-        .or_else(|| pretty_name.strip_prefix("Cap "));
+        .or_else(|| pretty_name.strip_prefix("Scoopy "));
     let Some(date) = stripped
         .and_then(|name| name.split(" at ").next())
         .and_then(|value| chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d").ok())
@@ -654,17 +654,17 @@ pub fn copy_file_to_path(src: &Path, dest: &Path) -> Result<(), String> {
 /// One `(png_path, ScreenshotMetaWithMetadata)` pair out of `list_screenshots`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ScreenshotItem {
-    /// The PNG inside the `.cap` bundle -- the listed path the Tauri command
+    /// The PNG inside the `.scoopy` bundle -- the listed path the Tauri command
     /// returns, and what copy / save / the screenshot editor take.
     pub path: PathBuf,
-    /// The `.cap` directory itself -- what delete and reveal operate on.
+    /// The `.scoopy` directory itself -- what delete and reveal operate on.
     pub bundle: PathBuf,
     pub pretty_name: String,
     pub sort_time_millis: f64,
     pub thumbnail: Option<PathBuf>,
 }
 
-/// `list_screenshots` (`lib.rs:4055-4091`): `*.cap` directories only, and the
+/// `list_screenshots` (`lib.rs:4055-4091`): `*.scoopy` directories only, and the
 /// sort key is the PNG's timestamp rather than the directory's.
 pub fn list_screenshots_in(dir: &Path) -> Vec<ScreenshotItem> {
     let Ok(entries) = std::fs::read_dir(dir) else {
@@ -674,7 +674,7 @@ pub fn list_screenshots_in(dir: &Path) -> Vec<ScreenshotItem> {
     let mut out = Vec::new();
     for entry in entries.flatten() {
         let bundle = entry.path();
-        if !bundle.is_dir() || bundle.extension().and_then(|ext| ext.to_str()) != Some("cap") {
+        if !bundle.is_dir() || bundle.extension().and_then(|ext| ext.to_str()) != Some("scoopy") {
             continue;
         }
         let Ok(meta) = RecordingMeta::load_for_project(&bundle) else {
@@ -705,7 +705,7 @@ pub fn list_screenshots() -> Vec<ScreenshotItem> {
     list_screenshots_in(&screenshots_dir())
 }
 
-/// Delete the `.cap` bundle that owns `path` (the PNG or the directory).
+/// Delete the `.scoopy` bundle that owns `path` (the PNG or the directory).
 pub fn delete_screenshot(path: &Path) -> Result<(), String> {
     let bundle = if path.is_dir() {
         path.to_path_buf()
@@ -882,17 +882,17 @@ fn drain_decode_jobs<J, R>(
 
 /// Where the shared downscaled-thumbnail cache lives: the OS cache dir under
 /// this app's own identifier (cache data is regenerable, so it belongs where
-/// backups and migration skip it), not the `so.cap.desktop` app-data dir both
+/// backups and migration skip it), not the `me.systembug.scoopy` app-data dir both
 /// apps share.
 fn thumbnail_cache_dir() -> PathBuf {
-    // Verification runs point CAP_GPUI_APP_DATA_DIR at a sandbox; a cache that
+    // Verification runs point SCOOPY_GPUI_APP_DATA_DIR at a sandbox; a cache that
     // still wrote to the user's real one would leak state across runs.
-    if std::env::var("CAP_GPUI_APP_DATA_DIR").is_ok_and(|dir| !dir.trim().is_empty()) {
+    if std::env::var("SCOOPY_GPUI_APP_DATA_DIR").is_ok_and(|dir| !dir.trim().is_empty()) {
         return crate::store::app_data_dir().join("thumbnail-cache");
     }
     dirs::cache_dir().map_or_else(
         || crate::store::app_data_dir().join("thumbnail-cache"),
-        |base| base.join("so.cap.desktop.gpui").join("thumbnails"),
+        |base| base.join("me.systembug.scoopy.gpui").join("thumbnails"),
     )
 }
 
@@ -1007,7 +1007,7 @@ impl CacheSlot {
             return;
         }
         let Ok(encoded) =
-            cap_gpui_kernels::codec::encode_jpeg_rgba_as_rgb(rgba, THUMBNAIL_JPEG_QUALITY)
+            scoopy_gpui_kernels::codec::encode_jpeg_rgba_as_rgb(rgba, THUMBNAIL_JPEG_QUALITY)
         else {
             return;
         };
@@ -1058,7 +1058,7 @@ impl CacheSlot {
 /// gpui's atlas takes BGRA; `image`'s RgbaImage is just the container (the
 /// same swap gpui's own asset loader does after decoding).
 pub fn rgba_to_render_image(mut rgba: image::RgbaImage) -> Arc<RenderImage> {
-    cap_gpui_kernels::frame::swap_red_blue(&mut rgba);
+    scoopy_gpui_kernels::frame::swap_red_blue(&mut rgba);
     Arc::new(RenderImage::new(smallvec::smallvec![image::Frame::new(
         rgba
     )]))
@@ -1130,7 +1130,7 @@ pub fn thumbnail_rgba(path: &Path) -> Option<image::RgbaImage> {
 /// `create_screenshot` (`apps/desktop/src-tauri/src/lib.rs:2582-2655`), ported.
 ///
 /// The Tauri app writes `<bundle>/screenshots/display.jpg` from
-/// `handle_recording_finish`; `cap-recording` itself never does, so a recording
+/// `handle_recording_finish`; `scoopy-recording` itself never does, so a recording
 /// made by *this* app would show the icon fallback in both apps' Recents
 /// forever. The function has no Tauri dependency beyond living in that binary
 /// -- it is `ffmpeg-next` (already built here, for the recorder) plus the
@@ -1191,7 +1191,7 @@ pub fn create_screenshot(
         let height = rgb_frame.height() as usize;
         let src_stride = rgb_frame.stride(0);
         let dst_stride = width * 3;
-        let buffer = cap_gpui_kernels::frame::copy_rows(
+        let buffer = scoopy_gpui_kernels::frame::copy_rows(
             rgb_frame.data(0),
             dst_stride,
             src_stride,
@@ -1206,7 +1206,7 @@ pub fn create_screenshot(
             std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         }
         let staged = output.with_extension(format!("jpg.tmp-{}", crate::store::new_uuid_v4()));
-        cap_gpui_kernels::codec::save_rgb_image(&image, &staged, image::ImageFormat::Jpeg)
+        scoopy_gpui_kernels::codec::save_rgb_image(&image, &staged, image::ImageFormat::Jpeg)
             .map_err(|e| {
                 let _ = std::fs::remove_file(&staged);
                 e.to_string()
@@ -1250,12 +1250,12 @@ mod tests {
         assert_eq!(job_rx.len(), 3);
     }
 
-    /// A `.cap` bundle with a `recording-meta.json` the real parser accepts.
+    /// A `.scoopy` bundle with a `recording-meta.json` the real parser accepts.
     /// `filetime` is not a dependency here, so the sort key -- the directory's
     /// own creation time -- is separated by creating the fixtures in order
     /// with a gap between them.
     fn write_studio_bundle(dir: &Path, name: &str, segments: usize) -> PathBuf {
-        let bundle = dir.join(format!("{name}.cap"));
+        let bundle = dir.join(format!("{name}.scoopy"));
         std::fs::create_dir_all(&bundle).unwrap();
         let segments: Vec<String> = (0..segments)
             .map(|i| {
@@ -1276,7 +1276,7 @@ mod tests {
     }
 
     fn write_screenshot_bundle(dir: &Path, name: &str) -> PathBuf {
-        let bundle = dir.join(format!("{name}.cap"));
+        let bundle = dir.join(format!("{name}.scoopy"));
         std::fs::create_dir_all(&bundle).unwrap();
         std::fs::write(
             bundle.join("recording-meta.json"),
@@ -1313,7 +1313,7 @@ mod tests {
 
     #[test]
     fn recents_are_newest_first_and_capped_at_nine() {
-        let root = temp_dir("cap");
+        let root = temp_dir("scoopy");
         let recordings = root.join("recordings");
         let screenshots = root.join("screenshots");
         std::fs::create_dir_all(&recordings).unwrap();
@@ -1436,7 +1436,7 @@ mod tests {
     /// A bundle with a hand-written meta, so a test can spell out exactly the
     /// JSON `RecordingMeta` has to survive.
     fn write_bundle(dir: &Path, name: &str, meta: &str) -> PathBuf {
-        let bundle = dir.join(format!("{name}.cap"));
+        let bundle = dir.join(format!("{name}.scoopy"));
         std::fs::create_dir_all(&bundle).unwrap();
         std::fs::write(bundle.join("recording-meta.json"), meta).unwrap();
         bundle
@@ -1477,7 +1477,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "manual filesystem benchmark; set CAP_GPUI_LIBRARY_BENCH_DIR and CAP_GPUI_LIBRARY_BENCH_MODE"]
+    #[ignore = "manual filesystem benchmark; set SCOOPY_GPUI_LIBRARY_BENCH_DIR and SCOOPY_GPUI_LIBRARY_BENCH_MODE"]
     fn recording_scan_benchmark() {
         fn eager_scan(dirs: &[PathBuf]) -> Vec<RecordingItem> {
             let mut out = Vec::new();
@@ -1502,15 +1502,15 @@ mod tests {
         }
 
         let dirs = [PathBuf::from(
-            std::env::var("CAP_GPUI_LIBRARY_BENCH_DIR")
+            std::env::var("SCOOPY_GPUI_LIBRARY_BENCH_DIR")
                 .expect("Set the benchmark library directory"),
         )];
-        let eager = match std::env::var("CAP_GPUI_LIBRARY_BENCH_MODE").as_deref() {
+        let eager = match std::env::var("SCOOPY_GPUI_LIBRARY_BENCH_MODE").as_deref() {
             Ok("eager") => true,
             Ok("bounded") => false,
-            _ => panic!("CAP_GPUI_LIBRARY_BENCH_MODE must be eager or bounded"),
+            _ => panic!("SCOOPY_GPUI_LIBRARY_BENCH_MODE must be eager or bounded"),
         };
-        let limit = std::env::var("CAP_GPUI_LIBRARY_BENCH_LIMIT")
+        let limit = std::env::var("SCOOPY_GPUI_LIBRARY_BENCH_LIMIT")
             .unwrap_or_else(|_| RECENT_MEDIA_LIMIT.to_string())
             .parse::<usize>()
             .expect("The benchmark limit must be an integer");
@@ -1567,7 +1567,7 @@ mod tests {
             &recordings,
             "studio-multi",
             &format!(
-                r#"{{"pretty_name":"Studio multi","sharing":{{"id":"abc","link":"https://cap.so/s/abc"}},"segments":[{segment},{segment},{segment}]}}"#
+                r#"{{"pretty_name":"Studio multi","sharing":{{"id":"abc","link":"https://example.com/s/abc"}},"segments":[{segment},{segment},{segment}]}}"#
             ),
         );
         std::thread::sleep(std::time::Duration::from_millis(6));
@@ -1646,7 +1646,7 @@ mod tests {
             RecordingStatus::Complete,
             "a MultipleSegments meta with no status key is Complete"
         );
-        assert_eq!(multi.sharing.as_deref(), Some("https://cap.so/s/abc"));
+        assert_eq!(multi.sharing.as_deref(), Some("https://example.com/s/abc"));
         assert!(
             multi.opens_editor(),
             "studio + Complete is the clickable row"
@@ -1748,42 +1748,42 @@ mod tests {
         let eligible = write_incomplete_bundle(
             &recordings,
             "eligible",
-            "Cap 2026-01-02 at 10.00.00",
+            "Scoopy 2026-01-02 at 10.00.00",
             "InProgress",
             true,
         );
         let active = write_incomplete_bundle(
             &recordings,
             "active",
-            "Cap 2026-01-03 at 10.00.00",
+            "Scoopy 2026-01-03 at 10.00.00",
             "InProgress",
             true,
         );
         let remux = write_incomplete_bundle(
             &recordings,
             "remux",
-            "Cap 2026-01-04 at 10.00.00",
+            "Scoopy 2026-01-04 at 10.00.00",
             "NeedsRemux",
             true,
         );
         write_incomplete_bundle(
             &recordings,
             "legacy",
-            "Cap 2025-12-31 at 10.00.00",
+            "Scoopy 2025-12-31 at 10.00.00",
             "InProgress",
             true,
         );
         write_incomplete_bundle(
             &recordings,
             "terminal",
-            "Cap 2026-01-05 at 10.00.00",
+            "Scoopy 2026-01-05 at 10.00.00",
             "Complete",
             true,
         );
         let corrupt = write_incomplete_bundle(
             &recordings,
             "unrecoverable",
-            "Cap 2026-01-06 at 10.00.00",
+            "Scoopy 2026-01-06 at 10.00.00",
             "InProgress",
             false,
         );
@@ -1967,14 +1967,14 @@ mod tests {
 
     #[test]
     fn recovery_restores_interrupted_real_recording_when_fixture_is_provided() {
-        let Ok(source) = std::env::var("CAP_GPUI_RECOVERY_FIXTURE") else {
+        let Ok(source) = std::env::var("SCOOPY_GPUI_RECOVERY_FIXTURE") else {
             return;
         };
         let _ = ffmpeg::init();
         let source = PathBuf::from(source);
         let root = temp_dir("recovery-real");
         let recordings = root.join("recordings");
-        let copy = recordings.join("interrupted.cap");
+        let copy = recordings.join("interrupted.scoopy");
         std::fs::create_dir_all(&copy).unwrap();
 
         let mut pending = vec![(source, copy.clone())];
@@ -2070,7 +2070,7 @@ mod tests {
         let victim = elsewhere.join("precious");
         std::fs::create_dir_all(&victim).unwrap();
         std::fs::write(victim.join("recording.mp4"), b"irreplaceable").unwrap();
-        let escape = recordings.join("escape.cap");
+        let escape = recordings.join("escape.scoopy");
         #[cfg(unix)]
         let symlink = std::os::unix::fs::symlink(&victim, &escape);
         #[cfg(windows)]
@@ -2161,7 +2161,7 @@ mod tests {
     #[test]
     fn a_bundle_display_caches_next_to_itself_and_a_png_does_not() {
         let root = temp_dir("slot");
-        let screenshots = root.join("bundle.cap").join("screenshots");
+        let screenshots = root.join("bundle.scoopy").join("screenshots");
         std::fs::create_dir_all(&screenshots).unwrap();
         let display = screenshots.join("display.jpg");
         std::fs::write(&display, b"jpeg bytes").unwrap();
@@ -2246,7 +2246,7 @@ mod tests {
     #[test]
     fn decode_thumbnail_writes_reuses_and_invalidates_the_bundle_cache() {
         let root = temp_dir("decode");
-        let screenshots = root.join("bundle.cap").join("screenshots");
+        let screenshots = root.join("bundle.scoopy").join("screenshots");
         std::fs::create_dir_all(&screenshots).unwrap();
         let display = screenshots.join("display.jpg");
         image::RgbImage::from_pixel(800, 600, image::Rgb([10, 120, 240]))

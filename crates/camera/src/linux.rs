@@ -208,7 +208,7 @@ pub fn start_capturing_impl(
     let started = Instant::now();
 
     let thread = thread::Builder::new()
-        .name("cap-linux-camera".to_string())
+        .name("scoopy-linux-camera".to_string())
         .spawn(move || {
             let mut stream = match MmapStream::with_buffers(&device, Type::VideoCapture, 4) {
                 Ok(mut stream) => {

@@ -1068,7 +1068,7 @@ mod tests {
         assert!(loader.window(0..1).await.is_err());
         assert!(loader.get().await.is_err());
         let missing = ProgressiveAudio::spawn(
-            PathBuf::from("/missing-cap-progressive-audio.wav"),
+            PathBuf::from("/missing-scoopy-progressive-audio.wav"),
             "missing".into(),
         );
         assert!(missing.get().await.is_err());

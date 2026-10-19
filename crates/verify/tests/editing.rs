@@ -7,7 +7,7 @@
 //!   `get_segment_time`) must agree with the independent model in
 //!   `edits::TimeModel` on a 1/60 s grid, at random times and just inside
 //!   every edge; without holds, also with the core reference model
-//!   (`cap_verify::model`). Failing sequences are shrunk to a minimal list
+//!   (`scoopy_verify::model`). Failing sequences are shrunk to a minimal list
 //!   of ops before reporting.
 //! - `export_*`: a few random edit sequences per fixture exported and
 //!   checked frame for frame against the core reference model.
@@ -18,8 +18,8 @@
 mod common;
 mod edits;
 
-use cap_project::ProjectConfiguration;
-use cap_verify::{
+use scoopy_project::ProjectConfiguration;
+use scoopy_verify::{
     catalog,
     fixture::Rng,
     model::ReferenceModel,
@@ -221,7 +221,7 @@ fn mapping_case(name: &str, mix: OpMix, seeds: u64, check: Check) {
 /// the JSON report).
 fn settle(case: Case) -> Option<String> {
     for note in &case.notes {
-        eprintln!("[cap-verify]   {}: {note}", case.id);
+        eprintln!("[scoopy-verify]   {}: {note}", case.id);
     }
     report::settle(case).err()
 }
@@ -308,7 +308,7 @@ fn mapping_duration_covered() {
 }
 
 /// Random edits of a real fixture exported and checked frame by frame.
-fn export_cases(spec: cap_verify::fixture::FixtureSpec, seeds: u64) -> Vec<String> {
+fn export_cases(spec: scoopy_verify::fixture::FixtureSpec, seeds: u64) -> Vec<String> {
     let project = common::project(&spec);
     let base = project.config();
     let rt = common::runtime();

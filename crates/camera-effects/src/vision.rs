@@ -128,7 +128,7 @@ enum Request {
 
 impl Request {
     fn new() -> Self {
-        if std::env::var("CAP_CAMERA_SEGMENTATION").as_deref() != Ok("vision-segmentation")
+        if std::env::var("SCOOPY_CAMERA_SEGMENTATION").as_deref() != Ok("vision-segmentation")
             && let Some(request) = PersonInstanceMaskRequest::new()
         {
             return Self::Instances(request);
@@ -531,7 +531,7 @@ impl VisionSegmenter {
         let (result_tx, results) = mpsc::channel::<VisionJob>();
 
         let worker = thread::Builder::new()
-            .name("cap-vision-segmentation".into())
+            .name("scoopy-vision-segmentation".into())
             .spawn(move || {
                 // A frame is waiting on every mask: keep this thread on the
                 // performance cores rather than letting it drift to the

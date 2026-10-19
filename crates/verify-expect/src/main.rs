@@ -1,5 +1,5 @@
-//! `cap-verify-expect check <file>...` validates expectations files.
-//! `cap-verify-expect bless <report dir or .jsonl>...` rewrites every
+//! `scoopy-verify-expect check <file>...` validates expectations files.
+//! `scoopy-verify-expect bless <report dir or .jsonl>...` rewrites every
 //! expectations file named in the records so those runs pass exactly. Records
 //! from several platforms (for example the CI report artifacts of all three
 //! OSes) can be blessed in one call; each platform only changes its own
@@ -11,7 +11,7 @@ use std::{
     process::ExitCode,
 };
 
-use cap_verify_expect::{
+use scoopy_verify_expect::{
     Evidence, Observed, Outcome, Ran, Record, bless_with, header, load, parse, render,
 };
 
@@ -31,7 +31,7 @@ fn collect(path: &Path, out: &mut Vec<PathBuf>) {
 }
 
 fn repo_root() -> PathBuf {
-    std::env::var_os("CAP_VERIFY_ROOT")
+    std::env::var_os("SCOOPY_VERIFY_ROOT")
         .map(PathBuf::from)
         .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
 }
@@ -110,9 +110,9 @@ fn add_record(runs: &mut Runs, source: SourceRecord) {
 }
 
 fn proposals(
-    entries: &[cap_verify_expect::Xfail],
+    entries: &[scoopy_verify_expect::Xfail],
     runs: &HostRuns,
-) -> Vec<cap_verify_expect::Xfail> {
+) -> Vec<scoopy_verify_expect::Xfail> {
     let mut entries = entries.to_vec();
     for ((platform, host), run) in runs {
         entries = bless_with(
@@ -214,7 +214,7 @@ fn main() -> ExitCode {
         Some((command, rest)) if command == "check" && !rest.is_empty() => check_command(rest),
         _ => {
             eprintln!(
-                "usage: cap-verify-expect bless <report dir | .jsonl>...\n       cap-verify-expect check <expectations.toml>..."
+                "usage: scoopy-verify-expect bless <report dir | .jsonl>...\n       scoopy-verify-expect check <expectations.toml>..."
             );
             ExitCode::from(2)
         }
@@ -224,7 +224,7 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cap_verify_expect::{Metrics, Range};
+    use scoopy_verify_expect::{Metrics, Range};
 
     fn source_record(source_host: Option<&str>, failure: Option<f64>) -> SourceRecord {
         let mut value = serde_json::json!({
@@ -309,7 +309,7 @@ mod tests {
         assert_eq!(proposals.len(), 2);
         assert!(proposals.contains(&entries[0]));
         let path = std::env::temp_dir().join(format!(
-            "cap-verify-explanation-{}-{}.toml",
+            "scoopy-verify-explanation-{}-{}.toml",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

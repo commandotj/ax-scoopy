@@ -4,16 +4,16 @@ use std::{
     sync::Arc,
 };
 
-use cap_editor::create_segments;
-use cap_project::{ProjectConfiguration, RecordingMeta, XY};
-use cap_rendering::{
+use scoopy_editor::create_segments;
+use scoopy_project::{ProjectConfiguration, RecordingMeta, XY};
+use scoopy_rendering::{
     FrameRenderer, PrecomputedCursorTimeline, ProjectRecordingsMeta, ProjectUniforms,
     RenderSegment, RenderVideoConstants, RenderedFrame, RendererLayers, ZoomTransformTimeline,
     render_video_to_channel, spring_mass_damper::SpringMassDamperSimulationConfig,
 };
 
 fn real_recording_path() -> Option<PathBuf> {
-    std::env::var_os("CAP_REAL_RECORDING_PATH")
+    std::env::var_os("SCOOPY_REAL_RECORDING_PATH")
         .map(PathBuf::from)
         .filter(|path| path.exists())
 }
@@ -48,7 +48,7 @@ struct RenderSampledSequenceFramesParams<'a> {
     render_constants: &'a Arc<RenderVideoConstants>,
     project_config: &'a ProjectConfiguration,
     recording_meta: &'a RecordingMeta,
-    studio_meta: &'a cap_project::StudioRecordingMeta,
+    studio_meta: &'a scoopy_project::StudioRecordingMeta,
     recordings: &'a Arc<ProjectRecordingsMeta>,
     resolution_base: XY<u32>,
     force_ffmpeg_decoder: bool,
@@ -120,7 +120,7 @@ async fn render_sampled_sequence_frames(
 async fn export_sequence_render_matches_editor_reference_for_real_recording()
 -> Result<(), Box<dyn std::error::Error>> {
     let Some(project_path) = real_recording_path() else {
-        println!("Skipping test: CAP_REAL_RECORDING_PATH is not set");
+        println!("Skipping test: SCOOPY_REAL_RECORDING_PATH is not set");
         return Ok(());
     };
 

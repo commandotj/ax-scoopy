@@ -95,9 +95,9 @@ const RULER_SCRUB_OVERHANG_PX = 4;
 
 const trackIcons: Record<TimelineTrackType, () => JSX.Element> = {
 	style: () => <IconLucidePalette class="size-3" />,
-	image: () => <IconCapImage class="size-3" />,
+	image: () => <IconScoopyImage class="size-3" />,
 	clip: () => <IconLucideClapperboard class="size-3" />,
-	caption: () => <IconCapCaptions class="size-3" />,
+	caption: () => <IconScoopyCaptions class="size-3" />,
 	keyboard: () => <IconLucideKeyboard class="size-3" />,
 	text: () => <IconLucideType class="size-3" />,
 	mask: () => <IconLucideBoxSelect class="size-3" />,
@@ -2078,7 +2078,7 @@ function TrackRow(props: {
 						onMouseDown={(e) => e.stopPropagation()}
 						title={props.deleteTitle ?? "Delete track"}
 					>
-						<IconCapTrash class="size-3.5" />
+						<IconScoopyTrash class="size-3.5" />
 					</button>
 				</Show>
 			</div>

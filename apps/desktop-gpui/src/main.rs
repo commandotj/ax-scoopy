@@ -1,4 +1,4 @@
-//! Cap desktop, rewritten in gpui.
+//! Scoopy desktop, rewritten in gpui.
 //!
 
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
@@ -74,15 +74,11 @@ use gpui::{App, AppContext as _, Bounds, WindowBounds, WindowOptions, px, size};
 
 use crate::{assets::Assets, main_window::MainWindow, session::RecordingSession};
 
-const MAIN_WINDOW_WIDTH: f32 = 330.;
-const MAIN_WINDOW_HEIGHT: f32 = 435.;
+pub const MAIN_WINDOW_WIDTH: f32 = 760.;
+pub const MAIN_WINDOW_HEIGHT: f32 = 52.;
 
-/// The corner radius the native material is clipped to. `radius = 16` for
-/// material `"panel"` on both visual systems in
-/// `apps/desktop/src/utils/macos-window-material.ts`, and the same 16 the
-/// shell paints with (`rounded-[16px]`).
 #[cfg(target_os = "macos")]
-const MAIN_WINDOW_MATERIAL_RADIUS: f64 = 16.;
+const MAIN_WINDOW_MATERIAL_RADIUS: f64 = 26.;
 
 fn parse_auto_record(spec: &str) -> Option<(main_window::Mode, u64)> {
     if spec == "screenshot" {
@@ -98,7 +94,7 @@ fn parse_auto_record(spec: &str) -> Option<(main_window::Mode, u64)> {
     Some((mode, secs.parse().ok()?))
 }
 
-/// `CAP_GPUI_AUTO_EDITOR`: a `.cap` path, or `1` for the newest studio
+/// `SCOOPY_GPUI_AUTO_EDITOR`: a `.scoopy` path, or `1` for the newest studio
 /// recording the library scan finds. The library is the same one Recents
 /// reads, so `=1` opens exactly the card that would be first in the carousel
 /// (skipping instant recordings and screenshots, which the editor rejects).
@@ -113,7 +109,7 @@ fn resolve_auto_editor(target: &str) -> Option<std::path::PathBuf> {
         .map(|item| item.bundle)
 }
 
-/// `CAP_GPUI_AUTO_SCREENSHOT_EDITOR`: a screenshot `.cap` path, or `1` for
+/// `SCOOPY_GPUI_AUTO_SCREENSHOT_EDITOR`: a screenshot `.scoopy` path, or `1` for
 /// the newest screenshot in the library -- [`resolve_auto_editor`]'s shape
 /// for the screenshot editor.
 fn resolve_auto_screenshot_editor(target: &str) -> Option<std::path::PathBuf> {
@@ -130,7 +126,7 @@ fn resolve_auto_screenshot_editor(target: &str) -> Option<std::path::PathBuf> {
 /// stdout, plus a rolling daily file the Feedback page can upload.
 ///
 /// Mirrors `src-tauri/src/main.rs`: `tracing_appender::rolling::daily` into
-/// `~/Library/Logs/so.cap.desktop` on macOS (the directory the Tauri app
+/// `~/Library/Logs/me.systembug.scoopy` on macOS (the directory the Tauri app
 /// already writes into) under a **different** filename prefix, so the two apps
 /// never interleave lines into one file. Returns the non-blocking writer's
 /// guard, which has to outlive `main` or the last lines never reach the disk.
@@ -147,24 +143,24 @@ fn init_logging() -> Option<tracing_appender::non_blocking::WorkerGuard> {
     let file = create_log_appender(&diagnostics::logs_dir(), diagnostics::LOG_FILE_PREFIX).map(
         |appender| {
             let (writer, guard) = tracing_appender::non_blocking(
-                cap_utils::diagnostic_writer::DiagnosticWriter::new(
+                scoopy_utils::diagnostic_writer::DiagnosticWriter::new(
                     appender,
                     &diagnostics::logs_dir(),
                     diagnostics::LOG_FILE_PREFIX,
                 ),
             );
             let queue_errors = writer.error_counter();
-            cap_utils::operation_diagnostics::install_queue_loss_counter(move || {
+            scoopy_utils::operation_diagnostics::install_queue_loss_counter(move || {
                 queue_errors.dropped_lines()
             });
             let diagnostic_writer = writer.clone();
-            cap_utils::operation_diagnostics::install_sink(
-                cap_utils::operation_diagnostics::AppInfo {
+            scoopy_utils::operation_diagnostics::install_sink(
+                scoopy_utils::operation_diagnostics::AppInfo {
                     flavor: "gpui",
                     version: env!("CARGO_PKG_VERSION"),
-                    source_revision: option_env!("CAP_BUILD_REVISION"),
+                    source_revision: option_env!("SCOOPY_BUILD_REVISION"),
                     debug_build: cfg!(debug_assertions),
-                    source_dirty: option_env!("CAP_BUILD_DIRTY").map(|value| value == "true"),
+                    source_dirty: option_env!("SCOOPY_BUILD_DIRTY").map(|value| value == "true"),
                 },
                 move |bytes| {
                     use std::io::Write;
@@ -236,7 +232,7 @@ fn app_runtime() -> tokio::runtime::Runtime {
 
 fn main() {
     #[cfg(target_os = "linux")]
-    if let Some(threads) = cap_utils::linux_runtime::llvmpipe_thread_count() {
+    if let Some(threads) = scoopy_utils::linux_runtime::llvmpipe_thread_count() {
         // Mesa counts host CPUs inside containers; apply the process limit before logging starts threads.
         unsafe {
             std::env::set_var("LP_NUM_THREADS", threads.to_string());
@@ -244,7 +240,7 @@ fn main() {
     }
 
     #[cfg(target_os = "linux")]
-    if let Some(config) = cap_utils::linux_package::appimage_alsa_config_path() {
+    if let Some(config) = scoopy_utils::linux_package::appimage_alsa_config_path() {
         // Logging starts a worker thread, so configure the process environment first.
         unsafe {
             std::env::set_var("ALSA_CONFIG_PATH", config);
@@ -269,7 +265,8 @@ fn main() {
 
     app.run(move |cx: &mut App| {
         gpui_tokio::init_from_handle(cx, runtime_handle);
-        gpui_tokio::Tokio::spawn(cx, cap_utils::operation_diagnostics::run_checkpoints()).detach();
+        gpui_tokio::Tokio::spawn(cx, scoopy_utils::operation_diagnostics::run_checkpoints())
+            .detach();
         // The dock icon: an unbundled dev binary shows the generic terminal
         // document without it. The bytes are the shipping app's icon.png.
         platform::set_dock_icon(include_bytes!("../assets/dock-icon.png"));
@@ -278,7 +275,7 @@ fn main() {
             tracing::error!("failed to load embedded fonts: {error:#}");
         }
 
-        // 330x395 is what `CapWindowId::Main::min_size` uses in the Tauri app,
+        // 330x395 is what `ScoopyWindowId::Main::min_size` uses in the Tauri app,
         // and the window is fixed at that size there too.
         // The text-input key map. Every editing chord in the app -- Backspace,
         // the arrows, Cmd-A/C/X/V/Z -- is an action scoped to the `TextInput`
@@ -295,10 +292,32 @@ fn main() {
 
         let dev_restore = dev_restore::load();
         let main_size = size(px(MAIN_WINDOW_WIDTH), px(MAIN_WINDOW_HEIGHT));
+        let display_bounds = cx
+            .primary_display()
+            .map(|d| d.bounds())
+            .unwrap_or_else(|| Bounds {
+                origin: gpui::point(px(0.), px(0.)),
+                size: size(px(1920.), px(1080.)),
+            });
+        let top_center_origin = gpui::point(
+            display_bounds.origin.x + (display_bounds.size.width - main_size.width) / 2.,
+            display_bounds.origin.y + px(16.),
+        );
+        let default_bounds = Bounds {
+            origin: top_center_origin,
+            size: main_size,
+        };
         let bounds = dev_restore
             .as_ref()
-            .and_then(|restore| restore.main_window_bounds(main_size, cx))
-            .unwrap_or_else(|| Bounds::centered(None, main_size, cx));
+            .and_then(|restore| {
+                let saved = restore.main_window_bounds(main_size, cx)?;
+                if (saved.size.width - main_size.width).abs() > px(10.) {
+                    None
+                } else {
+                    Some(saved)
+                }
+            })
+            .unwrap_or(default_bounds);
         let window_handle = cx
             .open_window(
                 WindowOptions {
@@ -387,10 +406,10 @@ fn main() {
         // The app menu (and with it ⌘W/⌘M/⌘Q) and the status-bar item. Both
         // reach into the window registry, so they come after it -- and the menu
         // before the tray, because the tray's Quit item is the menu's Quit.
-        if !std::env::var("CAP_GPUI_NO_MENUS").is_ok_and(|v| v == "1") {
+        if !std::env::var("SCOOPY_GPUI_NO_MENUS").is_ok_and(|v| v == "1") {
             menus::init(cx);
         }
-        if !std::env::var("CAP_GPUI_NO_TRAY").is_ok_and(|v| v == "1") {
+        if !std::env::var("SCOOPY_GPUI_NO_TRAY").is_ok_and(|v| v == "1") {
             tray::init(cx);
         }
         // The store's global shortcuts, after the registry they dispatch into.
@@ -410,13 +429,13 @@ fn main() {
             }
         })
         .detach();
-        // `CAP_GPUI_AUTO_TRAY` / `CAP_GPUI_TRAY_DUMP`: the tray's harness path.
+        // `SCOOPY_GPUI_AUTO_TRAY` / `SCOOPY_GPUI_TRAY_DUMP`: the tray's harness path.
         tray::drive_from_env(cx);
-        // `CAP_GPUI_AUTO_CLOSE=settings|main:<secs>`: run the ⌘W body against
+        // `SCOOPY_GPUI_AUTO_CLOSE=settings|main:<secs>`: run the ⌘W body against
         // that window after a delay -- exercises the exact deferred close path
         // without synthetic keypresses (which race whatever the user has
         // focused).
-        if let Ok(spec) = std::env::var("CAP_GPUI_AUTO_CLOSE")
+        if let Ok(spec) = std::env::var("SCOOPY_GPUI_AUTO_CLOSE")
             && let Some((which, secs)) = spec.split_once(':')
             && let Ok(secs) = secs.parse::<u64>()
         {
@@ -443,7 +462,7 @@ fn main() {
         // shown; the main window is up by here.
         menus::sync_dock_visibility(cx);
 
-        // `CAP_GPUI_DEV_RESTORE=<state file>`: `dev.sh`'s relaunch loop.
+        // `SCOOPY_GPUI_DEV_RESTORE=<state file>`: `dev.sh`'s relaunch loop.
         // Reopens the previous process's windows in place and keeps the
         // state file current for the next swap.
         if let Some(dev_restore) = dev_restore {
@@ -529,10 +548,10 @@ fn main() {
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         let _ = native_main;
 
-        // `CAP_GPUI_DEBUG_LIGHTS=1`: poll the main window's style mask and
+        // `SCOOPY_GPUI_DEBUG_LIGHTS=1`: poll the main window's style mask and
         // standard-button set, logging on change -- pins down *when* AppKit
         // materializes titlebar buttons on the buttonless main window.
-        if std::env::var("CAP_GPUI_DEBUG_LIGHTS").is_ok_and(|v| v == "1") {
+        if std::env::var("SCOOPY_GPUI_DEBUG_LIGHTS").is_ok_and(|v| v == "1") {
             cx.spawn(async move |cx| {
                 let mut last = None::<String>;
                 loop {
@@ -554,11 +573,11 @@ fn main() {
             .detach();
         }
 
-        // `CAP_GPUI_AUTO_SETTINGS=1` (or a page slug, e.g. `hotkeys`): open
+        // `SCOOPY_GPUI_AUTO_SETTINGS=1` (or a page slug, e.g. `hotkeys`): open
         // the settings window the way the header gear does. Same reason as
-        // every other `CAP_GPUI_AUTO_*` hook -- unprivileged synthetic clicks
+        // every other `SCOOPY_GPUI_AUTO_*` hook -- unprivileged synthetic clicks
         // are dropped, so the screenshot harness needs a way in.
-        if let Ok(page) = std::env::var("CAP_GPUI_AUTO_SETTINGS")
+        if let Ok(page) = std::env::var("SCOOPY_GPUI_AUTO_SETTINGS")
             && !page.is_empty()
         {
             let page =
@@ -566,12 +585,12 @@ fn main() {
             app_windows::open_settings(page, cx);
         }
 
-        permissions_ui::auto_open_from_env(cx); // `CAP_GPUI_AUTO_PERMISSIONS=1`: the permissions surface.
+        permissions_ui::auto_open_from_env(cx); // `SCOOPY_GPUI_AUTO_PERMISSIONS=1`: the permissions surface.
 
-        // `CAP_GPUI_AUTO_MODE_SELECT=1`: open the 580x340 mode picker the way
+        // `SCOOPY_GPUI_AUTO_MODE_SELECT=1`: open the 580x340 mode picker the way
         // the mode dot does, main window hidden included. A mode name instead
         // of `1` also clicks that card.
-        if let Ok(mode) = std::env::var("CAP_GPUI_AUTO_MODE_SELECT")
+        if let Ok(mode) = std::env::var("SCOOPY_GPUI_AUTO_MODE_SELECT")
             && !mode.is_empty()
         {
             app_windows::open_mode_select(cx);
@@ -585,30 +604,30 @@ fn main() {
             }
         }
 
-        // `CAP_GPUI_AUTO_CAMERA_BENCH=1`: open the camera bubble and pump
+        // `SCOOPY_GPUI_AUTO_CAMERA_BENCH=1`: open the camera bubble and pump
         // synthetic frames through the production delivery path, reporting
         // gpui draw timings for that window. See `camera_bench`.
         #[cfg(target_os = "macos")]
-        if std::env::var("CAP_GPUI_AUTO_CAMERA_BENCH").is_ok_and(|v| v == "1") {
+        if std::env::var("SCOOPY_GPUI_AUTO_CAMERA_BENCH").is_ok_and(|v| v == "1") {
             camera_bench::run(cx);
         }
 
-        // `CAP_GPUI_AUTO_TELEPROMPTER=1`: open the teleprompter the way the
+        // `SCOOPY_GPUI_AUTO_TELEPROMPTER=1`: open the teleprompter the way the
         // header's scan-text button does. Same reason as the other hooks:
         // unprivileged synthetic clicks are dropped. Any other value is typed
         // into the script through the same path a keystroke takes, which is how
         // the persistence round trip is checked.
-        if let Ok(script) = std::env::var("CAP_GPUI_AUTO_TELEPROMPTER")
+        if let Ok(script) = std::env::var("SCOOPY_GPUI_AUTO_TELEPROMPTER")
             && !script.is_empty()
         {
             app_windows::open_teleprompter(cx);
             if script != "1" {
                 app_windows::type_into_teleprompter(script, cx);
             }
-            // `CAP_GPUI_AUTO_PLAY=1`: press play once the window has painted --
+            // `SCOOPY_GPUI_AUTO_PLAY=1`: press play once the window has painted --
             // the scrollable height, which is what decides whether playback can
             // start at all, does not exist before the first frame.
-            if std::env::var("CAP_GPUI_AUTO_PLAY").is_ok_and(|value| value == "1") {
+            if std::env::var("SCOOPY_GPUI_AUTO_PLAY").is_ok_and(|value| value == "1") {
                 cx.spawn(async move |cx| {
                     cx.background_executor()
                         .timer(std::time::Duration::from_millis(1200))
@@ -619,23 +638,25 @@ fn main() {
             }
         }
 
-        // `CAP_GPUI_AUTO_EDITOR=<path-to-.cap>`: open the editor on that
+        // `SCOOPY_GPUI_AUTO_EDITOR=<path-to-.scoopy>`: open the editor on that
         // bundle the way a Recents card does. `=1` picks the newest studio
-        // recording in the library. Same reason as the other `CAP_GPUI_AUTO_*`
+        // recording in the library. Same reason as the other `SCOOPY_GPUI_AUTO_*`
         // hooks -- unprivileged synthetic clicks are dropped, so the
         // screenshot harness needs a way in.
-        if let Ok(target) = std::env::var("CAP_GPUI_AUTO_EDITOR")
+        if let Ok(target) = std::env::var("SCOOPY_GPUI_AUTO_EDITOR")
             && !target.is_empty()
         {
             match resolve_auto_editor(&target) {
                 Some(path) => app_windows::open_editor(path, cx),
-                None => tracing::error!(target, "CAP_GPUI_AUTO_EDITOR: no studio .cap to open"),
+                None => {
+                    tracing::error!(target, "SCOOPY_GPUI_AUTO_EDITOR: no studio .scoopy to open")
+                }
             }
         }
 
-        // `CAP_GPUI_AUTO_HOTKEY=<store key>`: run a hotkey action's dispatch
+        // `SCOOPY_GPUI_AUTO_HOTKEY=<store key>`: run a hotkey action's dispatch
         // arm (e.g. `screenshotDisplay`) as if the OS shortcut fired.
-        if let Ok(action) = std::env::var("CAP_GPUI_AUTO_HOTKEY")
+        if let Ok(action) = std::env::var("SCOOPY_GPUI_AUTO_HOTKEY")
             && !action.is_empty()
         {
             let action = action.clone();
@@ -650,28 +671,28 @@ fn main() {
             .detach();
         }
 
-        // `CAP_GPUI_AUTO_SCREENSHOT_EDITOR=<path-to-.cap>` (or `1` for the
+        // `SCOOPY_GPUI_AUTO_SCREENSHOT_EDITOR=<path-to-.scoopy>` (or `1` for the
         // newest screenshot): open the screenshot editor the way a Recents
         // card does.
-        if let Ok(target) = std::env::var("CAP_GPUI_AUTO_SCREENSHOT_EDITOR")
+        if let Ok(target) = std::env::var("SCOOPY_GPUI_AUTO_SCREENSHOT_EDITOR")
             && !target.is_empty()
         {
             match resolve_auto_screenshot_editor(&target) {
                 Some(path) => app_windows::open_screenshot_editor(path, cx),
                 None => tracing::error!(
                     target,
-                    "CAP_GPUI_AUTO_SCREENSHOT_EDITOR: no screenshot .cap to open"
+                    "SCOOPY_GPUI_AUTO_SCREENSHOT_EDITOR: no screenshot .scoopy to open"
                 ),
             }
         }
 
-        // `CAP_GPUI_AUTO_RECORD=studio:5` / `instant:4` / `screenshot`: arm
+        // `SCOOPY_GPUI_AUTO_RECORD=studio:5` / `instant:4` / `screenshot`: arm
         // the primary display and record for N seconds (or capture once). The
         // end-to-end check drives the recorder this way because unprivileged
         // synthetic clicks are dropped.
         #[cfg(debug_assertions)]
         picker_ui_benchmark::run(window_handle, cx);
-        if let Ok(auto) = std::env::var("CAP_GPUI_AUTO_RECORD")
+        if let Ok(auto) = std::env::var("SCOOPY_GPUI_AUTO_RECORD")
             && let Some((mode, secs)) = parse_auto_record(&auto)
         {
             window_handle
@@ -680,7 +701,7 @@ fn main() {
                 })
                 .expect("failed to arm auto-record");
         } else if let Some(kind) = main_window::auto_overlay_kind() {
-            // `CAP_GPUI_AUTO_OVERLAY` without a recording: put the overlays up
+            // `SCOOPY_GPUI_AUTO_OVERLAY` without a recording: put the overlays up
             // and leave them there, which is how they get screenshotted.
             window_handle
                 .update(cx, |view, window, cx| {
@@ -768,8 +789,8 @@ mod logging_tests {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_nanos();
-            let directory = std::env::temp_dir()
-                .join(format!("scoopy-logging-{}-{nonce}", std::process::id()));
+            let directory =
+                std::env::temp_dir().join(format!("scoopy-logging-{}-{nonce}", std::process::id()));
             std::fs::create_dir_all(&directory).unwrap();
             Self(directory)
         }
@@ -786,7 +807,7 @@ mod logging_tests {
         let directory = LogDirectory::new();
         let destination = directory.0.join("nested");
         for record in ["first\n", "second\n"] {
-            let mut appender = create_log_appender(&destination, "cap.log").unwrap();
+            let mut appender = create_log_appender(&destination, "scoopy.log").unwrap();
             appender.write_all(record.as_bytes()).unwrap();
             appender.flush().unwrap();
         }
@@ -803,7 +824,7 @@ mod logging_tests {
         let directory = LogDirectory::new();
         let destination = directory.0.join("blocked");
         std::fs::write(&destination, "existing file").unwrap();
-        assert!(create_log_appender(&destination, "cap.log").is_none());
+        assert!(create_log_appender(&destination, "scoopy.log").is_none());
         assert_eq!(
             std::fs::read_to_string(destination).unwrap(),
             "existing file"
@@ -816,9 +837,9 @@ mod logging_tests {
         let today = chrono::Utc::now().date_naive();
         for days in [-1, 0, 1] {
             let date = today + chrono::Duration::days(days);
-            std::fs::create_dir(directory.0.join(format!("cap.log.{date}"))).unwrap();
+            std::fs::create_dir(directory.0.join(format!("scoopy.log.{date}"))).unwrap();
         }
-        assert!(create_log_appender(&directory.0, "cap.log").is_none());
+        assert!(create_log_appender(&directory.0, "scoopy.log").is_none());
         assert!(create_log_appender(&directory.0, "other.log").is_some());
     }
 }

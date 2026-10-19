@@ -18,24 +18,24 @@ test("nightly builds retain DEB and AppImage without passing invalid hyphenated 
 
 test("all Linux formats retain the exact native library sonames and shared icons", () => {
 	const icon =
-		"/usr/share/icons/hicolor/scalable/status/so.cap.desktop-tray-studio-symbolic.svg";
+		"/usr/share/icons/hicolor/scalable/status/me.systembug.scoopy-tray-studio-symbolic.svg";
 	const config = createLinuxBundleConfig(
 		["libonnxruntime.so", "libavcodec.so.61", "libonnxruntime.so.1"],
-		{ [icon]: "icons/linux/so.cap.desktop-tray-studio-symbolic.svg" },
+		{ [icon]: "icons/linux/me.systembug.scoopy-tray-studio-symbolic.svg" },
 	);
 
 	for (const format of ["deb", "rpm", "appimage"]) {
 		assert.equal(
-			config.bundle.linux[format].files["/usr/lib/cap/libavcodec.so.61"],
-			"../../../target/native-deps/cap-deb-libs/libavcodec.so.61",
+			config.bundle.linux[format].files["/usr/lib/scoopy/libavcodec.so.61"],
+			"../../../target/native-deps/scoopy-deb-libs/libavcodec.so.61",
 		);
 		assert.equal(
-			config.bundle.linux[format].files["/usr/lib/cap/libonnxruntime.so.1"],
-			"../../../target/native-deps/cap-deb-libs/libonnxruntime.so.1",
+			config.bundle.linux[format].files["/usr/lib/scoopy/libonnxruntime.so.1"],
+			"../../../target/native-deps/scoopy-deb-libs/libonnxruntime.so.1",
 		);
 		assert.equal(
 			config.bundle.linux[format].files[icon],
-			"icons/linux/so.cap.desktop-tray-studio-symbolic.svg",
+			"icons/linux/me.systembug.scoopy-tray-studio-symbolic.svg",
 		);
 	}
 });
@@ -46,26 +46,26 @@ test("AppImage includes the system-audio control tool and webview media framewor
 	assert.equal(appimage.bundleMediaFramework, true);
 	assert.equal(
 		appimage.files["/usr/lib/alsa-lib/libasound_module_pcm_pulse.so"],
-		"../../../target/native-deps/cap-appimage-libs/libasound_module_pcm_pulse.so",
+		"../../../target/native-deps/scoopy-appimage-libs/libasound_module_pcm_pulse.so",
 	);
 	assert.equal(
-		appimage.files["/usr/lib/cap/alsa-pulse.conf"],
+		appimage.files["/usr/lib/scoopy/alsa-pulse.conf"],
 		"../../../packaging/linux/alsa-pulse.conf",
 	);
 	for (const format of [deb, rpm]) {
-		assert.equal(format.files["/usr/lib/cap/alsa-pulse.conf"], undefined);
+		assert.equal(format.files["/usr/lib/scoopy/alsa-pulse.conf"], undefined);
 	}
 });
 
 test("library mappings are deterministic and preserve the input mappings", () => {
-	const files = { "/usr/share/cap/example": "example" };
+	const files = { "/usr/share/scoopy/example": "example" };
 	const first = createLinuxBundleConfig(["libz.so.1", "liba.so.2"], files);
 	const second = createLinuxBundleConfig(
 		["liba.so.2", "libz.so.1", "liba.so.2"],
 		files,
 	);
 	assert.equal(JSON.stringify(first), JSON.stringify(second));
-	assert.deepEqual(files, { "/usr/share/cap/example": "example" });
+	assert.deepEqual(files, { "/usr/share/scoopy/example": "example" });
 });
 
 test("Debian audio dependencies retain existing requirements without duplicates", () => {
@@ -93,12 +93,12 @@ test("the GPUI app maps native libraries from its own crate directory without we
 	const { appimage, deb, rpm } = config.bundle.linux;
 	for (const format of [appimage, deb, rpm]) {
 		assert.equal(
-			format.files["/usr/lib/cap/libavcodec.so.61"],
-			"../../target/native-deps/cap-deb-libs/libavcodec.so.61",
+			format.files["/usr/lib/scoopy/libavcodec.so.61"],
+			"../../target/native-deps/scoopy-deb-libs/libavcodec.so.61",
 		);
 	}
 	assert.equal(
-		deb.files["/usr/lib/cap/package-format"],
+		deb.files["/usr/lib/scoopy/package-format"],
 		"../../packaging/linux/deb",
 	);
 	assert.equal(appimage.bundleMediaFramework, false);

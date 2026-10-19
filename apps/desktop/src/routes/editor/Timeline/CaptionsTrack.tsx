@@ -143,11 +143,11 @@ export function CaptionsTrack(props: {
 			<For
 				each={captionSegments()}
 				fallback={
-					<div class="cap-empty-lane">
+					<div class="scoopy-empty-lane">
 						<span>No captions</span>
 						<button
 							type="button"
-							class="cap-empty-lane-action outline-hidden"
+							class="scoopy-empty-lane-action outline-hidden"
 							disabled={props.isGenerating}
 							onMouseDown={(e) => e.stopPropagation()}
 							onClick={(e) => {
@@ -173,8 +173,8 @@ export function CaptionsTrack(props: {
 					// Truncation degrades gracefully, so the same row serves both the
 					// full and compact tiers; it just clips against a smaller box.
 					const captionLabel = () => (
-						<div class="cap-seg-labels">
-							<span class="cap-seg-label truncate max-w-full">
+						<div class="scoopy-seg-labels">
+							<span class="scoopy-seg-label truncate max-w-full">
 								{segment.text || "Caption"}
 							</span>
 						</div>

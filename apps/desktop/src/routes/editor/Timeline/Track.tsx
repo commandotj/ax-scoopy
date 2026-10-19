@@ -20,7 +20,7 @@ import {
 	useTrackContext,
 } from "./context";
 
-export const CAP_TRACK_FILL_CLASS = "cap-track-fill";
+export const SCOOPY_TRACK_FILL_CLASS = "scoopy-track-fill";
 
 export function TrackRoot(props: ComponentProps<"div">) {
 	const [ref, setRef] = createSignal<HTMLDivElement>();
@@ -123,7 +123,7 @@ export function SegmentRoot(
 				>
 					<div
 						class={cx(
-							CAP_TRACK_FILL_CLASS,
+							SCOOPY_TRACK_FILL_CLASS,
 							"relative h-full flex flex-row overflow-hidden group",
 						)}
 						data-selected={local.selected ? "" : undefined}
@@ -288,7 +288,7 @@ export function SegmentHandle(
 			)}
 			data-compact={compact()}
 		>
-			<div class="cap-seg-handle" />
+			<div class="scoopy-seg-handle" />
 		</div>
 	);
 }

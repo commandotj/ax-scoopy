@@ -29,7 +29,7 @@ const available = (command) =>
 	spawnSync("sh", ["-c", `command -v ${command}`]).status === 0;
 
 async function workspace(t) {
-	const root = await mkdtemp(path.join(tmpdir(), "cap-linux-packages-"));
+	const root = await mkdtemp(path.join(tmpdir(), "scoopy-linux-packages-"));
 	t.after(() => rm(root, { recursive: true, force: true }));
 	return root;
 }
@@ -42,30 +42,30 @@ const capture = (command, args) => {
 
 test("deb control keeps every dependency except the injected webview stack", () => {
 	const control = [
-		"Package: cap",
+		"Package: scoopy",
 		"Version: 0.6.1",
 		"Depends: libva2, libasound2t64 | libasound2, libwebkit2gtk-4.1-0,",
 		" libgtk-3-0 (>= 3.24), libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37, libx11-6",
-		"Description: Cap",
+		"Description: Scoopy",
 		" Beautiful screen recordings.",
 		"",
 	].join("\n");
 	assert.equal(
 		withoutWebviewDebDependencies(control),
 		[
-			"Package: cap",
+			"Package: scoopy",
 			"Version: 0.6.1",
 			"Depends: libva2, libasound2t64 | libasound2, libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37, libx11-6",
-			"Description: Cap",
+			"Description: Scoopy",
 			" Beautiful screen recordings.",
 			"",
 		].join("\n"),
 	);
 	assert.equal(
 		withoutWebviewDebDependencies(
-			"Package: cap\nDepends: libgtk-3-0, libwebkit2gtk-4.1-0\n",
+			"Package: scoopy\nDepends: libgtk-3-0, libwebkit2gtk-4.1-0\n",
 		),
-		"Package: cap\n",
+		"Package: scoopy\n",
 	);
 });
 
@@ -88,24 +88,24 @@ test("rpm requirements drop rpmlib markers and the injected webview libraries", 
 test("rpm file entries preserve type, permissions and ownership", () => {
 	const files = parseRpmFiles(
 		[
-			"33261 0 root root /usr/bin/Cap",
-			"33188 0 root root /usr/lib/Cap/assets/music/lofi 100%.mp3",
-			"16877 0 root root /usr/lib/Cap",
-			"41471 0 root root /usr/lib/cap/libonnxruntime.so",
+			"33261 0 root root /usr/bin/Scoopy",
+			"33188 0 root root /usr/lib/Scoopy/assets/music/lofi 100%.mp3",
+			"16877 0 root root /usr/lib/Scoopy",
+			"41471 0 root root /usr/lib/scoopy/libonnxruntime.so",
 			"",
 		].join("\n"),
 	);
 	assert.deepEqual(files.map(rpmFileEntry), [
-		'%attr(0755,root,root) "/usr/bin/Cap"',
-		'%attr(0644,root,root) "/usr/lib/Cap/assets/music/lofi 100%%.mp3"',
-		'%dir %attr(0755,root,root) "/usr/lib/Cap"',
-		'%attr(-,root,root) "/usr/lib/cap/libonnxruntime.so"',
+		'%attr(0755,root,root) "/usr/bin/Scoopy"',
+		'%attr(0644,root,root) "/usr/lib/Scoopy/assets/music/lofi 100%%.mp3"',
+		'%dir %attr(0755,root,root) "/usr/lib/Scoopy"',
+		'%attr(-,root,root) "/usr/lib/scoopy/libonnxruntime.so"',
 	]);
 	assert.throws(
-		() => parseRpmFiles("33188 1 root root /etc/cap.conf\n"),
+		() => parseRpmFiles("33188 1 root root /etc/scoopy.conf\n"),
 		/Unsupported RPM file attributes/,
 	);
-	for (const name of ["/usr/lib/Cap/*.mp3", '/usr/lib/"quoted"', "relative"]) {
+	for (const name of ["/usr/lib/Scoopy/*.mp3", '/usr/lib/"quoted"', "relative"]) {
 		assert.throws(
 			() => rpmFileEntry({ mode: 0o100644, user: "root", group: "root", name }),
 			/Unsupported RPM file name/,
@@ -117,7 +117,7 @@ test("rpm file entries preserve type, permissions and ownership", () => {
 				mode: 0o060644,
 				user: "root",
 				group: "root",
-				name: "/dev/cap",
+				name: "/dev/scoopy",
 			}),
 		/Unsupported RPM file type/,
 	);
@@ -125,7 +125,7 @@ test("rpm file entries preserve type, permissions and ownership", () => {
 
 test("rpm spec disables automatic dependencies and escapes macros", () => {
 	const spec = rpmSpec({
-		name: "cap",
+		name: "scoopy",
 		version: "0.6.1",
 		release: "1",
 		summary: "100% yours",
@@ -134,7 +134,7 @@ test("rpm spec disables automatic dependencies and escapes macros", () => {
 		description: "",
 		requires: ["libva"],
 		files: [
-			{ mode: 0o100755, user: "root", group: "root", name: "/usr/bin/Cap" },
+			{ mode: 0o100755, user: "root", group: "root", name: "/usr/bin/Scoopy" },
 		],
 		staging: "/tmp/it's %{here}",
 	});
@@ -147,7 +147,7 @@ test("rpm spec disables automatic dependencies and escapes macros", () => {
 		spec,
 		/^cp -a '\/tmp\/it'\\''s %%\{here\}'\/\. "%\{buildroot\}\/"$/m,
 	);
-	assert.match(spec, /%files\n%attr\(0755,root,root\) "\/usr\/bin\/Cap"\n$/);
+	assert.match(spec, /%files\n%attr\(0755,root,root\) "\/usr\/bin\/Scoopy"\n$/);
 });
 
 test("identical unversioned libraries become links to their versioned soname", async (t) => {
@@ -185,27 +185,27 @@ test("deb metadata drops linked files from md5sums and Installed-Size", () => {
 	assert.equal(
 		withoutLinkedFiles(
 			[
-				"d41d8cd98f00b204e9800998ecf8427e  usr/bin/Cap",
-				"0cc175b9c0f1b6a831c399e269772661  usr/lib/cap/libonnxruntime.so",
-				"92eb5ffee6ae2fec3ad71c777531578f  usr/lib/cap/libonnxruntime.so.1",
+				"d41d8cd98f00b204e9800998ecf8427e  usr/bin/Scoopy",
+				"0cc175b9c0f1b6a831c399e269772661  usr/lib/scoopy/libonnxruntime.so",
+				"92eb5ffee6ae2fec3ad71c777531578f  usr/lib/scoopy/libonnxruntime.so.1",
 				"",
 			].join("\n"),
-			["usr/lib/cap/libonnxruntime.so"],
+			["usr/lib/scoopy/libonnxruntime.so"],
 		),
 		[
-			"d41d8cd98f00b204e9800998ecf8427e  usr/bin/Cap",
-			"92eb5ffee6ae2fec3ad71c777531578f  usr/lib/cap/libonnxruntime.so.1",
+			"d41d8cd98f00b204e9800998ecf8427e  usr/bin/Scoopy",
+			"92eb5ffee6ae2fec3ad71c777531578f  usr/lib/scoopy/libonnxruntime.so.1",
 			"",
 		].join("\n"),
 	);
 	assert.equal(
 		withInstalledSize(
-			"Package: cap\nInstalled-Size: 286485\nArchitecture: amd64\n",
+			"Package: scoopy\nInstalled-Size: 286485\nArchitecture: amd64\n",
 			22146944,
 		),
-		"Package: cap\nInstalled-Size: 264857\nArchitecture: amd64\n",
+		"Package: scoopy\nInstalled-Size: 264857\nArchitecture: amd64\n",
 	);
-	assert.equal(withInstalledSize("Package: cap\n", 1024), "Package: cap\n");
+	assert.equal(withInstalledSize("Package: scoopy\n", 1024), "Package: scoopy\n");
 });
 
 for (const [name, listing, expected] of [
@@ -250,7 +250,7 @@ for (const [name, listing, expected] of [
 					await mkdir(path.join(args[2], "DEBIAN"), { recursive: true });
 					await writeFile(
 						path.join(args[2], "DEBIAN/control"),
-						"Package: cap\nDepends: libc6 (>= 2.39), libva2, libwebkit2gtk-4.1-0, libgtk-3-0\n",
+						"Package: scoopy\nDepends: libc6 (>= 2.39), libva2, libwebkit2gtk-4.1-0, libgtk-3-0\n",
 					);
 				} else if (command === "dpkg-deb" && args[0] === "--contents") {
 					return {
@@ -267,7 +267,7 @@ for (const [name, listing, expected] of [
 					]);
 					assert.equal(
 						await readFile(path.join(args[3], "DEBIAN/control"), "utf8"),
-						"Package: cap\nDepends: libc6 (>= 2.39), libva2\n",
+						"Package: scoopy\nDepends: libc6 (>= 2.39), libva2\n",
 					);
 					await writeFile(args[4], "uncompressed");
 				} else if (command === "ar" && args[0] === "t") {
@@ -331,18 +331,18 @@ for (const [name, listing, expected] of [
 
 test("rpm tools never see the updater signing key", async (t) => {
 	const root = await workspace(t);
-	const rpm = path.join(root, "Cap.rpm");
+	const rpm = path.join(root, "Scoopy.rpm");
 	await writeFile(rpm, "original");
 	await writeFile(`${rpm}.sig`, "original signature");
 	const tags = {
-		NAME: "cap",
+		NAME: "scoopy",
 		VERSION: "0.6.1",
 		RELEASE: "1",
 		ARCH: "x86_64",
-		SUMMARY: "Cap",
+		SUMMARY: "Scoopy",
 		LICENSE: "AGPL-3.0",
 		URL: "",
-		DESCRIPTION: "Cap",
+		DESCRIPTION: "Scoopy",
 	};
 	await finalizeGpuiRpm(rpm, {
 		env: {
@@ -371,7 +371,7 @@ test("rpm tools never see the updater signing key", async (t) => {
 			if (command === "rpm" && args.includes("--requires"))
 				return { stdout: "libva\n" };
 			if (command === "rpm" && args.some((arg) => arg.includes("FILEMODES"))) {
-				return { stdout: "33188 0 root root /usr/bin/Cap\n" };
+				return { stdout: "33188 0 root root /usr/bin/Scoopy\n" };
 			}
 			if (command === "rpm") {
 				const tag = args.find((arg) => arg.startsWith("%{"));
@@ -396,8 +396,8 @@ test("rpm tools never see the updater signing key", async (t) => {
 
 test("package finalization requires a signing key unless unsigned", async (t) => {
 	const root = await workspace(t);
-	const deb = path.join(root, "Cap.deb");
-	const rpm = path.join(root, "Cap.rpm");
+	const deb = path.join(root, "Scoopy.deb");
+	const rpm = path.join(root, "Scoopy.rpm");
 	await writeFile(deb, "original");
 	await writeFile(rpm, "original");
 	const run = () => assert.fail("no command should run");
@@ -421,13 +421,13 @@ test(
 		const tree = path.join(root, "tree");
 		await mkdir(path.join(tree, "DEBIAN"), { recursive: true });
 		await mkdir(path.join(tree, "usr/bin"), { recursive: true });
-		await mkdir(path.join(tree, "usr/lib/cap"), { recursive: true });
-		await writeFile(path.join(tree, "usr/bin/Cap"), "#!/bin/sh\n", {
+		await mkdir(path.join(tree, "usr/lib/scoopy"), { recursive: true });
+		await writeFile(path.join(tree, "usr/bin/Scoopy"), "#!/bin/sh\n", {
 			mode: 0o755,
 		});
 		const library = Buffer.alloc(4096, 7);
 		for (const name of ["libonnxruntime.so", "libonnxruntime.so.1"]) {
-			await writeFile(path.join(tree, "usr/lib/cap", name), library, {
+			await writeFile(path.join(tree, "usr/lib/scoopy", name), library, {
 				mode: 0o755,
 			});
 		}
@@ -435,7 +435,7 @@ test(
 			path.join(tree, "DEBIAN/md5sums"),
 			capture("sh", [
 				"-c",
-				'cd "$1" && md5sum usr/bin/Cap usr/lib/cap/libonnxruntime.so usr/lib/cap/libonnxruntime.so.1',
+				'cd "$1" && md5sum usr/bin/Scoopy usr/lib/scoopy/libonnxruntime.so usr/lib/scoopy/libonnxruntime.so.1',
 				"sh",
 				tree,
 			]),
@@ -443,7 +443,7 @@ test(
 		await writeFile(
 			path.join(tree, "DEBIAN/control"),
 			[
-				"Package: cap",
+				"Package: scoopy",
 				"Version: 0.6.1",
 				"Architecture: amd64",
 				"Maintainer: cap",
@@ -463,13 +463,13 @@ test(
 		);
 		assert.equal(
 			capture("dpkg-deb", ["--field", deb, "Package"]).trim(),
-			"cap",
+			"scoopy",
 		);
 		const contents = capture("dpkg-deb", ["--contents", deb]);
-		assert.match(contents, /-rwxr-xr-x root\/root .* \.\/usr\/bin\/Cap/);
+		assert.match(contents, /-rwxr-xr-x root\/root .* \.\/usr\/bin\/Scoopy/);
 		assert.match(
 			contents,
-			/lrwxrwxrwx root\/root .* \.\/usr\/lib\/cap\/libonnxruntime\.so -> libonnxruntime\.so\.1/,
+			/lrwxrwxrwx root\/root .* \.\/usr\/lib\/scoopy\/libonnxruntime\.so -> libonnxruntime\.so\.1/,
 		);
 		assert.equal(
 			capture("dpkg-deb", ["--field", deb, "Installed-Size"]).trim(),
@@ -500,7 +500,7 @@ test(
 		]) {
 			await mkdir(path.join(top, directory), { recursive: true });
 		}
-		const spec = path.join(top, "SPECS/cap.spec");
+		const spec = path.join(top, "SPECS/scoopy.spec");
 		await writeFile(
 			spec,
 			[
@@ -518,20 +518,20 @@ test(
 				"Beautiful screen recordings, owned by you.",
 				"",
 				"%install",
-				'mkdir -p "%{buildroot}/usr/bin" "%{buildroot}/usr/lib/Cap" "%{buildroot}/usr/lib/cap"',
-				"printf 'cap' > \"%{buildroot}/usr/bin/Cap\"",
-				"printf 'music' > \"%{buildroot}/usr/lib/Cap/track one.mp3\"",
-				"printf 'onnx' > \"%{buildroot}/usr/lib/cap/libonnxruntime.so.1\"",
-				"printf 'onnx' > \"%{buildroot}/usr/lib/cap/libonnxruntime.so\"",
-				'ln -s Cap "%{buildroot}/usr/bin/cap"',
+				'mkdir -p "%{buildroot}/usr/bin" "%{buildroot}/usr/lib/Scoopy" "%{buildroot}/usr/lib/scoopy"',
+				"printf 'cap' > \"%{buildroot}/usr/bin/Scoopy\"",
+				"printf 'music' > \"%{buildroot}/usr/lib/Scoopy/track one.mp3\"",
+				"printf 'onnx' > \"%{buildroot}/usr/lib/scoopy/libonnxruntime.so.1\"",
+				"printf 'onnx' > \"%{buildroot}/usr/lib/scoopy/libonnxruntime.so\"",
+				'ln -s Scoopy "%{buildroot}/usr/bin/scoopy"',
 				"",
 				"%files",
-				'%attr(0755,root,root) "/usr/bin/Cap"',
-				'%attr(-,root,root) "/usr/bin/cap"',
-				'%dir %attr(0755,root,root) "/usr/lib/Cap"',
-				'%attr(0644,root,root) "/usr/lib/Cap/track one.mp3"',
-				'%attr(0755,root,root) "/usr/lib/cap/libonnxruntime.so"',
-				'%attr(0755,root,root) "/usr/lib/cap/libonnxruntime.so.1"',
+				'%attr(0755,root,root) "/usr/bin/Scoopy"',
+				'%attr(-,root,root) "/usr/bin/scoopy"',
+				'%dir %attr(0755,root,root) "/usr/lib/Scoopy"',
+				'%attr(0644,root,root) "/usr/lib/Scoopy/track one.mp3"',
+				'%attr(0755,root,root) "/usr/lib/scoopy/libonnxruntime.so"',
+				'%attr(0755,root,root) "/usr/lib/scoopy/libonnxruntime.so.1"',
 				"",
 			].join("\n"),
 		);
@@ -544,7 +544,7 @@ test(
 			"--define",
 			`_rpmdir ${output}`,
 			"--define",
-			"_rpmfilename Cap-0.6.1-1.x86_64.rpm",
+			"_rpmfilename Scoopy-0.6.1-1.x86_64.rpm",
 			"--define",
 			"_binary_payload w9.zstdio",
 			"--define",
@@ -558,7 +558,7 @@ test(
 			"--target",
 			"x86_64",
 		]);
-		const rpm = path.join(output, "Cap-0.6.1-1.x86_64.rpm");
+		const rpm = path.join(output, "Scoopy-0.6.1-1.x86_64.rpm");
 		const files = (file) =>
 			capture("rpm", [
 				"-qp",
@@ -577,8 +577,8 @@ test(
 		assert.equal(
 			files(rpm),
 			before.replace(
-				"100755 root:root /usr/lib/cap/libonnxruntime.so\n",
-				"120777 root:root /usr/lib/cap/libonnxruntime.so\n",
+				"100755 root:root /usr/lib/scoopy/libonnxruntime.so\n",
+				"120777 root:root /usr/lib/scoopy/libonnxruntime.so\n",
 			),
 		);
 		assert.match(
@@ -588,7 +588,7 @@ test(
 				"[%{FILENAMES} -> %{FILELINKTOS}\\n]",
 				rpm,
 			]),
-			/\/usr\/lib\/cap\/libonnxruntime\.so -> libonnxruntime\.so\.1\n/,
+			/\/usr\/lib\/scoopy\/libonnxruntime\.so -> libonnxruntime\.so\.1\n/,
 		);
 		assert.equal(
 			capture("rpm", [
@@ -603,7 +603,7 @@ test(
 	},
 );
 
-for (const payload of ["usr/bin/Cap", "usr/lib/cap/libmedia.so"]) {
+for (const payload of ["usr/bin/Scoopy", "usr/lib/scoopy/libmedia.so"]) {
 	test(
 		`deb finalization checks glibc requirements in ${payload}`,
 		{
@@ -618,7 +618,7 @@ for (const payload of ["usr/bin/Cap", "usr/lib/cap/libmedia.so"]) {
 			const source = path.join(root, "payload.c");
 			await writeFile(
 				source,
-				'#include <stdio.h>\nint main(void) { return puts("cap"); }\n',
+				'#include <stdio.h>\nint main(void) { return puts("scoopy"); }\n',
 			);
 			capture("gcc", [
 				...(payload.endsWith(".so") ? ["-shared", "-fPIC"] : []),
@@ -636,12 +636,12 @@ for (const payload of ["usr/bin/Cap", "usr/lib/cap/libmedia.so"]) {
 				dependency.startsWith("libc6"),
 			);
 			assert.equal(declared, "libc6 (>= 2.39)");
-			const deb = path.join(root, "cap.deb");
+			const deb = path.join(root, "scoopy.deb");
 			for (const dependency of ["", "libc6", "libc6 (>= 2.0)", declared]) {
 				await writeFile(
 					path.join(tree, "DEBIAN/control"),
 					[
-						"Package: cap",
+						"Package: scoopy",
 						"Version: 0.6.1",
 						"Architecture: all",
 						"Maintainer: cap",

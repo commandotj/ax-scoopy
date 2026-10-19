@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { createWritableMemo } from "@solid-primitives/memo";
 import {
 	isPermissionGranted,
@@ -348,10 +348,10 @@ function Inner(props: {
 
 	const isManagedWindowsApp = (window: CaptureWindow) => {
 		const bundle = window.bundle_identifier?.toLowerCase() ?? "";
-		if (bundle.includes("so.cap.desktop")) {
+		if (bundle.includes("me.systembug.scoopy")) {
 			return true;
 		}
-		return window.owner_name.toLowerCase().includes("cap");
+		return window.owner_name.toLowerCase().includes("scoopy");
 	};
 
 	const isWindowAvailable = (window: CaptureWindow) => {
@@ -459,14 +459,14 @@ function Inner(props: {
 						);
 						return option ? option.text : currentValue;
 					})()}
-					<IconCapChevronDown class="size-3.5 text-gray-10" />
+					<IconScoopyChevronDown class="size-3.5 text-gray-10" />
 				</button>
 			</SettingItem>
 		);
 	};
 
 	return (
-		<div class="cap-settings-page flex flex-col h-full custom-scroll">
+		<div class="scoopy-settings-page flex flex-col h-full custom-scroll">
 			<SettingsPageContent>
 				<AppearanceSection
 					currentTheme={settings.theme ?? "system"}
@@ -1124,13 +1124,13 @@ function DefaultProjectNameCard(props: {
 					/>
 
 					<div class="flex gap-2 items-center px-3 py-2 rounded-lg border border-dashed bg-gray-3 border-gray-5">
-						<IconCapLogo class="pointer-events-none size-4 shrink-0" />
+						<IconScoopyLogo class="pointer-events-none size-4 shrink-0" />
 						<p class="text-xs text-gray-12 whitespace-pre-wrap">{preview()}</p>
 					</div>
 
 					<Collapsible class="w-full rounded-lg">
 						<Collapsible.Trigger class="inline-flex gap-1 items-center text-xs transition-colors text-gray-10 hover:text-gray-12 group">
-							<IconCapChevronDown class="size-3.5 data-group-expanded:rotate-180 transition-transform duration-200" />
+							<IconScoopyChevronDown class="size-3.5 data-group-expanded:rotate-180 transition-transform duration-200" />
 							<span>Available placeholders</span>
 						</Collapsible.Trigger>
 

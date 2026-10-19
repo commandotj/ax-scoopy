@@ -1,4 +1,4 @@
-use cap_project::{
+use scoopy_project::{
     KeyPressEvent, KeyboardEvents, KeyboardSettings, RecordingMeta, TimelineConfiguration,
     generate_project_keyboard_segments,
 };

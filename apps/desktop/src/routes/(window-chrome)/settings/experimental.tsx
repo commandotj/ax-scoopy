@@ -155,7 +155,7 @@ function Inner(props: {
 	};
 
 	return (
-		<div class="cap-settings-page flex flex-col h-full custom-scroll">
+		<div class="scoopy-settings-page flex flex-col h-full custom-scroll">
 			<SettingsPageContent>
 				<Show when={props.osType === "macos"}>
 					<Section title="Preview">
@@ -176,7 +176,7 @@ function Inner(props: {
 					<SectionRows>
 						<ToggleSettingItem
 							label="Out-of-process muxer"
-							description="Run the fragmented-MP4 muxer in an isolated subprocess so muxer crashes can't take down your recording. Requires the bundled cap-muxer binary."
+							description="Run the fragmented-MP4 muxer in an isolated subprocess so muxer crashes can't take down your recording. Requires the bundled scoopy-muxer binary."
 							value={!!settings.outOfProcessMuxer}
 							onChange={(value) => handleChange("outOfProcessMuxer", value)}
 						/>

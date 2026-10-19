@@ -37,7 +37,7 @@ export function resolveMacosDeploymentTarget(value) {
 		if (difference > 0) return target;
 		if (difference < 0) {
 			throw new Error(
-				`MACOSX_DEPLOYMENT_TARGET=${target} is below Cap's minimum macOS version ${minimum}; ScreenCaptureKit requires macOS 12.3 or later.`,
+				`MACOSX_DEPLOYMENT_TARGET=${target} is below Scoopy's minimum macOS version ${minimum}; ScreenCaptureKit requires macOS 12.3 or later.`,
 			);
 		}
 	}

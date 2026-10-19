@@ -14,7 +14,7 @@
 //!   source: the scale is `min(320/w, 180/h)` with no `.min(1.0)` clamp, so a
 //!   160x90 capture comes back as a full-bleed 320x180.
 //! * The capture itself (`mac.rs:7-42`): a display filter with **no** window
-//!   exclusions — Cap's own windows deliberately appear in display thumbnails —
+//!   exclusions — Scoopy's own windows deliberately appear in display thumbnails —
 //!   a `with_desktop_independent_window` filter for windows, and an
 //!   `sc::StreamCfg` sized 320x180 with the cursor hidden, handed to
 //!   `sc::ScreenshotManager::capture_sample_buf`. The pixel buffer is asked for
@@ -439,7 +439,7 @@ pub fn fitted_capture_size(source: Option<(f64, f64)>) -> (usize, usize) {
 
 /// `normalize_thumbnail_dimensions` (`thumbnails/mod.rs:44-87`), verbatim.
 pub fn normalize_thumbnail_dimensions(image: &RgbaImage) -> RgbaImage {
-    cap_gpui_kernels::thumbnail::fit_centered(image, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
+    scoopy_gpui_kernels::thumbnail::fit_centered(image, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
 }
 
 /// Run a capture sweep somewhere it is allowed to be non-`Send`.
@@ -615,7 +615,7 @@ mod platform {
 
     /// `capture_display_thumbnail` (`mac.rs:7-12`).
     ///
-    /// `as_content_filter` excludes nothing, which is not an oversight: Cap's
+    /// `as_content_filter` excludes nothing, which is not an oversight: Scoopy's
     /// own windows show up in display thumbnails in the Tauri app and the
     /// picker is expected to look the same here.
     pub async fn capture_display_thumbnail(
@@ -883,8 +883,8 @@ mod platform {
 
 #[cfg(not(target_os = "macos"))]
 mod platform {
-    use cap_recording::screenshot::capture_screenshot;
-    use cap_recording::sources::screen_capture::ScreenCaptureTarget;
+    use scoopy_recording::screenshot::capture_screenshot;
+    use scoopy_recording::sources::screen_capture::ScreenCaptureTarget;
     use image::RgbaImage;
 
     use super::normalize_thumbnail_dimensions;
@@ -918,7 +918,7 @@ mod platform {
 
     async fn capture_target_thumbnail(target: ScreenCaptureTarget) -> Option<RgbaImage> {
         #[cfg(target_os = "linux")]
-        if cap_recording::screenshot::uses_wayland_portal() {
+        if scoopy_recording::screenshot::uses_wayland_portal() {
             return None;
         }
 
@@ -947,11 +947,11 @@ use platform::{capture_display_thumbnail, capture_window_thumbnail, shareable_co
 // buffers on any host.
 
 #[cfg(test)]
-use cap_gpui_kernels::frame::ycbcr_to_rgb;
+use scoopy_gpui_kernels::frame::ycbcr_to_rgb;
 #[cfg(any(target_os = "macos", test))]
-pub use cap_gpui_kernels::frame::{ChannelOrder, Nv12Range};
+pub use scoopy_gpui_kernels::frame::{ChannelOrder, Nv12Range};
 #[cfg(any(target_os = "macos", test))]
-use cap_gpui_kernels::frame::{convert_32bit_rows, convert_nv12_planes};
+use scoopy_gpui_kernels::frame::{convert_32bit_rows, convert_nv12_planes};
 
 /// `convert_32bit_pixel_buffer` (`thumbnails/mac.rs:111-160`).
 ///
@@ -1271,16 +1271,16 @@ mod tests {
 
     #[test]
     fn window_signature_joins_every_field_the_source_joins() {
-        let list = [window("1", "Cap", "Main"), window("2", "Cap", "Editor")];
+        let list = [window("1", "Scoopy", "Main"), window("2", "Scoopy", "Editor")];
         assert_eq!(
             window_signature(&list),
-            "1:Cap:Main:0:0:1920:1080:60|2:Cap:Editor:0:0:1920:1080:60"
+            "1:Scoopy:Main:0:0:1920:1080:60|2:Scoopy:Editor:0:0:1920:1080:60"
         );
     }
 
     #[test]
     fn window_signature_notices_a_move_a_resize_a_rename_and_a_reorder() {
-        let base = [window("1", "Cap", "Main")];
+        let base = [window("1", "Scoopy", "Main")];
 
         let mut moved = base.clone();
         moved[0].position = Some((10., 0.));
@@ -1294,8 +1294,8 @@ mod tests {
         renamed[0].label = "Untitled".into();
         assert_ne!(window_signature(&base), window_signature(&renamed));
 
-        let pair = [window("1", "Cap", "Main"), window("2", "Cap", "Editor")];
-        let swapped = [window("2", "Cap", "Editor"), window("1", "Cap", "Main")];
+        let pair = [window("1", "Scoopy", "Main"), window("2", "Scoopy", "Editor")];
+        let swapped = [window("2", "Scoopy", "Editor"), window("1", "Scoopy", "Main")];
         assert_ne!(window_signature(&pair), window_signature(&swapped));
     }
 
@@ -1386,7 +1386,7 @@ mod tests {
     #[test]
     fn staleness_tracks_the_signature_of_the_captured_list() {
         let mut cache = ThumbnailCache::default();
-        let list = [window("1", "Cap", "Main")];
+        let list = [window("1", "Scoopy", "Main")];
 
         // Nothing captured yet: always stale.
         assert!(cache.windows_stale(&list));

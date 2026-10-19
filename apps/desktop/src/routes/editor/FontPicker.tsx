@@ -61,7 +61,7 @@ export function FontPicker(props: {
 						{itemProps.item.rawValue.label}
 					</KCombobox.ItemLabel>
 					<KCombobox.ItemIndicator class="ml-auto text-ed-accent">
-						<IconCapCircleCheck />
+						<IconScoopyCircleCheck />
 					</KCombobox.ItemIndicator>
 				</MenuItem>
 			)}
@@ -73,7 +73,7 @@ export function FontPicker(props: {
 				/>
 				<KCombobox.Trigger class="shrink-0 ml-2 text-ed-text-3">
 					<KCombobox.Icon>
-						<IconCapChevronDown class="size-3.5 transform transition-transform data-expanded:rotate-180" />
+						<IconScoopyChevronDown class="size-3.5 transform transition-transform data-expanded:rotate-180" />
 					</KCombobox.Icon>
 				</KCombobox.Trigger>
 			</KCombobox.Control>

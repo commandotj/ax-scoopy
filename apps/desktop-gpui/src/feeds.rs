@@ -19,7 +19,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU8};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use cap_recording::feeds::{
+use scoopy_recording::feeds::{
     camera::{self, CameraFeed},
     microphone::{self, MicrophoneFeed, MicrophoneSamples},
 };
@@ -30,7 +30,7 @@ use futures_util::{
 use gpui::{App, AppContext as _, Context, Entity, Global};
 use kameo::{Actor as _, actor::ActorRef};
 
-pub use cap_recording::feeds::camera::DeviceOrModelID;
+pub use scoopy_recording::feeds::camera::DeviceOrModelID;
 
 pub type InputReady =
     Shared<BoxFuture<'static, Result<crate::store::RecordingDeviceSettings, String>>>;
@@ -62,9 +62,9 @@ fn owned_input_readiness(
 use crate::app_windows;
 
 #[cfg(target_os = "macos")]
-type PreviewCameraFrame = cap_recording::NativeCameraFrame;
+type PreviewCameraFrame = scoopy_recording::NativeCameraFrame;
 #[cfg(not(target_os = "macos"))]
-type PreviewCameraFrame = cap_recording::FFmpegVideoFrame;
+type PreviewCameraFrame = scoopy_recording::FFmpegVideoFrame;
 
 async fn attach_camera_preview_sender(
     actor: &ActorRef<CameraFeed>,
@@ -118,8 +118,8 @@ async fn camera_input_operation<T>(
 }
 
 fn camera_preview_frame_is_fresh(
-    timestamp: cap_timestamp::Timestamp,
-    ready_at: Option<cap_timestamp::Timestamps>,
+    timestamp: scoopy_timestamp::Timestamp,
+    ready_at: Option<scoopy_timestamp::Timestamps>,
 ) -> bool {
     ready_at.is_some_and(|ready_at| timestamp.checked_duration_since(ready_at).is_some())
 }
@@ -196,7 +196,7 @@ impl Drop for CameraRecordingReservation {
 #[cfg(target_os = "linux")]
 struct RecordingCameraAttachment {
     feed: ActorRef<CameraFeed>,
-    sender: flume::Sender<cap_recording::FFmpegVideoFrame>,
+    sender: flume::Sender<scoopy_recording::FFmpegVideoFrame>,
     runtime: tokio::runtime::Handle,
     _reservation: CameraRecordingReservation,
 }
@@ -214,9 +214,9 @@ impl Drop for RecordingCameraAttachment {
 
 #[cfg(target_os = "linux")]
 struct RecordingCameraWorker {
-    frames: flume::Receiver<cap_recording::FFmpegVideoFrame>,
-    publisher: cap_recording::instant_recording::LinuxCameraPublisher,
-    processing: cap_recording::instant_recording::LinuxCameraProcessing,
+    frames: flume::Receiver<scoopy_recording::FFmpegVideoFrame>,
+    publisher: scoopy_recording::instant_recording::LinuxCameraPublisher,
+    processing: scoopy_recording::instant_recording::LinuxCameraProcessing,
     epoch: u64,
     current_epoch: Arc<std::sync::atomic::AtomicU64>,
     generation: u64,
@@ -229,8 +229,8 @@ impl CameraProcessingFactory {
     pub async fn subscribe(
         &self,
         feed: Arc<camera::CameraFeedLock>,
-        processing: cap_recording::instant_recording::LinuxCameraProcessing,
-    ) -> anyhow::Result<cap_recording::instant_recording::LinuxProcessedCameraSource> {
+        processing: scoopy_recording::instant_recording::LinuxCameraProcessing,
+    ) -> anyhow::Result<scoopy_recording::instant_recording::LinuxProcessedCameraSource> {
         let info = feed.camera_info();
         let matches = match &self.selected {
             DeviceOrModelID::DeviceID(id) => info.device_id() == id,
@@ -270,7 +270,7 @@ impl CameraProcessingFactory {
         let not_before = Instant::now();
         let generation = self.next_generation.fetch_add(1, Ordering::AcqRel) + 1;
         let (publisher, mut source) =
-            cap_recording::instant_recording::LinuxProcessedCameraSource::channel(
+            scoopy_recording::instant_recording::LinuxProcessedCameraSource::channel(
                 feed.clone(),
                 processing,
                 generation,
@@ -315,8 +315,8 @@ impl RecordingCameraWorker {
         &self,
         image: &gpui::RenderImage,
         dims: (usize, usize),
-        timestamp: cap_timestamp::Timestamp,
-        mask: Option<cap_recording::instant_recording::LinuxCameraMaskReceipt>,
+        timestamp: scoopy_timestamp::Timestamp,
+        mask: Option<scoopy_recording::instant_recording::LinuxCameraMaskReceipt>,
     ) {
         if self.publisher.is_cancelled() {
             return;
@@ -340,7 +340,7 @@ impl RecordingCameraWorker {
             return;
         };
         self.publisher.publish(
-            cap_recording::instant_recording::LinuxProcessedCameraFrame {
+            scoopy_recording::instant_recording::LinuxProcessedCameraFrame {
                 bgra: Arc::from(bytes),
                 dimensions: (dims.0 as u32, dims.1 as u32),
                 stride: dims.0 * 4,
@@ -355,7 +355,7 @@ impl RecordingCameraWorker {
 
 #[cfg(target_os = "linux")]
 fn validate_recording_camera_frame(
-    timestamp: cap_timestamp::Timestamp,
+    timestamp: scoopy_timestamp::Timestamp,
     not_before: Instant,
     epoch: u64,
     current_epoch: u64,
@@ -363,7 +363,7 @@ fn validate_recording_camera_frame(
     if epoch != current_epoch {
         return Err("Camera selection changed during recording".to_string());
     }
-    let cap_timestamp::Timestamp::Instant(captured_at) = timestamp else {
+    let scoopy_timestamp::Timestamp::Instant(captured_at) = timestamp else {
         return Err("Camera capture timestamp is not monotonic".to_string());
     };
     Ok(captured_at >= not_before)
@@ -371,34 +371,34 @@ fn validate_recording_camera_frame(
 
 #[cfg(target_os = "linux")]
 fn checked_recording_blur(
-    status: &cap_camera_effects::BlurOutputStatus,
-    expected_mode: cap_camera_effects::BlurMode,
+    status: &scoopy_camera_effects::BlurOutputStatus,
+    expected_mode: scoopy_camera_effects::BlurMode,
     dimensions: (u32, u32),
     now: Instant,
-) -> Result<Option<cap_recording::instant_recording::LinuxCameraMaskReceipt>, String> {
+) -> Result<Option<scoopy_recording::instant_recording::LinuxCameraMaskReceipt>, String> {
     match status.applied_at(
         now,
-        cap_recording::instant_recording::LINUX_CAMERA_MAX_MASK_AGE,
+        scoopy_recording::instant_recording::LINUX_CAMERA_MAX_MASK_AGE,
     ) {
         Ok(applied) if applied.mode == expected_mode && applied.output_dimensions == dimensions => {
             Ok(Some(
-                cap_recording::instant_recording::LinuxCameraMaskReceipt {
+                scoopy_recording::instant_recording::LinuxCameraMaskReceipt {
                     generation: applied.mask.generation,
                     submitted_at: applied.mask.input_submitted_at,
                     completed_at: applied.mask.inference_completed_at,
                 },
             ))
         }
-        Err(cap_camera_effects::BlurOutputUnavailable::Pending) => Ok(None),
+        Err(scoopy_camera_effects::BlurOutputUnavailable::Pending) => Ok(None),
         other => Err(format!("Requested camera blur was not applied: {other:?}")),
     }
 }
 
 #[cfg(target_os = "linux")]
 fn frozen_processing_state(
-    processing: cap_recording::instant_recording::LinuxCameraProcessing,
+    processing: scoopy_recording::instant_recording::LinuxCameraProcessing,
 ) -> (u8, bool) {
-    use cap_recording::instant_recording::LinuxCameraBlur;
+    use scoopy_recording::instant_recording::LinuxCameraBlur;
     (
         match processing.blur {
             LinuxCameraBlur::Off => 0,
@@ -411,7 +411,7 @@ fn frozen_processing_state(
 
 #[cfg(not(target_os = "macos"))]
 struct CameraPreviewWorkerConfig {
-    frames: flume::Receiver<cap_recording::FFmpegVideoFrame>,
+    frames: flume::Receiver<scoopy_recording::FFmpegVideoFrame>,
     previews: flume::Sender<crate::camera_window::CameraPreviewFrame>,
     commands: flume::Receiver<CameraWorkerCommand>,
     mirrored: Arc<AtomicBool>,
@@ -448,7 +448,7 @@ fn run_camera_preview_worker(config: CameraPreviewWorkerConfig) {
             blur_failed = false;
         }
         enum Event {
-            Frame(Result<cap_recording::FFmpegVideoFrame, flume::RecvError>),
+            Frame(Result<scoopy_recording::FFmpegVideoFrame, flume::RecvError>),
             Command(Result<CameraWorkerCommand, flume::RecvError>),
         }
         let input = &frame_rx;
@@ -536,8 +536,8 @@ fn run_camera_preview_worker(config: CameraPreviewWorkerConfig) {
             previous_blur = requested_blur;
         }
         let blur_mode = match requested_blur {
-            1 => Some(cap_camera_effects::BlurMode::Light),
-            2 => Some(cap_camera_effects::BlurMode::Heavy),
+            1 => Some(scoopy_camera_effects::BlurMode::Light),
+            2 => Some(scoopy_camera_effects::BlurMode::Heavy),
             _ => None,
         }
         .filter(|_| !blur_failed && crate::camera_blur_portable::blur_allowed());
@@ -678,7 +678,7 @@ pub struct Feeds {
     microphone_settings: Option<microphone::MicrophoneDeviceSettings>,
     applied_settings: crate::store::RecordingDeviceSettings,
     camera_input_pending: bool,
-    camera_preview_not_before: Option<cap_timestamp::Timestamps>,
+    camera_preview_not_before: Option<scoopy_timestamp::Timestamps>,
     mic_input_pending: bool,
     mic_input_released: bool,
     microphone_error: Option<String>,
@@ -721,7 +721,7 @@ pub struct SelectedCamera {
     pub id: DeviceOrModelID,
     pub label: String,
     pub device_id: String,
-    pub model_id: Option<cap_camera::ModelID>,
+    pub model_id: Option<scoopy_camera::ModelID>,
 }
 
 struct FeedsGlobal(Entity<Feeds>);
@@ -910,7 +910,7 @@ impl Feeds {
         .then_some(self.camera_epoch)
     }
 
-    pub(crate) fn accepts_camera_preview(&self, timestamp: cap_timestamp::Timestamp) -> bool {
+    pub(crate) fn accepts_camera_preview(&self, timestamp: scoopy_timestamp::Timestamp) -> bool {
         self.camera_preview_epoch().is_some()
             && camera_preview_frame_is_fresh(timestamp, self.camera_preview_not_before)
     }
@@ -1043,7 +1043,7 @@ impl Feeds {
                 match result {
                     Ok(settings) => {
                         this.applied_settings.camera = settings.camera;
-                        this.camera_preview_not_before = Some(cap_timestamp::Timestamps::now());
+                        this.camera_preview_not_before = Some(scoopy_timestamp::Timestamps::now());
                     }
                     Err(error) => {
                         tracing::error!("camera input failed: {error}");
@@ -1191,7 +1191,7 @@ impl Feeds {
     /// Drop the live camera and microphone inputs without forgetting what was
     /// selected.
     ///
-    /// `CapWindowId::Main`'s `CloseRequested` arm (`lib.rs:5666-5697`): when
+    /// `ScoopyWindowId::Main`'s `CloseRequested` arm (`lib.rs:5666-5697`): when
     /// nothing is recording, hiding the main window pauses the camera preview
     /// and `ask`s both feeds for `RemoveInput`. It does *not* clear the
     /// frontend's `rawOptions` -- the pickers still show the device that was
@@ -1251,7 +1251,7 @@ impl Feeds {
         // frame straight to the camera window.
         #[cfg(target_os = "macos")]
         let pump = {
-            let (frame_tx, frame_rx) = flume::bounded::<cap_recording::NativeCameraFrame>(4);
+            let (frame_tx, frame_rx) = flume::bounded::<scoopy_recording::NativeCameraFrame>(4);
             self.camera_preview_sender = Some(frame_tx);
 
             cx.spawn(async move |_this, cx| {
@@ -1263,7 +1263,7 @@ impl Feeds {
 
         #[cfg(not(target_os = "macos"))]
         let pump = {
-            let (frame_tx, frame_rx) = flume::bounded::<cap_recording::FFmpegVideoFrame>(4);
+            let (frame_tx, frame_rx) = flume::bounded::<scoopy_recording::FFmpegVideoFrame>(4);
             self.camera_preview_sender = Some(frame_tx);
             let (preview_tx, preview_rx) = flume::bounded(2);
             let (reset_tx, reset_rx) = flume::bounded(4);
@@ -1427,7 +1427,7 @@ pub(crate) fn camera_preview_image(
 
     let width = width as usize;
     let height = height as usize;
-    let pixels = cap_gpui_kernels::frame::copy_rows(
+    let pixels = scoopy_gpui_kernels::frame::copy_rows(
         source.data(0),
         width.checked_mul(4)?,
         source.stride(0),
@@ -1589,21 +1589,21 @@ mod tests {
 
     #[test]
     fn preview_rejects_frames_queued_before_input_readiness() {
-        let ready = cap_timestamp::Timestamps::now();
+        let ready = scoopy_timestamp::Timestamps::now();
         let queued = ready
             .instant()
             .checked_sub(Duration::from_millis(1))
             .unwrap();
         assert!(!camera_preview_frame_is_fresh(
-            cap_timestamp::Timestamp::Instant(queued),
+            scoopy_timestamp::Timestamp::Instant(queued),
             Some(ready)
         ));
         assert!(!camera_preview_frame_is_fresh(
-            cap_timestamp::Timestamp::Instant(ready.instant()),
+            scoopy_timestamp::Timestamp::Instant(ready.instant()),
             None
         ));
         assert!(camera_preview_frame_is_fresh(
-            cap_timestamp::Timestamp::Instant(ready.instant()),
+            scoopy_timestamp::Timestamp::Instant(ready.instant()),
             Some(ready)
         ));
     }
@@ -1611,15 +1611,15 @@ mod tests {
     #[cfg(target_os = "macos")]
     #[test]
     fn preview_checks_native_camera_capture_clock() {
-        let ready = cap_timestamp::Timestamps::now();
+        let ready = scoopy_timestamp::Timestamps::now();
         assert!(!camera_preview_frame_is_fresh(
-            cap_timestamp::Timestamp::MachAbsoluteTime(cap_timestamp::MachAbsoluteTimestamp::new(
+            scoopy_timestamp::Timestamp::MachAbsoluteTime(scoopy_timestamp::MachAbsoluteTimestamp::new(
                 0
             )),
             Some(ready)
         ));
         assert!(camera_preview_frame_is_fresh(
-            cap_timestamp::Timestamp::MachAbsoluteTime(cap_timestamp::MachAbsoluteTimestamp::now()),
+            scoopy_timestamp::Timestamp::MachAbsoluteTime(scoopy_timestamp::MachAbsoluteTimestamp::now()),
             Some(ready)
         ));
     }
@@ -1834,7 +1834,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn recording_blur_pending_failure_stale_and_wrong_effect_cannot_certify_pixels() {
-        use cap_camera_effects::{
+        use scoopy_camera_effects::{
             BlurFailure, BlurMaskReceipt, BlurMaskStatus, BlurMode, BlurOutputStatus,
         };
         let now = Instant::now();
@@ -1874,7 +1874,7 @@ mod tests {
                 &status,
                 BlurMode::Light,
                 (4, 2),
-                now + cap_recording::instant_recording::LINUX_CAMERA_MAX_MASK_AGE
+                now + scoopy_recording::instant_recording::LINUX_CAMERA_MAX_MASK_AGE
                     + Duration::from_millis(1)
             )
             .is_err()
@@ -1904,7 +1904,7 @@ mod tests {
         let subscribed = old + Duration::from_millis(1);
         assert_eq!(
             validate_recording_camera_frame(
-                cap_timestamp::Timestamp::Instant(old),
+                scoopy_timestamp::Timestamp::Instant(old),
                 subscribed,
                 7,
                 7
@@ -1913,7 +1913,7 @@ mod tests {
         );
         assert_eq!(
             validate_recording_camera_frame(
-                cap_timestamp::Timestamp::Instant(subscribed),
+                scoopy_timestamp::Timestamp::Instant(subscribed),
                 subscribed,
                 7,
                 7
@@ -1922,7 +1922,7 @@ mod tests {
         );
         assert!(
             validate_recording_camera_frame(
-                cap_timestamp::Timestamp::Instant(subscribed),
+                scoopy_timestamp::Timestamp::Instant(subscribed),
                 subscribed,
                 7,
                 8
@@ -1931,7 +1931,7 @@ mod tests {
         );
         assert!(
             validate_recording_camera_frame(
-                cap_timestamp::Timestamp::Instant(old),
+                scoopy_timestamp::Timestamp::Instant(old),
                 subscribed,
                 7,
                 8
@@ -1940,7 +1940,7 @@ mod tests {
         );
         assert!(
             validate_recording_camera_frame(
-                cap_timestamp::Timestamp::SystemTime(std::time::SystemTime::now()),
+                scoopy_timestamp::Timestamp::SystemTime(std::time::SystemTime::now()),
                 subscribed,
                 7,
                 7,
@@ -1952,7 +1952,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn recording_processing_keeps_exact_mirror_and_light_heavy_identity() {
-        use cap_recording::instant_recording::{LinuxCameraBlur, LinuxCameraProcessing};
+        use scoopy_recording::instant_recording::{LinuxCameraBlur, LinuxCameraProcessing};
         for (blur, encoded) in [
             (LinuxCameraBlur::Off, 0),
             (LinuxCameraBlur::Light, 1),

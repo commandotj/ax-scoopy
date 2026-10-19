@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[cfg(target_os = "macos")]
-use crate::{general_settings::GeneralSettingsStore, windows::CapWindowId};
+use crate::{general_settings::GeneralSettingsStore, windows::ScoopyWindowId};
 #[cfg(target_os = "macos")]
 use cidre::{av, sc};
 #[cfg(target_os = "macos")]
@@ -232,7 +232,7 @@ pub(crate) fn sync_macos_dock_visibility(app: &tauri::AppHandle) {
         .is_some_and(|settings| settings.hide_dock_icon);
 
     let has_visible_panel_window = app.webview_windows().iter().any(|(label, window)| {
-        CapWindowId::from_str(label)
+        ScoopyWindowId::from_str(label)
             .map(|id| !id.activates_dock() && window.is_visible().unwrap_or(false))
             .unwrap_or(false)
     });
@@ -242,7 +242,7 @@ pub(crate) fn sync_macos_dock_visibility(app: &tauri::AppHandle) {
     }
 
     let has_visible_dock_window = app.webview_windows().iter().any(|(label, window)| {
-        CapWindowId::from_str(label)
+        ScoopyWindowId::from_str(label)
             .map(|window_id| window_id.activates_dock() && window.is_visible().unwrap_or(false))
             .unwrap_or(false)
     });
@@ -352,7 +352,7 @@ fn macos_screen_recording_available() -> bool {
 // (lib.rs), and RunEvent::Reopen → should_show_onboarding (lib.rs); they get
 // the last strictly-observed answer without blocking — optimistic until the
 // first strict validation completes, since CGPreflight already passed. Reopen
-// consuming an optimistic answer is self-correcting: ShowCapWindow::Main
+// consuming an optimistic answer is self-correcting: ShowScoopyWindow::Main
 // re-checks off-main (windows.rs) and redirects back to Onboarding. The
 // onboarding/permission UIs poll via async commands and keep the strict path.
 #[cfg(target_os = "macos")]

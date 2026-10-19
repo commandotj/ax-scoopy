@@ -178,7 +178,7 @@ function TextStyleSelect<T extends string | number>(props: {
 						{selectItemProps.item.rawValue.label}
 					</KSelect.ItemLabel>
 					<KSelect.ItemIndicator class="ml-auto text-ed-accent">
-						<IconCapCircleCheck />
+						<IconScoopyCircleCheck />
 					</KSelect.ItemIndicator>
 				</MenuItem>
 			)}
@@ -188,7 +188,7 @@ function TextStyleSelect<T extends string | number>(props: {
 					{(state) => state.selectedOption()?.label ?? selected().label}
 				</KSelect.Value>
 				<KSelect.Icon>
-					<IconCapChevronDown class="transition-transform transform size-3.5 shrink-0 data-expanded:rotate-180 text-ed-text-3" />
+					<IconScoopyChevronDown class="transition-transform transform size-3.5 shrink-0 data-expanded:rotate-180 text-ed-text-3" />
 				</KSelect.Icon>
 			</KSelect.Trigger>
 			<KSelect.Portal>

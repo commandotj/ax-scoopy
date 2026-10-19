@@ -2,7 +2,7 @@ use crate::{
     ArcLock, feeds::microphone::MicrophoneFeed, general_settings::GeneralSettingsStore,
     permissions, web_api::ManagerExt,
 };
-use cap_recording::diagnostics::{
+use scoopy_recording::diagnostics::{
     CameraDiagnostics, CameraFormatInfo, DisplayDiagnostics, HardwareInfo, MicrophoneDiagnostics,
     StorageInfo,
 };
@@ -14,7 +14,7 @@ use tauri::{AppHandle, Manager};
 #[serde(rename_all = "camelCase")]
 struct LogUploadDiagnostics {
     hardware: HardwareInfo,
-    system: cap_recording::diagnostics::SystemDiagnostics,
+    system: scoopy_recording::diagnostics::SystemDiagnostics,
     displays: Vec<DisplayDiagnostics>,
     cameras: Vec<CameraDiagnostics>,
     microphones: Vec<MicrophoneDiagnostics>,
@@ -44,7 +44,7 @@ fn collect_cameras(has_permission: bool) -> Vec<CameraDiagnostics> {
         return vec![];
     }
 
-    cap_camera::list_cameras()
+    scoopy_camera::list_cameras()
         .map(|camera| {
             let formats = camera
                 .formats()
@@ -110,7 +110,7 @@ fn collect_storage_info(recordings_path: &std::path::Path) -> Option<StorageInfo
     best_match.map(|(disk, _)| StorageInfo {
         // The diagnostic report redacts these same paths, and both fields ride
         // in one upload -- leaving this one raw defeats the redaction.
-        recordings_path: cap_recording::diagnostics::redact_home_paths(
+        recordings_path: scoopy_recording::diagnostics::redact_home_paths(
             &recordings_path.display().to_string(),
         ),
         available_space_mb: disk.available_space() / (1024 * 1024),
@@ -132,9 +132,9 @@ fn collect_diagnostics_for_upload(
     app_data_dir: &std::path::Path,
     is_recording: bool,
 ) -> LogUploadDiagnostics {
-    let hardware = cap_recording::diagnostics::collect_hardware_info();
-    let system = cap_recording::diagnostics::collect_diagnostics();
-    let displays = cap_recording::diagnostics::collect_displays();
+    let hardware = scoopy_recording::diagnostics::collect_hardware_info();
+    let system = scoopy_recording::diagnostics::collect_diagnostics();
+    let displays = scoopy_recording::diagnostics::collect_displays();
     let permissions = permissions::do_permissions_check(false);
 
     let cameras = collect_cameras(permissions.camera.permitted());
@@ -155,10 +155,10 @@ fn collect_diagnostics_for_upload(
         },
         app_state: AppStateInfo {
             is_recording,
-            recordings_dir: cap_recording::diagnostics::redact_home_paths(
+            recordings_dir: scoopy_recording::diagnostics::redact_home_paths(
                 &recordings_dir.display().to_string(),
             ),
-            app_data_dir: cap_recording::diagnostics::redact_home_paths(
+            app_data_dir: scoopy_recording::diagnostics::redact_home_paths(
                 &app_data_dir.display().to_string(),
             ),
         },
@@ -182,8 +182,8 @@ pub(crate) async fn upload_log_file_inner(
     let log_bundle = tokio::task::spawn_blocking(move || {
         logs_dir
             .as_deref()
-            .map_or_else(cap_utils::log_upload::LogBundle::unavailable, |directory| {
-                cap_utils::log_upload::collect(directory, "cap-desktop.log")
+            .map_or_else(scoopy_utils::log_upload::LogBundle::unavailable, |directory| {
+                scoopy_utils::log_upload::collect(directory, "scoopy-desktop.log")
             })
     })
     .await
@@ -218,10 +218,10 @@ pub(crate) async fn upload_log_file_inner(
             "os": std::env::consts::OS,
             "binaryArchitecture": std::env::consts::ARCH,
             "debugBuild": cfg!(debug_assertions),
-            "sourceRevision": option_env!("CAP_BUILD_REVISION"),
-            "sourceDirty": option_env!("CAP_BUILD_DIRTY").and_then(|value| value.parse::<bool>().ok()),
+            "sourceRevision": option_env!("SCOOPY_BUILD_REVISION"),
+            "sourceDirty": option_env!("SCOOPY_BUILD_DIRTY").and_then(|value| value.parse::<bool>().ok()),
         },
-        "operations": cap_utils::operation_diagnostics::snapshot(),
+        "operations": scoopy_utils::operation_diagnostics::snapshot(),
         "logCoverage": &log_bundle,
         "environmentCollectedAt": "upload_time",
         "mediaIncluded": false,
@@ -231,9 +231,9 @@ pub(crate) async fn upload_log_file_inner(
     // whole URLs on failure (reqwest's Display and Debug both append the URL),
     // and an upload failure logs a presigned S3 PUT, whose query string is a
     // live write credential for up to an hour.
-    use cap_recording::log_redaction::scrub_log_text;
+    use scoopy_recording::log_redaction::scrub_log_text;
 
-    let upload = cap_utils::log_upload::prepare_upload(
+    let upload = scoopy_utils::log_upload::prepare_upload(
         log_bundle,
         context,
         Some(&diagnostics_json),

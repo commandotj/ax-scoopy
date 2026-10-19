@@ -1,12 +1,12 @@
 use crate::export_audio::{EXPORT_AUDIO_BLOCK_SAMPLES, ExportAudioError, ExportAudioSources};
-use cap_audio::{
+use scoopy_audio::{
     AudioData, AudioRendererTrack, DecodedAudio, FromSampleBytes, StereoMode, VoiceAudio,
     VoiceEnhancer, VoiceSource, cast_bytes_to_f32_slice, cast_f32_slice_to_bytes,
     high_quality_resampler_options,
 };
-use cap_media::MediaError;
-use cap_media_info::AudioInfo;
-use cap_project::{
+use scoopy_media::MediaError;
+use scoopy_media_info::AudioInfo;
+use scoopy_project::{
     AudioConfiguration, ClipOffsets, ClipSpeedAudioMode, ClipTransitionType, ProjectConfiguration,
     TimelineConfiguration, TimelineFrameMapping, TimelineSource, VoiceIsolation,
 };
@@ -131,7 +131,7 @@ struct TimelineCursor<'a> {
     segment_end_samples: usize,
     segment_time: f64,
     segment_index: usize,
-    segment: &'a cap_project::TimelineSegment,
+    segment: &'a scoopy_project::TimelineSegment,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -834,7 +834,7 @@ impl AudioRenderer {
     }
 }
 
-fn apply_clip_volume(samples: &mut [f32], segment: &cap_project::TimelineSegment) {
+fn apply_clip_volume(samples: &mut [f32], segment: &scoopy_project::TimelineSegment) {
     let volume = segment.volume() as f32;
     if volume != 1.0 {
         for sample in samples {
@@ -911,7 +911,7 @@ fn render_audio_data_chunk(
         .collect::<Vec<_>>();
 
     if !project.audio.improve || project.audio.mute {
-        return cap_audio::render_audio(&track_datas, cursor.samples, samples, out_offset, out);
+        return scoopy_audio::render_audio(&track_datas, cursor.samples, samples, out_offset, out);
     }
     let clip_key = cursor.clip_index as usize;
     for offset in (0..samples).step_by(EXPORT_AUDIO_BLOCK_SAMPLES) {
@@ -967,7 +967,7 @@ fn render_audio_data_chunk(
                 offset: track.offset,
             })
             .collect::<Vec<_>>();
-        cap_audio::render_audio(&mixed, cursor, count, out_offset + offset * 2, out);
+        scoopy_audio::render_audio(&mixed, cursor, count, out_offset + offset * 2, out);
     }
     samples
 }
@@ -1018,11 +1018,11 @@ impl VoiceEnhancementCache {
 const SPEED_AUDIO_INPUT_BLOCK_SAMPLES: usize = 4_096;
 const SPEED_AUDIO_PREROLL_SAMPLES: usize = 2_400;
 
-fn project_stereo_mode_key(mode: &cap_project::StereoMode) -> u8 {
+fn project_stereo_mode_key(mode: &scoopy_project::StereoMode) -> u8 {
     match mode {
-        cap_project::StereoMode::Stereo => 0,
-        cap_project::StereoMode::MonoL => 1,
-        cap_project::StereoMode::MonoR => 2,
+        scoopy_project::StereoMode::Stereo => 0,
+        scoopy_project::StereoMode::MonoL => 1,
+        scoopy_project::StereoMode::MonoR => 2,
     }
 }
 
@@ -1290,7 +1290,7 @@ fn music_gain(volume_db: f32) -> f32 {
 ///
 /// Each segment is placed in output time (`start`/`end`), reads its source from
 /// `trim_start`, and applies linear fade-in/out ramps. Sources may be mono or
-/// stereo; mono is centre-panned at -3dB to match `cap_audio::render_audio`.
+/// stereo; mono is centre-panned at -3dB to match `scoopy_audio::render_audio`.
 fn mix_music(
     music: &MusicTracks,
     timeline: &TimelineConfiguration,
@@ -2005,7 +2005,7 @@ impl<T: FromSampleBytes + cpal::FromSample<f32>> StreamingAudioBuffer<T> {
         let (ready_tx, ready) = std::sync::mpsc::sync_channel(1);
         let state = timeline.clone();
         let worker = std::thread::Builder::new()
-            .name("cap-audio-stream".into())
+            .name("scoopy-audio-stream".into())
             .spawn(move || {
                 let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                     let render_info =
@@ -2368,7 +2368,7 @@ fn spawn_progressive_render(
     ready_tx: std::sync::mpsc::Sender<()>,
 ) {
     let spawn_result = std::thread::Builder::new()
-        .name("cap-audio-prerender".into())
+        .name("scoopy-audio-prerender".into())
         .spawn(move || {
             let render_start = std::time::Instant::now();
             let mut renderer = AudioRenderer::new(segments).with_music(music);
@@ -2501,7 +2501,7 @@ fn spawn_progressive_render(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cap_project::{
+    use scoopy_project::{
         ClipConfiguration, ClipTransition, ProjectConfiguration, TimelineConfiguration,
         TimelineSegment,
     };
@@ -3636,8 +3636,8 @@ mod tests {
         end: f64,
         fade_in: f64,
         fade_out: f64,
-    ) -> cap_project::AudioTrackSegment {
-        cap_project::AudioTrackSegment {
+    ) -> scoopy_project::AudioTrackSegment {
+        scoopy_project::AudioTrackSegment {
             start,
             end,
             track: 0,
@@ -3652,7 +3652,7 @@ mod tests {
         }
     }
 
-    fn music_project(audio_segments: Vec<cap_project::AudioTrackSegment>) -> ProjectConfiguration {
+    fn music_project(audio_segments: Vec<scoopy_project::AudioTrackSegment>) -> ProjectConfiguration {
         ProjectConfiguration {
             timeline: Some(TimelineConfiguration {
                 segments: vec![segment(0, 0.0, 3.0, 1.0)],

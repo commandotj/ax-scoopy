@@ -5,10 +5,10 @@ fn main() {
 
 #[cfg(target_os = "macos")]
 fn main() -> anyhow::Result<()> {
-    use cap_camera::{CameraInfo, CapturedFrame, Format};
-    use cap_camera_ffmpeg::CapturedFrameExt;
-    use cap_enc_avfoundation::{MP4Encoder, QueueFrameError};
-    use cap_media_info::VideoInfo;
+    use scoopy_camera::{CameraInfo, CapturedFrame, Format};
+    use scoopy_camera_ffmpeg::CapturedFrameExt;
+    use scoopy_enc_avfoundation::{MP4Encoder, QueueFrameError};
+    use scoopy_media_info::VideoInfo;
     use cidre::{arc, cm};
     use std::{
         cmp::Ordering,
@@ -135,7 +135,7 @@ fn main() -> anyhow::Result<()> {
         format_limit: usize,
         preferred_camera: Option<&str>,
     ) -> anyhow::Result<Vec<ProbeTarget>> {
-        let cameras = cap_camera::list_cameras().collect::<Vec<_>>();
+        let cameras = scoopy_camera::list_cameras().collect::<Vec<_>>();
         let selected_cameras = if all_cameras {
             cameras
         } else {
@@ -215,7 +215,7 @@ fn main() -> anyhow::Result<()> {
     ) -> anyhow::Result<ProbeSummary> {
         let fps = target.format.frame_rate().round().max(1.0) as u32;
         let output_path = PathBuf::from(format!(
-            "/tmp/cap-camera-writer-repro-{}-{}x{}-{}.mp4",
+            "/tmp/scoopy-camera-writer-repro-{}-{}x{}-{}.mp4",
             target.camera.display_name().replace(' ', "-"),
             target.format.width(),
             target.format.height(),
@@ -338,7 +338,7 @@ fn main() -> anyhow::Result<()> {
 
     let args = env::args().collect::<Vec<_>>();
     let preferred_camera =
-        value_flag(&args, "--camera").or_else(|| env::var("CAP_CAMERA_NAME").ok());
+        value_flag(&args, "--camera").or_else(|| env::var("SCOOPY_CAMERA_NAME").ok());
     let frame_limit = value_flag(&args, "--frames")
         .and_then(|value| value.parse::<usize>().ok())
         .unwrap_or(12);

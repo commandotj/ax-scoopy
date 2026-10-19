@@ -1,5 +1,5 @@
 [package]
-name = "cap-desktop"
+name = "scoopy-desktop"
 version = "0.6.1"
 description = "Beautiful screen recordings, owned by you."
 authors = ["you"]
@@ -9,7 +9,7 @@ edition = "2024"
 workspace = true
 
 [lib]
-name = "cap_desktop_lib"
+name = "scoopy_desktop_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]
@@ -77,22 +77,22 @@ lazy_static = "1.4.0"
 log = "0.4.20"
 semver = "1"
 
-cap-audio = { path = "../../../crates/audio" }
-cap-camera = { path = "../../../crates/camera", features = ["serde", "specta"] }
-cap-camera-effects = { path = "../../../crates/camera-effects" }
-cap-utils = { path = "../../../crates/utils" }
-cap-project = { path = "../../../crates/project" }
-cap-rendering = { path = "../../../crates/rendering" }
-cap-editor = { path = "../../../crates/editor" }
-cap-media = { path = "../../../crates/media" }
-cap-flags = { path = "../../../crates/flags" }
-cap-recording = { path = "../../../crates/recording" }
-cap-timestamp = { path = "../../../crates/timestamp" }
-cap-export = { path = "../../../crates/export" }
-cap-automation = { path = "../../../crates/automation" }
-cap-cli-install = { path = "../../../crates/cli-install", features = ["specta"] }
-cap-enc-ffmpeg = { path = "../../../crates/enc-ffmpeg" }
-cap-media-info = { path = "../../../crates/media-info" }
+scoopy-audio = { path = "../../../crates/audio" }
+scoopy-camera = { path = "../../../crates/camera", features = ["serde", "specta"] }
+scoopy-camera-effects = { path = "../../../crates/camera-effects" }
+scoopy-utils = { path = "../../../crates/utils" }
+scoopy-project = { path = "../../../crates/project" }
+scoopy-rendering = { path = "../../../crates/rendering" }
+scoopy-editor = { path = "../../../crates/editor" }
+scoopy-media = { path = "../../../crates/media" }
+scoopy-flags = { path = "../../../crates/flags" }
+scoopy-recording = { path = "../../../crates/recording" }
+scoopy-timestamp = { path = "../../../crates/timestamp" }
+scoopy-export = { path = "../../../crates/export" }
+scoopy-automation = { path = "../../../crates/automation" }
+scoopy-cli-install = { path = "../../../crates/cli-install", features = ["specta"] }
+scoopy-enc-ffmpeg = { path = "../../../crates/enc-ffmpeg" }
+scoopy-media-info = { path = "../../../crates/media-info" }
 scap-targets = { path = "../../../crates/scap-targets" }
 scap-screencapturekit = { path = "../../../crates/scap-screencapturekit" }
 scap-direct3d = { path = "../../../crates/scap-direct3d" }
@@ -102,7 +102,7 @@ tracing-subscriber = "0.3.19"
 tracing-appender = "0.2.3"
 dirs = "6.0.0"
 relative-path = "1.9.3"
-cap-fail = { version = "0.1.0", path = "../../../crates/fail" }
+scoopy-fail = { version = "0.1.0", path = "../../../crates/fail" }
 tokio-stream = { version = "0.1.17", features = ["sync"] }
 md5 = "0.7.0"
 tokio-util = "0.7.15"
@@ -149,7 +149,7 @@ objc = "0.2.7"
 swift-rs = "1.0.6"
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2" }
 cidre = { workspace = true }
-cap-camera-ffmpeg = { path = "../../../crates/camera-ffmpeg" }
+scoopy-camera-ffmpeg = { path = "../../../crates/camera-ffmpeg" }
 
 [target.'cfg(not(all(target_os = "macos", target_arch = "x86_64")))'.dependencies]
 parakeet-rs = "0.3.4"

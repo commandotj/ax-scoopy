@@ -1,13 +1,13 @@
 //! Headless end-to-end verification for the native x11rb screen-capture path.
 //!
 //! Records the primary X11 display (run under Xvfb), stops cleanly, and asserts
-//! the produced `.cap` is COMPLETE — i.e. the exact failure modes reported on
+//! the produced `.scoopy` is COMPLETE — i.e. the exact failure modes reported on
 //! 0.5.2 Linux (recording bails with "FFmpeg was built without x11grab", or the
-//! `.cap` is left InProgress with an incomplete manifest) do NOT happen.
+//! `.scoopy` is left InProgress with an incomplete manifest) do NOT happen.
 //!
 //! Exits 0 on success, non-zero with a diagnostic on failure.
 //!
-//!   DISPLAY=:99 cargo run -p cap-recording --example linux-x11-e2e
+//!   DISPLAY=:99 cargo run -p scoopy-recording --example linux-x11-e2e
 
 #[cfg(not(target_os = "linux"))]
 fn main() {
@@ -21,11 +21,11 @@ async fn main() {
     use std::time::Duration;
     use std::{fs, process};
 
-    use cap_recording::screen_capture::ScreenCaptureTarget;
-    use cap_recording::studio_recording;
+    use scoopy_recording::screen_capture::ScreenCaptureTarget;
+    use scoopy_recording::studio_recording;
     use scap_targets::Display;
 
-    unsafe { std::env::set_var("RUST_LOG", "info,cap_recording=debug") };
+    unsafe { std::env::set_var("RUST_LOG", "info,scoopy_recording=debug") };
     tracing_subscriber::fmt::init();
 
     let fail = |msg: String| -> ! {
@@ -36,10 +36,10 @@ async fn main() {
     let display = Display::primary();
     eprintln!("Primary display id: {:?}", display.id());
 
-    let out_root = std::env::temp_dir().join("cap-linux-x11-e2e");
+    let out_root = std::env::temp_dir().join("scoopy-linux-x11-e2e");
     let _ = fs::remove_dir_all(&out_root);
     fs::create_dir_all(&out_root).unwrap();
-    let out = out_root.join("recording.cap");
+    let out = out_root.join("recording.scoopy");
 
     eprintln!("Recording primary display to {} ...", out.display());
 
@@ -83,7 +83,7 @@ async fn main() {
     if status == "InProgress" || status == "<missing>" {
         fail(format!(
             "recording-meta.json status is '{status}' (expected a finalized status). \
-             This is the exact 0.5.2 symptom of a never-finalized .cap."
+             This is the exact 0.5.2 symptom of a never-finalized .scoopy."
         ));
     }
     let segments = meta.get("segments").and_then(|v| v.as_array());

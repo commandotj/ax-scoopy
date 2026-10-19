@@ -1,23 +1,23 @@
-//! Handing this app off to the experimental gpui-native app (`cap-gpui`).
+//! Handing this app off to the experimental gpui-native app (`scoopy-gpui`).
 //!
 //! The two apps already share one settings store and recordings library
 //! (`apps/desktop-gpui/src/store.rs` reads this app's), so the `enable_gpui_app`
 //! setting is not "run both": whichever app is enabled owns the session. Turning
-//! it on spawns `cap-gpui` and exits this app; turning it off inside `cap-gpui`
+//! it on spawns `scoopy-gpui` and exits this app; turning it off inside `scoopy-gpui`
 //! reopens this one. Startup honours the same flag, so the handoff survives a
 //! relaunch.
 //!
-//! The binary is discovered in order: `CAP_GPUI_BIN` (explicit override), the
+//! The binary is discovered in order: `SCOOPY_GPUI_BIN` (explicit override), the
 //! installed executable directory (where Tauri bundles and signs sidecars), the
 //! legacy `gpui/` resource dir, and -- in debug builds only -- the sibling
 //! `apps/desktop-gpui` target dir, so the toggle works from a source checkout.
 //!
 //! ## The handoff marker
 //!
-//! A handoff that spawns a `cap-gpui` which then dies immediately would leave
+//! A handoff that spawns a `scoopy-gpui` which then dies immediately would leave
 //! the user with no app at all, and with a setting that keeps redirecting away
-//! from the app that does work. So this side writes `cap-gpui.handoff` next to
-//! the shared store before spawning, and `cap-gpui` deletes it only on clean
+//! from the app that does work. So this side writes `scoopy-gpui.handoff` next to
+//! the shared store before spawning, and `scoopy-gpui` deletes it only on clean
 //! shutdown. With no live GPUI process, a surviving marker means the previous
 //! session exited unexpectedly: clear the flag, tell the user, and start normally.
 
@@ -30,9 +30,9 @@ use tracing::{info, warn};
 use crate::general_settings::GeneralSettingsStore;
 
 #[cfg(windows)]
-const BINARY_NAME: &str = "cap-gpui.exe";
+const BINARY_NAME: &str = "scoopy-gpui.exe";
 #[cfg(not(windows))]
-const BINARY_NAME: &str = "cap-gpui";
+const BINARY_NAME: &str = "scoopy-gpui";
 
 #[cfg(any(target_os = "macos", windows, test))]
 const MAX_FORWARDED_DEEP_LINK_BYTES: usize = 1024 * 1024;
@@ -90,7 +90,7 @@ fn existing_file(path: PathBuf) -> Option<PathBuf> {
 }
 
 fn binary_path(app: &AppHandle) -> Option<PathBuf> {
-    if let Some(path) = std::env::var_os("CAP_GPUI_BIN").map(PathBuf::from)
+    if let Some(path) = std::env::var_os("SCOOPY_GPUI_BIN").map(PathBuf::from)
         && path.is_file()
     {
         return Some(path);
@@ -135,16 +135,16 @@ fn binary_path(app: &AppHandle) -> Option<PathBuf> {
 
 /// Mirror of `store::app_data_dir` in `apps/desktop-gpui`: the pidfile and the
 /// handoff marker live under the shared production identifier
-/// (`so.cap.desktop`), not this app's possibly-`.dev` one.
+/// (`me.systembug.scoopy`), not this app's possibly-`.dev` one.
 fn shared_data_dir() -> PathBuf {
     #[cfg(target_os = "macos")]
     let base = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into()))
-        .join("Library/Application Support/so.cap.desktop");
+        .join("Library/Application Support/me.systembug.scoopy");
     #[cfg(target_os = "windows")]
     let base = std::env::var_os("APPDATA")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("so.cap.desktop");
+        .join("me.systembug.scoopy");
     #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
     let base = std::env::var_os("XDG_DATA_HOME")
         .map(PathBuf::from)
@@ -152,17 +152,17 @@ fn shared_data_dir() -> PathBuf {
             PathBuf::from(std::env::var_os("HOME").unwrap_or_else(|| ".".into()))
                 .join(".local/share")
         })
-        .join("so.cap.desktop");
+        .join("me.systembug.scoopy");
     base
 }
 
 fn gpui_pidfile() -> PathBuf {
-    shared_data_dir().join("cap-gpui.pid")
+    shared_data_dir().join("scoopy-gpui.pid")
 }
 
 /// Whether this app's own store IS the shared one. It is for the production
-/// bundle (`so.cap.desktop`), but a dev build stores under a `.dev` identifier
-/// while `cap-gpui` always reads and writes the shared file -- two stores that
+/// bundle (`me.systembug.scoopy`), but a dev build stores under a `.dev` identifier
+/// while `scoopy-gpui` always reads and writes the shared file -- two stores that
 /// silently disagree. The handoff flag therefore lives in the shared store,
 /// and this app's own copy of the setting is just what its settings page
 /// displays.
@@ -225,11 +225,11 @@ fn write_shared_store_flag(value: bool) {
 }
 
 fn handoff_marker() -> PathBuf {
-    shared_data_dir().join("cap-gpui.handoff")
+    shared_data_dir().join("scoopy-gpui.handoff")
 }
 
 fn update_handoff_marker() -> PathBuf {
-    shared_data_dir().join("cap-gpui.update-handoff")
+    shared_data_dir().join("scoopy-gpui.update-handoff")
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -255,13 +255,13 @@ fn take_update_handoff() -> Option<bool> {
         Ok(contents) => contents,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return None,
         Err(error) => {
-            warn!(%error, "could not read the Cap GPUI update hand-off");
+            warn!(%error, "could not read the Scoopy GPUI update hand-off");
             return None;
         }
     };
 
     let Some(handoff) = parse_update_handoff(&contents) else {
-        warn!("discarding an invalid Cap GPUI update hand-off");
+        warn!("discarding an invalid Scoopy GPUI update hand-off");
         let _ = std::fs::remove_file(&marker);
         return None;
     };
@@ -278,7 +278,7 @@ fn take_update_handoff() -> Option<bool> {
     if expected_pid.is_some_and(|pid| pid != handoff.pid) || stale {
         warn!(
             pid = handoff.pid,
-            "discarding a stale Cap GPUI update hand-off"
+            "discarding a stale Scoopy GPUI update hand-off"
         );
         let _ = std::fs::remove_file(&marker);
         return None;
@@ -288,13 +288,13 @@ fn take_update_handoff() -> Option<bool> {
         Ok(()) => {
             info!(
                 pid = handoff.pid,
-                "taking ownership from Cap GPUI for an update check"
+                "taking ownership from Scoopy GPUI for an update check"
             );
             Some(handoff.simulated)
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
         Err(error) => {
-            warn!(%error, "could not consume the Cap GPUI update hand-off");
+            warn!(%error, "could not consume the Scoopy GPUI update hand-off");
             None
         }
     }
@@ -343,10 +343,10 @@ pub(crate) fn handle_update_handoff(app: &AppHandle) -> bool {
 }
 
 fn classic_pending() -> PathBuf {
-    shared_data_dir().join("cap-classic.pending")
+    shared_data_dir().join("scoopy-classic.pending")
 }
 
-/// The pid of the live `cap-gpui` that owns the pidfile, if there is one.
+/// The pid of the live `scoopy-gpui` that owns the pidfile, if there is one.
 fn running_instance_pid() -> Option<u32> {
     let pid = std::fs::read_to_string(gpui_pidfile())
         .ok()?
@@ -418,7 +418,7 @@ fn is_forwardable_gpui_deep_link(url: &str) -> bool {
     !url.is_empty()
         && url.len() <= MAX_FORWARDED_DEEP_LINK_BYTES
         && reqwest::Url::parse(url)
-            .is_ok_and(|parsed| matches!(parsed.scheme(), "cap-desktop" | "cap"))
+            .is_ok_and(|parsed| matches!(parsed.scheme(), "scoopy-desktop" | "scoopy"))
 }
 
 #[cfg(any(target_os = "macos", windows, test))]
@@ -434,7 +434,7 @@ fn forwarded_gpui_argument(argument: &str) -> Option<String> {
     if !path
         .extension()
         .and_then(std::ffi::OsStr::to_str)
-        .is_some_and(|extension| extension.eq_ignore_ascii_case("cap"))
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("scoopy"))
     {
         return None;
     }
@@ -445,7 +445,7 @@ fn forwarded_gpui_argument(argument: &str) -> Option<String> {
     }
     let path = path.canonicalize().ok()?;
     let value = serde_json::json!({ "open_editor": { "project_path": path } }).to_string();
-    let mut url = reqwest::Url::parse("cap-desktop://action").ok()?;
+    let mut url = reqwest::Url::parse("scoopy-desktop://action").ok()?;
     url.query_pairs_mut().append_pair("value", &value);
     let url = url.to_string();
     is_forwardable_gpui_deep_link(&url).then_some(url)
@@ -473,7 +473,7 @@ fn read_macos_gpui_metadata(path: &std::path::Path, private: bool) -> std::io::R
     {
         return Err(std::io::Error::new(
             std::io::ErrorKind::PermissionDenied,
-            "Cap GPUI instance metadata is not owner controlled",
+            "Scoopy GPUI instance metadata is not owner controlled",
         ));
     }
     let mut contents = String::new();
@@ -481,7 +481,7 @@ fn read_macos_gpui_metadata(path: &std::path::Path, private: bool) -> std::io::R
     if contents.len() > 128 {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            "Cap GPUI instance metadata changed",
+            "Scoopy GPUI instance metadata changed",
         ));
     }
     Ok(contents)
@@ -523,7 +523,7 @@ fn reopen_time_remaining(
         .ok_or_else(|| {
             std::io::Error::new(
                 std::io::ErrorKind::TimedOut,
-                "Cap GPUI reopen request timed out",
+                "Scoopy GPUI reopen request timed out",
             )
         })
 }
@@ -549,7 +549,7 @@ fn send_gpui_reopen(
             Ok(0) => {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::WriteZero,
-                    "Cap GPUI closed its forwarding connection",
+                    "Scoopy GPUI closed its forwarding connection",
                 ));
             }
             Ok(written) => pending = &pending[written..],
@@ -568,7 +568,7 @@ fn send_gpui_reopen(
             Ok(_) => {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
-                    "Cap GPUI did not acknowledge the reopen request",
+                    "Scoopy GPUI did not acknowledge the reopen request",
                 ));
             }
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
@@ -591,7 +591,7 @@ pub(crate) fn request_gpui_reopen(pid: u32) -> Result<(), String> {
             if !macos_reopen_incumbent(&path, pid)? {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::NotConnected,
-                    "The Cap GPUI instance changed before reopening",
+                    "The Scoopy GPUI instance changed before reopening",
                 ));
             }
             match read_macos_gpui_metadata(&path.with_extension("ipc"), true) {
@@ -610,7 +610,7 @@ pub(crate) fn request_gpui_reopen(pid: u32) -> Result<(), String> {
             );
         }
     };
-    request().map_err(|error| format!("Could not confirm reopening the running Cap GPUI: {error}"))
+    request().map_err(|error| format!("Could not confirm reopening the running Scoopy GPUI: {error}"))
 }
 
 #[cfg(windows)]
@@ -635,7 +635,7 @@ fn request_gpui_reopen(pid: u32) -> Result<(), String> {
             );
         }
     };
-    request().map_err(|error| format!("Could not confirm reopening the running Cap GPUI: {error}"))
+    request().map_err(|error| format!("Could not confirm reopening the running Scoopy GPUI: {error}"))
 }
 
 #[cfg(any(target_os = "macos", test))]
@@ -669,7 +669,7 @@ fn forward_deep_links_to_gpui(pid: u32, args: &[String]) -> bool {
         endpoint
     });
     let Some(endpoint) = endpoint else {
-        warn!(pid, "could not find the Cap GPUI deep-link endpoint");
+        warn!(pid, "could not find the Scoopy GPUI deep-link endpoint");
         return false;
     };
 
@@ -684,7 +684,7 @@ fn forward_deep_links_to_gpui(pid: u32, args: &[String]) -> bool {
             });
         match result {
             Ok(()) => forwarded = true,
-            Err(error) => warn!(%error, "could not forward a deep link to Cap GPUI"),
+            Err(error) => warn!(%error, "could not forward a deep link to Scoopy GPUI"),
         }
     }
 
@@ -826,13 +826,13 @@ fn write_handoff_marker() {
         .map(|since| since.as_secs())
         .unwrap_or_default();
     if let Err(error) = std::fs::write(&path, stamp.to_string()) {
-        warn!(%error, "could not write the Cap GPUI handoff marker");
+        warn!(%error, "could not write the Scoopy GPUI handoff marker");
     }
 }
 
 /// The child must never inherit this process's stdio. The handoff exits this
 /// app, and whatever was reading those pipes (`bun run tauri dev`'s tooling chain)
-/// goes with it; `cap-gpui`'s next log line then hits EPIPE, the write panics
+/// goes with it; `scoopy-gpui`'s next log line then hits EPIPE, the write panics
 /// inside an ObjC run-loop callback, and the process aborts about a tenth of a
 /// second after launch. Its output goes to a file instead of `/dev/null`
 /// because a handoff launch has no terminal, and a startup failure there is
@@ -840,7 +840,7 @@ fn write_handoff_marker() {
 fn spawn_detached(path: &std::path::Path, args: &[String]) -> Result<(), String> {
     use std::process::Stdio;
 
-    let log_path = shared_data_dir().join("cap-gpui.log");
+    let log_path = shared_data_dir().join("scoopy-gpui.log");
     if let Some(parent) = log_path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
@@ -854,7 +854,7 @@ fn spawn_detached(path: &std::path::Path, args: &[String]) -> Result<(), String>
             Err(_) => (Stdio::from(file), Stdio::null()),
         },
         Err(error) => {
-            warn!(%error, "could not open the Cap GPUI log; discarding its output");
+            warn!(%error, "could not open the Scoopy GPUI log; discarding its output");
             (Stdio::null(), Stdio::null())
         }
     };
@@ -944,11 +944,11 @@ pub async fn switch_to_gpui_app(app: AppHandle) -> Result<(), String> {
                 }
                 #[cfg(not(target_os = "linux"))]
                 activate_instance(pid);
-                info!(pid, "Cap GPUI is already running; requested its controls");
+                info!(pid, "Scoopy GPUI is already running; requested its controls");
             }
             None => {
                 write_handoff_marker();
-                info!(path = %path.display(), "handing off to Cap GPUI");
+                info!(path = %path.display(), "handing off to Scoopy GPUI");
                 if let Err(error) = spawn_detached(&path, &[]) {
                     let _ = std::fs::remove_file(handoff_marker());
                     if !uses_shared_store {
@@ -985,7 +985,7 @@ pub async fn switch_to_gpui_app(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// Whether this app should hand over to `cap-gpui` instead of starting.
+/// Whether this app should hand over to `scoopy-gpui` instead of starting.
 ///
 /// `true` means the caller must exit before any window is created.
 pub fn redirect_at_startup_if_enabled(app: &AppHandle) -> Result<bool, String> {
@@ -1050,7 +1050,7 @@ fn redirect_decision(app: &AppHandle) -> Result<bool, String> {
         .ok()
         .flatten()
         .is_some_and(|settings| settings.enable_gpui_app);
-    // In a dev build the shared store is the authority: `cap-gpui`'s
+    // In a dev build the shared store is the authority: `scoopy-gpui`'s
     // switch-back writes false THERE, and honouring this app's own `.dev`
     // copy instead would bounce the user straight back after every
     // switch-back (the loop this replaced).
@@ -1066,14 +1066,14 @@ fn redirect_decision(app: &AppHandle) -> Result<bool, String> {
             if let Err(error) = GeneralSettingsStore::update(app, |settings| {
                 settings.enable_gpui_app = false;
             }) {
-                warn!(%error, "could not reconcile the Cap GPUI setting");
+                warn!(%error, "could not reconcile the Scoopy GPUI setting");
             }
         }
         return Ok(false);
     }
 
     // The marker exists throughout a live session. Check the process first so
-    // reopening Cap does not mistake a running native app for a crashed one.
+    // reopening Scoopy does not mistake a running native app for a crashed one.
     if let Some(pid) = running_instance_pid() {
         #[cfg(any(target_os = "macos", windows))]
         {
@@ -1088,10 +1088,10 @@ fn redirect_decision(app: &AppHandle) -> Result<bool, String> {
             if !forward_deep_links_to_gpui(pid, &args) {
                 match request_gpui_reopen(pid) {
                     Ok(()) => {
-                        info!(pid, "Cap GPUI is already running; reopened its main window");
+                        info!(pid, "Scoopy GPUI is already running; reopened its main window");
                         return Ok(true);
                     }
-                    Err(error) => warn!(%error, "could not reopen the running Cap GPUI"),
+                    Err(error) => warn!(%error, "could not reopen the running Scoopy GPUI"),
                 }
             }
         }
@@ -1101,19 +1101,19 @@ fn redirect_decision(app: &AppHandle) -> Result<bool, String> {
         activate_instance(pid);
         info!(
             pid,
-            "Cap GPUI is already running; preserving the existing instance"
+            "Scoopy GPUI is already running; preserving the existing instance"
         );
         return Ok(true);
     }
 
     let marker = handoff_marker();
     if marker.exists() {
-        warn!("the last Cap GPUI session exited unexpectedly; taking back over");
+        warn!("the last Scoopy GPUI session exited unexpectedly; taking back over");
         let _ = std::fs::remove_file(&marker);
         if let Err(error) = GeneralSettingsStore::update(app, |settings| {
             settings.enable_gpui_app = false;
         }) {
-            warn!(%error, "could not clear the Cap GPUI setting");
+            warn!(%error, "could not clear the Scoopy GPUI setting");
         }
         if !own_store_is_shared(app) {
             write_shared_store_flag(false);
@@ -1127,12 +1127,12 @@ fn redirect_decision(app: &AppHandle) -> Result<bool, String> {
     }
 
     let Some(path) = binary_path(app) else {
-        warn!("Cap GPUI is enabled but its binary was not found; starting this app instead");
+        warn!("Scoopy GPUI is enabled but its binary was not found; starting this app instead");
         return Ok(false);
     };
 
     write_handoff_marker();
-    info!(path = %path.display(), "handing off to Cap GPUI at startup");
+    info!(path = %path.display(), "handing off to Scoopy GPUI at startup");
     #[cfg(any(target_os = "macos", windows))]
     let args = std::env::args()
         .skip(1)
@@ -1158,7 +1158,7 @@ mod tests {
 
     #[test]
     fn linux_activation_launches_the_resolved_binary_once_without_arguments() {
-        let path = std::path::Path::new("/opt/cap/cap-gpui");
+        let path = std::path::Path::new("/opt/scoopy/scoopy-gpui");
         let mut launches = 0;
         super::launch_linux_activation(Some(path), |selected, args| {
             launches += 1;
@@ -1183,7 +1183,7 @@ mod tests {
 
     #[test]
     fn linux_activation_preserves_launch_failure() {
-        let path = std::path::Path::new("/opt/cap/cap-gpui");
+        let path = std::path::Path::new("/opt/scoopy/scoopy-gpui");
         let result = super::launch_linux_activation(Some(path), |_, _| {
             Err("Failed to launch Scoopy GPUI: permission denied".into())
         });
@@ -1246,7 +1246,7 @@ mod tests {
             })
         );
         assert_eq!(parse_update_handoff("0"), None);
-        assert_eq!(parse_update_handoff("cap-gpui"), None);
+        assert_eq!(parse_update_handoff("scoopy-gpui"), None);
         assert_eq!(parse_update_handoff("simulate:0"), None);
     }
 
@@ -1272,9 +1272,9 @@ mod tests {
         assert!(is_gpui_process_image(std::path::Path::new(
             &BINARY_NAME.to_ascii_uppercase()
         )));
-        assert!(!is_gpui_process_image(std::path::Path::new("not-cap-gpui")));
+        assert!(!is_gpui_process_image(std::path::Path::new("not-scoopy-gpui")));
         assert!(!is_gpui_process_image(std::path::Path::new(
-            "cap-gpui-helper"
+            "scoopy-gpui-helper"
         )));
     }
 
@@ -1345,15 +1345,15 @@ mod tests {
     #[test]
     fn forwarded_gpui_deep_links_are_scheme_and_size_limited() {
         assert!(is_forwardable_gpui_deep_link(
-            "cap-desktop://signin?token=test"
+            "scoopy-desktop://signin?token=test"
         ));
         assert!(is_forwardable_gpui_deep_link(
-            "cap://action?value=%22stop_recording%22"
+            "scoopy://action?value=%22stop_recording%22"
         ));
-        assert!(!is_forwardable_gpui_deep_link("https://cap.so/signin"));
-        assert!(!is_forwardable_gpui_deep_link("cap-desktop-other://signin"));
+        assert!(!is_forwardable_gpui_deep_link("https://example.com/signin"));
+        assert!(!is_forwardable_gpui_deep_link("scoopy-desktop-other://signin"));
         assert!(!is_forwardable_gpui_deep_link(&format!(
-            "cap://action?value={}",
+            "scoopy://action?value={}",
             "x".repeat(MAX_FORWARDED_DEEP_LINK_BYTES)
         )));
     }
@@ -1361,7 +1361,7 @@ mod tests {
     #[test]
     fn project_arguments_become_encoded_open_editor_actions() {
         let directory = tempfile::tempdir().unwrap();
-        let project = directory.path().join("Recording #1 & draft.cap");
+        let project = directory.path().join("Recording #1 & draft.scoopy");
         std::fs::create_dir(&project).unwrap();
 
         let forwarded = forwarded_gpui_argument(project.to_str().unwrap()).unwrap();
@@ -1372,7 +1372,7 @@ mod tests {
             .unwrap();
         let action: serde_json::Value = serde_json::from_str(&value).unwrap();
 
-        assert_eq!(url.scheme(), "cap-desktop");
+        assert_eq!(url.scheme(), "scoopy-desktop");
         assert_eq!(url.host_str(), Some("action"));
         assert_eq!(
             action["open_editor"]["project_path"],
@@ -1388,12 +1388,12 @@ mod tests {
 
         assert!(forwarded_gpui_argument(ordinary.to_str().unwrap()).is_none());
         assert!(
-            forwarded_gpui_argument(directory.path().join("missing.cap").to_str().unwrap())
+            forwarded_gpui_argument(directory.path().join("missing.scoopy").to_str().unwrap())
                 .is_none()
         );
         assert_eq!(
-            forwarded_gpui_argument("cap-desktop://signin?token=secret"),
-            Some("cap-desktop://signin?token=secret".to_string())
+            forwarded_gpui_argument("scoopy-desktop://signin?token=secret"),
+            Some("scoopy-desktop://signin?token=secret".to_string())
         );
     }
 
@@ -1401,8 +1401,8 @@ mod tests {
     #[test]
     fn forwarded_project_arguments_reject_symlinks() {
         let directory = tempfile::tempdir().unwrap();
-        let project = directory.path().join("Recording.cap");
-        let symlink = directory.path().join("Shortcut.cap");
+        let project = directory.path().join("Recording.scoopy");
+        let symlink = directory.path().join("Shortcut.scoopy");
         std::fs::create_dir(&project).unwrap();
         std::os::unix::fs::symlink(&project, &symlink).unwrap();
 
@@ -1412,7 +1412,7 @@ mod tests {
     #[test]
     fn file_urls_become_open_editor_actions() {
         let directory = tempfile::tempdir().unwrap();
-        let project = directory.path().join("Recording.cap");
+        let project = directory.path().join("Recording.scoopy");
         std::fs::create_dir(&project).unwrap();
         let file_url = reqwest::Url::from_file_path(&project).unwrap();
 
@@ -1423,11 +1423,11 @@ mod tests {
     fn only_launches_without_forwardable_actions_request_reopening() {
         assert!(super::gpui_launch_needs_reopen(&[]));
         let directory = tempfile::tempdir().unwrap();
-        let project = directory.path().join("Recording.cap");
+        let project = directory.path().join("Recording.scoopy");
         std::fs::create_dir(&project).unwrap();
         for argument in [
-            "cap-desktop://auth?token=fixture".to_string(),
-            "cap://action?value=%22stop_recording%22".to_string(),
+            "scoopy-desktop://auth?token=fixture".to_string(),
+            "scoopy://action?value=%22stop_recording%22".to_string(),
             project.to_str().unwrap().to_string(),
             reqwest::Url::from_file_path(&project).unwrap().to_string(),
         ] {
@@ -1518,7 +1518,7 @@ mod tests {
         use std::os::unix::fs::{PermissionsExt, symlink};
 
         let directory = tempfile::tempdir().unwrap();
-        let path = directory.path().join("cap-gpui.ipc");
+        let path = directory.path().join("scoopy-gpui.ipc");
         std::fs::write(&path, "123:456:789").unwrap();
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
         assert_eq!(
@@ -1539,7 +1539,7 @@ mod tests {
         std::fs::remove_file(&linked).unwrap();
         std::fs::hard_link(&path, &linked).unwrap();
         assert!(super::read_macos_gpui_metadata(&path, true).is_err());
-        let pidfile = directory.path().join("cap-gpui.pid");
+        let pidfile = directory.path().join("scoopy-gpui.pid");
         std::fs::write(&pidfile, "123").unwrap();
         assert!(!super::macos_reopen_incumbent(&pidfile, 456).unwrap());
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "123:456:789");

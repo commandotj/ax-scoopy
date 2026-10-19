@@ -15,7 +15,7 @@ struct ActivePhase {
 
 impl Phase {
     pub(crate) fn start(name: &'static str) -> Self {
-        let active = tracing::enabled!(target: "cap_rendering::readiness", tracing::Level::DEBUG)
+        let active = tracing::enabled!(target: "scoopy_rendering::readiness", tracing::Level::DEBUG)
             .then(|| {
                 let active = ActivePhase {
                     name,
@@ -44,7 +44,7 @@ impl Phase {
 impl ActivePhase {
     fn emit(&self, event: &'static str) {
         tracing::debug!(
-            target: "cap_rendering::readiness",
+            target: "scoopy_rendering::readiness",
             phase = self.name,
             phase_id = self.id,
             event,

@@ -287,7 +287,7 @@ function createScreenshotEditorContext() {
 
 			const pathStr = instance.path;
 			const isBundleDir =
-				pathStr.endsWith(".scoopy") || pathStr.endsWith(".cap");
+				pathStr.endsWith(".scoopy") || pathStr.endsWith(".scoopy");
 			const imagePath = isBundleDir ? `${pathStr}/original.png` : pathStr;
 			loadImage(imagePath);
 		}

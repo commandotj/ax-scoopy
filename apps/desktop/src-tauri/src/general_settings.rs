@@ -61,17 +61,17 @@ impl Default for StudioRecordingQuality {
     }
 }
 
-impl From<cap_recording::StudioQuality> for StudioRecordingQuality {
-    fn from(value: cap_recording::StudioQuality) -> Self {
+impl From<scoopy_recording::StudioQuality> for StudioRecordingQuality {
+    fn from(value: scoopy_recording::StudioQuality) -> Self {
         match value {
-            cap_recording::StudioQuality::Compatibility => Self::Compatibility,
-            cap_recording::StudioQuality::Balanced => Self::Balanced,
-            cap_recording::StudioQuality::Ultra => Self::Ultra,
+            scoopy_recording::StudioQuality::Compatibility => Self::Compatibility,
+            scoopy_recording::StudioQuality::Balanced => Self::Balanced,
+            scoopy_recording::StudioQuality::Ultra => Self::Ultra,
         }
     }
 }
 
-impl From<StudioRecordingQuality> for cap_recording::StudioQuality {
+impl From<StudioRecordingQuality> for scoopy_recording::StudioQuality {
     fn from(value: StudioRecordingQuality) -> Self {
         match value {
             StudioRecordingQuality::Compatibility => Self::Compatibility,
@@ -82,7 +82,7 @@ impl From<StudioRecordingQuality> for cap_recording::StudioQuality {
 }
 
 pub fn default_studio_recording_quality() -> StudioRecordingQuality {
-    cap_recording::default_studio_recording_quality().into()
+    scoopy_recording::default_studio_recording_quality().into()
 }
 
 impl MainWindowRecordingStartBehaviour {
@@ -104,18 +104,18 @@ impl MainWindowRecordingStartBehaviour {
     }
 }
 
-// NOTE: Do not add "Cap Target Select" here — on Windows, WDA_EXCLUDEFROMCAPTURE applied to that
+// NOTE: Do not add "Scoopy Target Select" here — on Windows, WDA_EXCLUDEFROMCAPTURE applied to that
 // hidden window causes it to reappear as a ghost overlay after recording ends.
 const DEFAULT_EXCLUDED_WINDOW_TITLES: &[&str] = &[
-    "Cap",
-    "Cap Settings",
-    "Cap Recording Controls",
-    "Cap Camera",
-    "Cap Window Capture Occluder",
-    "Cap Capture Area",
-    "Cap Mode Selection",
-    "Cap Recordings Overlay",
-    "Cap Teleprompter",
+    "Scoopy",
+    "Scoopy Settings",
+    "Scoopy Recording Controls",
+    "Scoopy Camera",
+    "Scoopy Window Capture Occluder",
+    "Scoopy Capture Area",
+    "Scoopy Mode Selection",
+    "Scoopy Recordings Overlay",
+    "Scoopy Teleprompter",
 ];
 
 pub fn default_excluded_windows() -> Vec<WindowExclusion> {
@@ -254,7 +254,7 @@ pub struct GeneralSettingsStore {
     pub camera_blur_disabled_by_crash: Option<String>,
     #[serde(default)]
     pub update_channel: UpdateChannel,
-    /// Run the experimental gpui-native app (`cap-gpui`) *instead of* this one:
+    /// Run the experimental gpui-native app (`scoopy-gpui`) *instead of* this one:
     /// while enabled, startup hands off to it and exits, and the native app's
     /// own Experimental page hands back. See `gpui_app.rs`.
     #[serde(default)]
@@ -274,28 +274,28 @@ fn default_true() -> bool {
 }
 
 fn default_instant_mode_max_resolution() -> u32 {
-    cap_recording::DEFAULT_INSTANT_MODE_MAX_RESOLUTION
+    scoopy_recording::DEFAULT_INSTANT_MODE_MAX_RESOLUTION
 }
 
 fn default_max_fps() -> u32 {
-    cap_recording::DEFAULT_STUDIO_MAX_FPS
+    scoopy_recording::DEFAULT_STUDIO_MAX_FPS
 }
 
 fn default_custom_cursor_capture() -> bool {
-    cap_recording::DEFAULT_CUSTOM_CURSOR_CAPTURE
+    scoopy_recording::DEFAULT_CUSTOM_CURSOR_CAPTURE
 }
 
 fn default_capture_keyboard_events() -> bool {
-    cap_recording::DEFAULT_CAPTURE_KEYBOARD_EVENTS
+    scoopy_recording::DEFAULT_CAPTURE_KEYBOARD_EVENTS
 }
 
 fn default_crash_recovery_recording() -> bool {
-    cap_recording::DEFAULT_CRASH_RECOVERY_RECORDING
+    scoopy_recording::DEFAULT_CRASH_RECOVERY_RECORDING
 }
 
 fn default_transcription_hints() -> Vec<String> {
     vec![
-        "Cap".to_string(),
+        "Scoopy".to_string(),
         "TypeScript".to_string(),
         "My Brand Name".to_string(),
         "mywebsite.com".to_string(),
@@ -304,7 +304,7 @@ fn default_transcription_hints() -> Vec<String> {
 
 fn default_server_url() -> String {
     std::option_env!("VITE_SERVER_URL")
-        .unwrap_or("https://cap.so")
+        .unwrap_or("https://example.com")
         .to_string()
 }
 
@@ -333,7 +333,7 @@ impl Default for GeneralSettingsStore {
             window_transparency: false,
             post_studio_recording_behaviour: PostStudioRecordingBehaviour::OpenEditor,
             main_window_recording_start_behaviour: MainWindowRecordingStartBehaviour::Close,
-            custom_cursor_capture: cap_recording::DEFAULT_CUSTOM_CURSOR_CAPTURE,
+            custom_cursor_capture: scoopy_recording::DEFAULT_CUSTOM_CURSOR_CAPTURE,
             server_url: default_server_url(),
             recording_countdown: Some(3),
             enable_native_camera_preview: default_enable_native_camera_preview(),
@@ -342,14 +342,14 @@ impl Default for GeneralSettingsStore {
             auto_zoom_on_clicks: true,
             default_zoom_amount: None,
             macbook_notch_overlay: None,
-            capture_keyboard_events: cap_recording::DEFAULT_CAPTURE_KEYBOARD_EVENTS,
+            capture_keyboard_events: scoopy_recording::DEFAULT_CAPTURE_KEYBOARD_EVENTS,
             post_deletion_behaviour: PostDeletionBehaviour::DoNothing,
             excluded_windows: default_excluded_windows(),
             delete_instant_recordings_after_upload: false,
-            instant_mode_max_resolution: cap_recording::DEFAULT_INSTANT_MODE_MAX_RESOLUTION,
+            instant_mode_max_resolution: scoopy_recording::DEFAULT_INSTANT_MODE_MAX_RESOLUTION,
             default_project_name_template: None,
-            crash_recovery_recording: cap_recording::DEFAULT_CRASH_RECOVERY_RECORDING,
-            max_fps: cap_recording::DEFAULT_STUDIO_MAX_FPS,
+            crash_recovery_recording: scoopy_recording::DEFAULT_CRASH_RECOVERY_RECORDING,
+            max_fps: scoopy_recording::DEFAULT_STUDIO_MAX_FPS,
             transcription_hints: default_transcription_hints(),
             editor_preview_quality: EditorPreviewQuality::Half,
             studio_recording_quality: default_studio_recording_quality(),
@@ -358,7 +358,7 @@ impl Default for GeneralSettingsStore {
             camera_window_positions_by_monitor_name: BTreeMap::new(),
             has_completed_onboarding: false,
             enable_telemetry: true,
-            out_of_process_muxer: cap_recording::DEFAULT_OUT_OF_PROCESS_MUXER,
+            out_of_process_muxer: scoopy_recording::DEFAULT_OUT_OF_PROCESS_MUXER,
             recordings_path: None,
             previous_recordings_paths: Vec::new(),
             camera_blur_disabled_by_crash: None,
@@ -682,7 +682,7 @@ pub fn init(app: &AppHandle) {
     {
         store
             .excluded_windows
-            .retain(|w| w.window_title.as_deref() != Some("Cap Target Select"));
+            .retain(|w| w.window_title.as_deref() != Some("Scoopy Target Select"));
         raw_store.set(REMOVE_TARGET_SELECT_MIGRATION_KEY, json!(true));
     }
 
@@ -712,7 +712,7 @@ pub fn init(app: &AppHandle) {
 }
 
 fn register_bundled_muxer_binary(_app: &AppHandle) {
-    if std::env::var_os(cap_recording::oop_muxer::ENV_BIN_PATH).is_some() {
+    if std::env::var_os(scoopy_recording::oop_muxer::ENV_BIN_PATH).is_some() {
         return;
     }
 
@@ -721,18 +721,18 @@ fn register_bundled_muxer_binary(_app: &AppHandle) {
     {
         let candidate = dir.join(bundled_muxer_bin_name());
         if candidate.is_file() {
-            match cap_recording::oop_muxer::set_muxer_binary_override(candidate.clone()) {
+            match scoopy_recording::oop_muxer::set_muxer_binary_override(candidate.clone()) {
                 Ok(()) => {
                     tracing::info!(
                         path = %candidate.display(),
-                        "Registered executable-adjacent cap-muxer binary for out-of-process muxer"
+                        "Registered executable-adjacent scoopy-muxer binary for out-of-process muxer"
                     );
                 }
                 Err(existing) => {
                     tracing::debug!(
                         existing = %existing.display(),
                         candidate = %candidate.display(),
-                        "cap-muxer override already registered; keeping existing"
+                        "scoopy-muxer override already registered; keeping existing"
                     );
                 }
             }
@@ -742,9 +742,9 @@ fn register_bundled_muxer_binary(_app: &AppHandle) {
 
 fn bundled_muxer_bin_name() -> &'static str {
     if cfg!(windows) {
-        "cap-muxer.exe"
+        "scoopy-muxer.exe"
     } else {
-        "cap-muxer"
+        "scoopy-muxer"
     }
 }
 
@@ -813,7 +813,7 @@ mod tests {
                         assert_eq!(saved[key], original[key], "{key}");
                     }
                     assert_eq!(saved["theme"], "system");
-                    assert_eq!(saved["maxFps"], cap_recording::DEFAULT_STUDIO_MAX_FPS);
+                    assert_eq!(saved["maxFps"], scoopy_recording::DEFAULT_STUDIO_MAX_FPS);
                     assert!(serde_json::from_value::<GeneralSettingsStore>(saved).is_ok());
                     Ok(())
                 },
@@ -964,7 +964,7 @@ mod tests {
     #[test]
     fn appends_missing_default_excluded_windows() {
         let mut excluded_windows = vec![
-            title_exclusion("Cap"),
+            title_exclusion("Scoopy"),
             WindowExclusion {
                 bundle_identifier: None,
                 owner_name: Some("Preview".to_string()),

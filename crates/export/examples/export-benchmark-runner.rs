@@ -1,9 +1,9 @@
-use cap_export::{
+use scoopy_export::{
     ExporterBase,
     gif::GifExportSettings,
     mp4::{ExportCompression, Mp4ExportSettings},
 };
-use cap_project::XY;
+use scoopy_project::XY;
 use chrono::{Local, Utc};
 use clap::{Parser, Subcommand};
 use std::{
@@ -58,7 +58,7 @@ struct Cli {
     #[arg(
         long,
         global = true,
-        help = "Path to an existing Cap recording to use instead of generating synthetic video"
+        help = "Path to an existing Scoopy recording to use instead of generating synthetic video"
     )]
     recording_path: Option<PathBuf>,
 }
@@ -976,7 +976,7 @@ async fn main() {
             || !recording_path.join("project-config.json").exists()
         {
             eprintln!(
-                "ERROR: {recording_path:?} is not a valid Cap recording (missing meta files)"
+                "ERROR: {recording_path:?} is not a valid Scoopy recording (missing meta files)"
             );
             std::process::exit(1);
         }
@@ -1025,7 +1025,7 @@ async fn main() {
         println!("Setting up test project in {project_dir:?}");
 
         create_cap_project(&project_dir, duration_secs, SOURCE_VIDEO_FPS)
-            .expect("Failed to create cap project");
+            .expect("Failed to create scoopy project");
 
         let video_path = project_dir.join("content/display.mp4");
         println!(
@@ -1079,7 +1079,7 @@ async fn main() {
             .unwrap_or_default();
 
         let command = format!(
-            "cargo run -p cap-export --example export-benchmark-runner -- {command_name} --duration {duration_secs}{recording_flag} --benchmark-output"
+            "cargo run -p scoopy-export --example export-benchmark-runner -- {command_name} --duration {duration_secs}{recording_flag} --benchmark-output"
         );
 
         let benchmark_md =

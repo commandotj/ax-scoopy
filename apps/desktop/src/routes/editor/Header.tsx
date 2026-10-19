@@ -116,7 +116,7 @@ export function Header(props: {
 						readOnly={titleReadOnly() || props.disabled === true}
 						setReadOnly={setTitleReadOnly}
 					/>
-					<span class="shrink-0 text-[13px] text-ed-text-3">.cap</span>
+					<span class="shrink-0 text-[13px] text-ed-text-3">.scoopy</span>
 				</div>
 
 				<div
@@ -145,7 +145,7 @@ export function Header(props: {
 							await commands.editorDeleteProject();
 						}}
 						tooltipText="Delete recording"
-						leftIcon={<IconCapTrash />}
+						leftIcon={<IconScoopyTrash />}
 					/>
 				</div>
 
@@ -167,7 +167,7 @@ export function Header(props: {
 						!projectHistory.canUndo() && !editorState.timeline.selection
 					}
 					tooltipText="Undo"
-					leftIcon={<IconCapUndo />}
+					leftIcon={<IconScoopyUndo />}
 				/>
 				<EditorButton
 					onClick={() => {
@@ -179,7 +179,7 @@ export function Header(props: {
 						!projectHistory.canRedo() && !editorState.timeline.selection
 					}
 					tooltipText="Redo"
-					leftIcon={<IconCapRedo />}
+					leftIcon={<IconScoopyRedo />}
 				/>
 				<div class="mx-1.5 w-px h-4 shrink-0 bg-ed-line-strong" />
 				<OrganizationDropdown />
@@ -188,7 +188,7 @@ export function Header(props: {
 					title="Clips"
 					aria-label="Clips"
 					class={cx(isClipsOpen() && "bg-ed-ctl-hover text-ed-text-1")}
-					leftIcon={<IconCapClapperboard />}
+					leftIcon={<IconScoopyClapperboard />}
 					onClick={() => {
 						clearTimelineSelection();
 						if (isClipsOpen()) {
@@ -206,7 +206,7 @@ export function Header(props: {
 						aria-label={isTranscriptOpen() ? "Back to editor" : "Captions"}
 						class={cx(isTranscriptOpen() && "bg-ed-ctl-hover text-ed-text-1")}
 						leftIcon={
-							<Show when={isTranscriptOpen()} fallback={<IconCapCaptions />}>
+							<Show when={isTranscriptOpen()} fallback={<IconScoopyCaptions />}>
 								<IconLucideArrowLeft />
 							</Show>
 						}

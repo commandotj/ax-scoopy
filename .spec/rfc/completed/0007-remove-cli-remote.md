@@ -10,7 +10,7 @@ Remove server authentication and any other remote call from `apps/cli`, so the C
 
 ## Problem
 
-`apps/cli/src/agent_auth.rs` builds an OAuth-style request against a configured server (client_id `cap-cli`). A local-only product has no server.
+`apps/cli/src/agent_auth.rs` builds an OAuth-style request against a configured server (client_id `scoopy-cli`). A local-only product has no server.
 
 ## Goals
 
@@ -27,4 +27,4 @@ Grep `apps/cli/src` for `credentials`, `agent_server_url`, `reqwest` and `http`.
 
 ## Acceptance
 
-`cargo check -p cap` and `cargo test -p cap` pass. No network crate use remains in `apps/cli` unless justified in the RFC.
+`cargo check -p scoopy` and `cargo test -p scoopy` pass. No network crate use remains in `apps/cli` unless justified in the RFC.

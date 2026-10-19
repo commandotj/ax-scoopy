@@ -6,14 +6,14 @@ use std::{
 };
 
 use base64::prelude::*;
-use cap_recording::screen_capture::ScreenCaptureTarget;
+use scoopy_recording::screen_capture::ScreenCaptureTarget;
 
 use crate::exit_shutdown::{abort_join_handles, read_target_under_cursor};
 use crate::{
     App, ArcLock, general_settings,
     recording_settings::RecordingTargetMode,
     window_exclusion::WindowExclusion,
-    windows::{CapWindowId, ShowCapWindow, hide_overlay},
+    windows::{ScoopyWindowId, ShowScoopyWindow, hide_overlay},
 };
 use scap_targets::{
     Display, DisplayId, Window, WindowId,
@@ -122,9 +122,9 @@ pub(crate) async fn open_target_select_overlays_for_session(
         .unwrap_or_else(|| Display::primary().id());
 
     for (id, window) in app.webview_windows() {
-        if let Ok(CapWindowId::TargetSelectOverlay {
+        if let Ok(ScoopyWindowId::TargetSelectOverlay {
             display_id: existing_id,
-        }) = CapWindowId::from_str(&id)
+        }) = ScoopyWindowId::from_str(&id)
             && !display_ids
                 .iter()
                 .any(|display_id| display_id == &existing_id)
@@ -140,7 +140,7 @@ pub(crate) async fn open_target_select_overlays_for_session(
         }
         let should_focus = display_id == &focus_display_id;
 
-        let existing_window = CapWindowId::TargetSelectOverlay {
+        let existing_window = ScoopyWindowId::TargetSelectOverlay {
             display_id: display_id.clone(),
         }
         .get(&app);
@@ -154,7 +154,7 @@ pub(crate) async fn open_target_select_overlays_for_session(
 
             state.spawn(display_id, window.clone(), picker_session);
         } else if start.elapsed() < Duration::from_secs(1) {
-            if let Ok(window) = (ShowCapWindow::TargetSelectOverlay {
+            if let Ok(window) = (ShowScoopyWindow::TargetSelectOverlay {
                 display_id: display_id.clone(),
                 target_mode,
             })
@@ -167,7 +167,7 @@ pub(crate) async fn open_target_select_overlays_for_session(
             let app_clone = app.clone();
             let display_id_clone = display_id.clone();
             tokio::spawn(async move {
-                if let Ok(window) = (ShowCapWindow::TargetSelectOverlay {
+                if let Ok(window) = (ShowScoopyWindow::TargetSelectOverlay {
                     display_id: display_id_clone,
                     target_mode,
                 })
@@ -180,7 +180,7 @@ pub(crate) async fn open_target_select_overlays_for_session(
         }
     }
 
-    let focus_window = CapWindowId::TargetSelectOverlay {
+    let focus_window = ScoopyWindowId::TargetSelectOverlay {
         display_id: focus_display_id,
     }
     .get(&app);
@@ -319,7 +319,7 @@ fn first_linux_picker_target<T, R>(
     candidates.into_iter().find_map(|candidate| {
         if !candidate.is_viewable
             || (candidate.owner_pid == Some(own_pid)
-                && candidate.title.as_deref() == Some("Cap Target Select"))
+                && candidate.title.as_deref() == Some("Scoopy Target Select"))
         {
             return None;
         }
@@ -477,7 +477,7 @@ pub async fn update_camera_overlay_bounds(
     width: f64,
     height: f64,
 ) -> Result<(), String> {
-    let window = CapWindowId::Camera
+    let window = ScoopyWindowId::Camera
         .get(&app)
         .ok_or("Camera window not found")?;
 
@@ -530,8 +530,8 @@ pub fn suspend_target_select_overlays(app: AppHandle) {
     state.clear_overlay_restore_labels();
     for (label, window) in app.webview_windows() {
         if matches!(
-            CapWindowId::from_str(&label),
-            Ok(CapWindowId::TargetSelectOverlay { .. })
+            ScoopyWindowId::from_str(&label),
+            Ok(ScoopyWindowId::TargetSelectOverlay { .. })
         ) {
             hide_overlay(&window);
         }
@@ -548,7 +548,7 @@ pub fn close_target_select_overlay_windows(app: &AppHandle) {
     }
 
     for (id, window) in app.webview_windows() {
-        if let Ok(CapWindowId::TargetSelectOverlay { display_id }) = CapWindowId::from_str(&id) {
+        if let Ok(ScoopyWindowId::TargetSelectOverlay { display_id }) = ScoopyWindowId::from_str(&id) {
             saw_overlay = true;
             // On Windows, hide() leaves the DirectComposition transparency surface composited on
             // screen (ghost overlay). Closing the window fully releases the surface.
@@ -570,7 +570,7 @@ pub(crate) fn dismiss_picker_from_escape(app: &AppHandle) {
     let Some(session) = app.state::<WindowFocusManager>().picker_session() else {
         return;
     };
-    let owner = CapWindowId::Main.get(app);
+    let owner = ScoopyWindowId::Main.get(app);
     close_target_select_overlay_windows(app);
     if let Some(owner) = owner {
         let app = app.clone();
@@ -783,11 +783,11 @@ impl WindowFocusManager {
                     break;
                 }
 
-                let cap_main = CapWindowId::Main.get(app);
-                let cap_settings = CapWindowId::Settings.get(app);
+                let scoopy_main = ScoopyWindowId::Main.get(app);
+                let scoopy_settings = ScoopyWindowId::Settings.get(app);
 
-                let main_window_available = cap_main.is_some();
-                let settings_window_available = cap_settings.is_some();
+                let main_window_available = scoopy_main.is_some();
+                let settings_window_available = scoopy_settings.is_some();
 
                 if main_window_available || settings_window_available {
                     main_window_was_seen = true;
@@ -802,7 +802,7 @@ impl WindowFocusManager {
 
                 #[cfg(windows)]
                 if window.is_visible().unwrap_or(false)
-                    && let Some(cap_main) = cap_main
+                    && let Some(scoopy_main) = scoopy_main
                 {
                     // Every overlay window (one per display) runs this loop. Checking only
                     // `window`/main focus made each inactive overlay steal focus from the
@@ -811,13 +811,13 @@ impl WindowFocusManager {
                     // overlay is fine, so only refocus when nothing of ours is focused.
                     let overlay_focused = app.webview_windows().iter().any(|(label, other)| {
                         matches!(
-                            CapWindowId::from_str(label),
-                            Ok(CapWindowId::TargetSelectOverlay { .. })
+                            ScoopyWindowId::from_str(label),
+                            Ok(ScoopyWindowId::TargetSelectOverlay { .. })
                         ) && other.is_focused().unwrap_or(false)
                     });
 
                     let should_refocus =
-                        overlay_focused || cap_main.is_focused().ok().unwrap_or_default();
+                        overlay_focused || scoopy_main.is_focused().ok().unwrap_or_default();
 
                     if !should_refocus {
                         request_overlay_focus(&window, picker_session, true);
@@ -966,12 +966,12 @@ mod linux_picker_tests {
     fn selects_underlying_window_after_picker_and_configured_exclusion() {
         let exclusion = WindowExclusion {
             bundle_identifier: None,
-            owner_name: Some("Cap".into()),
-            window_title: Some("Cap Camera".into()),
+            owner_name: Some("Scoopy".into()),
+            window_title: Some("Scoopy Camera".into()),
         };
         let candidates = [
-            candidate("Cap Target Select", Some(42), true),
-            candidate("Cap Camera", Some(42), true),
+            candidate("Scoopy Target Select", Some(42), true),
+            candidate("Scoopy Camera", Some(42), true),
             candidate("Moving fixture", Some(100), true),
             candidate("Lower window", Some(101), true),
         ];
@@ -979,24 +979,24 @@ mod linux_picker_tests {
 
         let selected = first_linux_picker_target(candidates, 42, |title| {
             described.push(title);
-            (!exclusion.matches(None, Some("Cap"), Some(title))).then_some(title)
+            (!exclusion.matches(None, Some("Scoopy"), Some(title))).then_some(title)
         });
 
         assert_eq!(selected, Some("Moving fixture"));
-        assert_eq!(described, ["Cap Camera", "Moving fixture"]);
+        assert_eq!(described, ["Scoopy Camera", "Moving fixture"]);
     }
 
     #[test]
     fn skips_own_picker_when_no_windows_are_configured_for_exclusion() {
         let candidates = [
-            candidate("Cap Target Select", Some(42), true),
-            candidate("Cap Camera", Some(42), true),
+            candidate("Scoopy Target Select", Some(42), true),
+            candidate("Scoopy Camera", Some(42), true),
             candidate("Moving fixture", Some(100), true),
         ];
 
         assert_eq!(
             first_linux_picker_target(candidates, 42, Some),
-            Some("Cap Camera")
+            Some("Scoopy Camera")
         );
     }
 
@@ -1004,13 +1004,13 @@ mod linux_picker_tests {
     fn does_not_exclude_foreign_or_unknown_owner_by_picker_title() {
         for owner_pid in [Some(100), None] {
             let candidates = [
-                candidate("Cap Target Select", owner_pid, true),
+                candidate("Scoopy Target Select", owner_pid, true),
                 candidate("Moving fixture", Some(101), true),
             ];
 
             assert_eq!(
                 first_linux_picker_target(candidates, 42, Some),
-                Some("Cap Target Select")
+                Some("Scoopy Target Select")
             );
         }
     }
@@ -1037,7 +1037,7 @@ mod linux_picker_tests {
     #[test]
     fn returns_no_target_when_every_candidate_is_ineligible() {
         let candidates = [
-            candidate("Cap Target Select", Some(42), true),
+            candidate("Scoopy Target Select", Some(42), true),
             candidate("Hidden window", Some(100), false),
             candidate("Excluded window", Some(101), true),
         ];

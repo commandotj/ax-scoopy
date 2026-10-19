@@ -2,7 +2,7 @@
 // loop (`apps/desktop-gpui/dev.sh`), so working on either app under
 // `bun run dev:desktop` gets hot reload without a second terminal. The gpui loop
 // is macOS-only (dev.sh uses BSD stat/md5), skipped when the workspace is
-// absent (main without the gpui branch), and opt-out via CAP_GPUI_DEV=0. Its
+// absent (main without the gpui branch), and opt-out via SCOOPY_GPUI_DEV=0. Its
 // output is prefixed [gpui] so the two cargo streams stay tellable apart.
 //
 // This script is also the dev half of the experimental app-switch: handing off
@@ -26,7 +26,7 @@ const gpuiDir = path.join(repoRoot, "apps", "desktop-gpui");
 const gpuiDevScript = path.join(gpuiDir, "dev.sh");
 const reopenSentinel = path.join(
 	os.homedir(),
-	"Library/Application Support/so.cap.desktop/cap-classic.reopen",
+	"Library/Application Support/me.systembug.scoopy/scoopy-classic.reopen",
 );
 
 let tauri = null;
@@ -76,7 +76,7 @@ function stopGpui() {
 
 if (
 	process.platform === "darwin" &&
-	process.env.CAP_GPUI_DEV !== "0" &&
+	process.env.SCOOPY_GPUI_DEV !== "0" &&
 	existsSync(gpuiDevScript)
 ) {
 	gpui = spawn("bash", [gpuiDevScript], {

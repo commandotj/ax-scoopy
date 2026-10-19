@@ -18,7 +18,7 @@ import {
 	type AnimatedGradientPreset,
 	commands,
 } from "~/utils/tauri";
-import IconCapChevronDown from "~icons/cap/chevron-down";
+import IconScoopyChevronDown from "~icons/scoopy/chevron-down";
 import IconLucidePlus from "~icons/lucide/plus";
 import IconLucideRotateCcw from "~icons/lucide/rotate-ccw";
 import IconLucideSave from "~icons/lucide/save";
@@ -696,7 +696,7 @@ export function AnimatedGradientEditor(props: {
 						<div class="flex items-center min-h-[22px]">
 							<KCollapsible.Trigger class="group flex flex-1 items-center gap-1.5 text-[12px] font-medium text-ed-text-2 transition-colors duration-150 hover:text-ed-text-1 outline-hidden">
 								Fine-tune
-								<IconCapChevronDown class="size-3.5 text-ed-text-3 transition-transform duration-200 group-data-expanded:rotate-180" />
+								<IconScoopyChevronDown class="size-3.5 text-ed-text-3 transition-transform duration-200 group-data-expanded:rotate-180" />
 							</KCollapsible.Trigger>
 							<Show when={fineTuneOpen()}>
 								<EditorButton

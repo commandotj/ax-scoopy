@@ -6,7 +6,7 @@ fn main() {
 #[cfg(windows)]
 mod win {
     use args::Args;
-    use cap_enc_mediafoundation::{d3d::create_d3d_device, media::MF_VERSION, video::H264Encoder};
+    use scoopy_enc_mediafoundation::{d3d::create_d3d_device, media::MF_VERSION, video::H264Encoder};
     use clap::Parser;
     use scap_targets::Display;
     use std::{

@@ -1,6 +1,6 @@
 # Scoopy CLI
 
-Scoopy screen recording, driven from the command line. The `cap` binary is built for automation and AI
+Scoopy screen recording, driven from the command line. The `scoopy` binary is built for automation and AI
 coding agents (Claude Code, Codex, OpenCode, Cursor): every command speaks JSON, errors are
 machine-readable, and recordings have an explicit start/stop lifecycle.
 
@@ -12,18 +12,18 @@ The desktop app and the CLI share the same binary, so the CLI is always in sync 
 
 ## Agent integration
 
-A ready-made skill lives at [`skill/cap/SKILL.md`](./skill/cap/SKILL.md). For Codex, Claude Code, or Cursor,
+A ready-made skill lives at [`skill/scoopy/SKILL.md`](./skill/scoopy/SKILL.md). For Codex, Claude Code, or Cursor,
 install the skill and local MCP server together for exactly one current agent:
 
 ```sh
-cap agents install --target <codex|claude|cursor> --component all --dry-run --json
-cap agents install --target <codex|claude|cursor> --component all --yes --json
+scoopy agents install --target <codex|claude|cursor> --component all --dry-run --json
+scoopy agents install --target <codex|claude|cursor> --component all --yes --json
 ```
 
 Use one concrete target in both commands. The installer writes the global Scoopy skill and merges a local
-`cap mcp serve` entry without replacing unrelated agent configuration. Restart the agent after installation
+`scoopy mcp serve` entry without replacing unrelated agent configuration. Restart the agent after installation
 so new sessions load both components. The skill persistently routes Scoopy tasks through MCP or CLI before
-browser automation or computer-use tools, while command details remain authoritative in `cap guide --json`.
+browser automation or computer-use tools, while command details remain authoritative in `scoopy guide --json`.
 
 OpenCode and other shell-capable agents can use the CLI directly. Follow the agent setup documentation to
 merge the documented local MCP entry for clients that support stdio MCP servers.
@@ -31,54 +31,54 @@ merge the documented local MCP entry for clients that support stdio MCP servers.
 ## The output convention (read this first)
 
 - Pass `--json` (a global flag) to **any** command for machine-readable JSON on **stdout**. A command's
-  own `--format json` works too; `--json` is the order-insensitive shortcut (`cap --json targets` and
-  `cap targets --json` both work).
+  own `--format json` works too; `--json` is the order-insensitive shortcut (`scoopy --json targets` and
+  `scoopy targets --json` both work).
 - **stdout** is the authoritative result. **stderr** is human-readable logs plus a final
   `error: <message>` line on failure.
 - Failures exit **non-zero**. In `--json` mode a final object/event carries an `error` string field, so
   a single `"error" in obj` check detects failure across every command. clap usage/parse errors exit `2`.
 - `record` and `export` stream **newline-delimited JSON (NDJSON)** events on stdout.
-- Fetch the full machine-readable contract any time with **`cap guide --json`**.
+- Fetch the full machine-readable contract any time with **`scoopy guide --json`**.
 
 ## Environment variables
 
 | Variable                    | Used by                             | Notes                                                                                    |
 | --------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------- |
-| `CAP_NO_MODIFY_PATH`        | `desktop install-cli`               | Set to skip editing shell profiles / user PATH.                                          |
-| `CAP_DESKTOP_FORCE_INSTALL` | `install-cli.sh`, `install-cli.ps1` | Force the installer script to replace Scoopy Desktop before linking the CLI.             |
+| `SCOOPY_NO_MODIFY_PATH`        | `desktop install-cli`               | Set to skip editing shell profiles / user PATH.                                          |
+| `SCOOPY_DESKTOP_FORCE_INSTALL` | `install-cli.sh`, `install-cli.ps1` | Force the installer script to replace Scoopy Desktop before linking the CLI.             |
 
 ## Typical agent workflow
 
 ```sh
-cap doctor --json                          # verify permissions & capture readiness (exits 0; read `ok`/`captureReady`)
-cap targets --json                         # discover screens/windows/cameras/mics (ids feed the next steps)
-cap record start --screen <id> --json --detach  # start in the background -> {"type":"started","recordingId","pid","path"}
+scoopy doctor --json                          # verify permissions & capture readiness (exits 0; read `ok`/`captureReady`)
+scoopy targets --json                         # discover screens/windows/cameras/mics (ids feed the next steps)
+scoopy record start --screen <id> --json --detach  # start in the background -> {"type":"started","recordingId","pid","path"}
 # ... the agent performs whatever it needs to capture ...
-cap record stop --id <recordingId> --json  # finalize -> {"type":"stopped","path","recordingMetaExists":true}
-cap project validate <path.cap> --json     # confirm the recording is complete before exporting
-cap export <path.cap> --output out.mp4 --json
+scoopy record stop --id <recordingId> --json  # finalize -> {"type":"stopped","path","recordingMetaExists":true}
+scoopy project validate <path.scoopy> --json     # confirm the recording is complete before exporting
+scoopy export <path.scoopy> --output out.mp4 --json
 ```
 
 ## Commands
 
-- `cap record start` / `record stop` / `record status` — record (foreground, or `--detach` for background) and manage sessions.
-- `cap export` — render a `.cap` project to mp4/gif/mov. Here `--format` selects the **container**; use `--json` for machine-readable output.
-- `cap screenshot` — capture a still of a screen/window (`--json` → `{path,width,height}`).
-- `cap targets` (`screens`/`windows`/`cameras`/`mics`) — enumerate capture inputs.
-- `cap project inspect` / `validate` / `config get|set` — inspect and edit `.cap` projects.
-- `cap recordings list` — list `.cap` recordings in the desktop library.
-- `cap doctor` / `version` / `guide` — diagnostics, version info, and the agent capability manifest.
-- `cap automations list` — list the automation rules configured in Scoopy Desktop that the CLI honors.
-- `cap desktop status|install-cli|uninstall-cli` — manage the `cap` shim on PATH.
-- `cap completions <shell>` — shell completion scripts (bash/zsh/fish/powershell).
+- `scoopy record start` / `record stop` / `record status` — record (foreground, or `--detach` for background) and manage sessions.
+- `scoopy export` — render a `.scoopy` project to mp4/gif/mov. Here `--format` selects the **container**; use `--json` for machine-readable output.
+- `scoopy screenshot` — capture a still of a screen/window (`--json` → `{path,width,height}`).
+- `scoopy targets` (`screens`/`windows`/`cameras`/`mics`) — enumerate capture inputs.
+- `scoopy project inspect` / `validate` / `config get|set` — inspect and edit `.scoopy` projects.
+- `scoopy recordings list` — list `.scoopy` recordings in the desktop library.
+- `scoopy doctor` / `version` / `guide` — diagnostics, version info, and the agent capability manifest.
+- `scoopy automations list` — list the automation rules configured in Scoopy Desktop that the CLI honors.
+- `scoopy desktop status|install-cli|uninstall-cli` — manage the `scoopy` shim on PATH.
+- `scoopy completions <shell>` — shell completion scripts (bash/zsh/fish/powershell).
 
 ## Automations
 
 Automations are `trigger → (conditions) → actions` rules authored in Scoopy Desktop (Settings →
-Automations) and persisted to its store. Because the CLI shares that store (and the `cap-automation`
-engine), it runs the same rules automatically after `cap screenshot`, and a `cap record` finish — e.g. "on screenshot, save a copy to `~/Shots` and POST a webhook". Clipboard, OCR,
+Automations) and persisted to its store. Because the CLI shares that store (and the `scoopy-automation`
+engine), it runs the same rules automatically after `scoopy screenshot`, and a `scoopy record` finish — e.g. "on screenshot, save a copy to `~/Shots` and POST a webhook". Clipboard, OCR,
 notification, and open-editor actions are desktop-only and are skipped on the CLI; everything else
 (save, export, run command, webhook, reveal, apply preset, delete) runs. Inspect the active
-rules with `cap automations list --json`.
+rules with `scoopy automations list --json`.
 
-Run `cap --help` or `cap <command> --help` for full flag documentation.
+Run `scoopy --help` or `scoopy <command> --help` for full flag documentation.

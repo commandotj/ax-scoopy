@@ -6,7 +6,7 @@
 
 use std::borrow::Cow;
 
-use cap_media_info::AudioInfoError;
+use scoopy_media_info::AudioInfoError;
 use thiserror::Error;
 
 pub fn init() -> Result<(), MediaError> {

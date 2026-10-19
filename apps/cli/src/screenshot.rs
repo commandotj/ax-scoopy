@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use cap_recording::{screen_capture::ScreenCaptureTarget, screenshot::capture_screenshot};
+use scoopy_recording::{screen_capture::ScreenCaptureTarget, screenshot::capture_screenshot};
 use clap::Args;
 use scap_targets::{DisplayId, WindowId};
 use serde::Serialize;
@@ -9,10 +9,10 @@ use crate::{OutputFormat, resolve_format, write_json};
 
 #[derive(Args)]
 pub struct Screenshot {
-    /// ID of the screen to capture (see `cap targets screens`)
+    /// ID of the screen to capture (see `scoopy targets screens`)
     #[arg(long, group = "target")]
     screen: Option<DisplayId>,
-    /// ID of the window to capture (see `cap targets windows`)
+    /// ID of the window to capture (see `scoopy targets windows`)
     #[arg(long, group = "target")]
     window: Option<WindowId>,
     /// Output image path (format inferred from extension, e.g. .png)
@@ -51,7 +51,7 @@ impl Screenshot {
             (_, Some(id)) => resolve_window(&id)?,
             _ => {
                 return Err(
-                    "No target specified; pass --screen <id> or --window <id> (see `cap targets`)"
+                    "No target specified; pass --screen <id> or --window <id> (see `scoopy targets`)"
                         .to_string(),
                 );
             }
@@ -80,12 +80,12 @@ impl Screenshot {
 }
 
 fn resolve_screen(id: &DisplayId) -> Result<ScreenCaptureTarget, String> {
-    cap_recording::screen_capture::list_displays()
+    scoopy_recording::screen_capture::list_displays()
         .into_iter()
         .find(|s| &s.0.id == id)
         .map(|(s, _)| ScreenCaptureTarget::Display { id: s.id })
         .ok_or_else(|| {
-            let available: Vec<String> = cap_recording::screen_capture::list_displays()
+            let available: Vec<String> = scoopy_recording::screen_capture::list_displays()
                 .into_iter()
                 .map(|(s, _)| s.id.to_string())
                 .collect();
@@ -94,11 +94,11 @@ fn resolve_screen(id: &DisplayId) -> Result<ScreenCaptureTarget, String> {
 }
 
 fn resolve_window(id: &WindowId) -> Result<ScreenCaptureTarget, String> {
-    cap_recording::screen_capture::list_windows()
+    scoopy_recording::screen_capture::list_windows()
         .into_iter()
         .find(|s| &s.0.id == id)
         .map(|(s, _)| ScreenCaptureTarget::Window { id: s.id })
         .ok_or_else(|| {
-            format!("Window with id '{id}' not found. Run `cap targets windows` to list window ids")
+            format!("Window with id '{id}' not found. Run `scoopy targets windows` to list window ids")
         })
 }

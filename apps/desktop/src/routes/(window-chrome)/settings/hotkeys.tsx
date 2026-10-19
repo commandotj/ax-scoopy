@@ -98,7 +98,7 @@ function Inner(props: { initialStore: HotkeysStore | null }) {
 		] satisfies Array<keyof typeof ACTION_TEXT>;
 
 	return (
-		<div class="cap-settings-page flex flex-col h-full custom-scroll">
+		<div class="scoopy-settings-page flex flex-col h-full custom-scroll">
 			<SettingsPageContent>
 				<Section
 					title="Shortcuts"
@@ -151,7 +151,7 @@ function Inner(props: { initialStore: HotkeysStore | null }) {
 																		);
 																	}}
 																>
-																	<IconCapCircleCheck class="transition-colors text-gray-12 hover:text-gray-10 size-5" />
+																	<IconScoopyCircleCheck class="transition-colors text-gray-12 hover:text-gray-10 size-5" />
 																</button>
 															</Show>
 															<button
@@ -166,7 +166,7 @@ function Inner(props: { initialStore: HotkeysStore | null }) {
 																	});
 																}}
 															>
-																<IconCapCircleX class="text-red-500 transition-colors hover:text-red-700 size-5" />
+																<IconScoopyCircleX class="text-red-500 transition-colors hover:text-red-700 size-5" />
 															</button>
 														</div>
 													</div>

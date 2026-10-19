@@ -1,4 +1,4 @@
-use cap_recording::{
+use scoopy_recording::{
     CameraFeed,
     benchmark::{BenchmarkConfig, EncoderInfo},
     feeds::camera::{self, DeviceOrModelID},
@@ -22,7 +22,7 @@ async fn run_recording_benchmark(
     let dir = tempfile::tempdir()?;
     info!("Recording to: {}", dir.path().display());
 
-    let mut builder = cap_recording::studio_recording::Actor::builder(
+    let mut builder = scoopy_recording::studio_recording::Actor::builder(
         dir.path().into(),
         ScreenCaptureTarget::Display {
             id: Display::primary().id(),
@@ -30,7 +30,7 @@ async fn run_recording_benchmark(
     );
 
     if include_camera {
-        if let Some(camera_info) = cap_camera::list_cameras().next() {
+        if let Some(camera_info) = scoopy_camera::list_cameras().next() {
             println!("\nUsing camera: {}", camera_info.display_name());
 
             let feed = CameraFeed::spawn(CameraFeed::default());
@@ -57,7 +57,7 @@ async fn run_recording_benchmark(
     let handle = builder
         .build(
             #[cfg(target_os = "macos")]
-            Some(cap_recording::SendableShareableContent::from(
+            Some(scoopy_recording::SendableShareableContent::from(
                 cidre::sc::ShareableContent::current().await?,
             )),
         )
@@ -110,7 +110,7 @@ async fn run_pause_resume_benchmark(duration_secs: u64) -> Result<(), Box<dyn st
 
     let dir = tempfile::tempdir()?;
 
-    let handle = cap_recording::studio_recording::Actor::builder(
+    let handle = scoopy_recording::studio_recording::Actor::builder(
         dir.path().into(),
         ScreenCaptureTarget::Display {
             id: Display::primary().id(),
@@ -118,7 +118,7 @@ async fn run_pause_resume_benchmark(duration_secs: u64) -> Result<(), Box<dyn st
     )
     .build(
         #[cfg(target_os = "macos")]
-        Some(cap_recording::SendableShareableContent::from(
+        Some(scoopy_recording::SendableShareableContent::from(
             cidre::sc::ShareableContent::current().await?,
         )),
     )
@@ -170,7 +170,7 @@ async fn stress_test_recording(
         let dir = tempfile::tempdir()?;
 
         let start = Instant::now();
-        let handle = cap_recording::studio_recording::Actor::builder(
+        let handle = scoopy_recording::studio_recording::Actor::builder(
             dir.path().into(),
             ScreenCaptureTarget::Display {
                 id: Display::primary().id(),
@@ -178,7 +178,7 @@ async fn stress_test_recording(
         )
         .build(
             #[cfg(target_os = "macos")]
-            Some(cap_recording::SendableShareableContent::from(
+            Some(scoopy_recording::SendableShareableContent::from(
                 cidre::sc::ShareableContent::current().await?,
             )),
         )
@@ -222,7 +222,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     unsafe { std::env::set_var("RUST_LOG", "info") };
     tracing_subscriber::fmt::init();
 
-    println!("=== Cap Recording Benchmark ===\n");
+    println!("=== Scoopy Recording Benchmark ===\n");
 
     let args: Vec<String> = std::env::args().collect();
 

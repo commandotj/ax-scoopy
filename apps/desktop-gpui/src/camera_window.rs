@@ -12,7 +12,7 @@
 //! primitive) -- no CPU pixel copies and no sprite-atlas uploads on the frame
 //! path. With background blur on, the converted surface takes a detour
 //! through the [`crate::camera_blur`] worker -- the same
-//! `cap_camera_effects::BlurProcessor` the recording's project config points
+//! `scoopy_camera_effects::BlurProcessor` the recording's project config points
 //! the editor at -- and the blurred surface is painted instead.
 //!
 //! Invalidation mirrors the editor window: each frame notifies only the
@@ -20,7 +20,7 @@
 //! [`CameraToolbarView`] mounted `.cached()`, re-rendered only when the parent
 //! notifies (hover, resize, state mutations). A per-frame `window.refresh()`
 //! would bust every cache and relayout the whole window at camera rate
-//! (`CAP_GPUI_AUTO_CAMERA_BENCH`, 8 interleaved A/B pairs: median p50 draw
+//! (`SCOOPY_GPUI_AUTO_CAMERA_BENCH`, 8 interleaved A/B pairs: median p50 draw
 //! 319us -> 222us; the remainder is gpui's fixed per-draw cost, which a
 //! clean-draw floor measurement puts at ~150us on this window either way).
 //! Verified live on a real C920: 29.9fps delivered, 29.9fps painted with no
@@ -517,7 +517,7 @@ mod frame {
         /// target size or the mirror toggle changes.
         pub fn convert(
             this: &mut Option<Self>,
-            frame: &cap_recording::NativeCameraFrame,
+            frame: &scoopy_recording::NativeCameraFrame,
             max_dims: Option<(usize, usize)>,
             mirrored: bool,
         ) -> Option<Converted> {
@@ -707,7 +707,7 @@ fn overlay_metrics(size: f32) -> OverlayMetrics {
 
 /// `camera_preview_error_message` (`lib.rs:755-774`) plus the fixed title
 /// from `emit_camera_preview_error` (`lib.rs:776-784`). The error strings
-/// come from the same `cap-recording` camera errors the Tauri app matches on.
+/// come from the same `scoopy-recording` camera errors the Tauri app matches on.
 fn camera_issue(error: &str) -> (&'static str, &'static str) {
     let message = if error.contains("DeviceNotFound") {
         "This camera is no longer available. Check that it is connected and allowed by system permissions."
@@ -938,7 +938,7 @@ fn snapshot_bgra(
                 pixels
             }
         } else {
-            cap_gpui_kernels::frame::downsample_nearest(
+            scoopy_gpui_kernels::frame::downsample_nearest(
                 data,
                 width,
                 height,
@@ -1346,7 +1346,7 @@ impl Render for CameraPreviewView {
 
 #[cfg(not(target_os = "macos"))]
 pub struct CameraPreviewFrame {
-    pub timestamp: cap_timestamp::Timestamp,
+    pub timestamp: scoopy_timestamp::Timestamp,
     pub image: Arc<gpui::RenderImage>,
     pub dims: (usize, usize),
 }
@@ -1429,7 +1429,7 @@ impl CameraWindow {
     pub(crate) fn studio_snapshot(
         &self,
         window: &Window,
-        target: &cap_recording::screen_capture::ScreenCaptureTarget,
+        target: &scoopy_recording::screen_capture::ScreenCaptureTarget,
     ) -> crate::recording::StudioCameraSnapshot {
         let placement = (|| {
             if self.inline {
@@ -1463,7 +1463,7 @@ impl CameraWindow {
                     f64::from(rect.height),
                 ]
             };
-            cap_recording::camera_placement::recording_camera_placement(target, bounds)
+            scoopy_recording::camera_placement::recording_camera_placement(target, bounds)
         })();
         crate::recording::StudioCameraSnapshot {
             blur: self.state.background_blur,
@@ -1695,7 +1695,7 @@ impl CameraWindow {
     /// explicit ask (unit-2 finding).
     pub fn frame_arrived(
         &mut self,
-        #[cfg(target_os = "macos")] frame: cap_recording::NativeCameraFrame,
+        #[cfg(target_os = "macos")] frame: scoopy_recording::NativeCameraFrame,
         #[cfg(not(target_os = "macos"))] frame: CameraPreviewFrame,
         window: &mut Window,
         cx: &mut Context<Self>,
@@ -1831,15 +1831,15 @@ impl CameraWindow {
     }
 
     #[cfg(target_os = "macos")]
-    fn active_blur_mode(&self) -> Option<cap_camera_effects::BlurMode> {
+    fn active_blur_mode(&self) -> Option<scoopy_camera_effects::BlurMode> {
         if self.effect_failures.blur || camera_blur::is_low_spec_preview() {
             return None;
         }
         match self.state.background_blur {
             BlurMode::Off => None,
-            BlurMode::Light => Some(cap_camera_effects::BlurMode::Light),
-            BlurMode::Heavy => Some(cap_camera_effects::BlurMode::Heavy),
-            BlurMode::Remove => Some(cap_camera_effects::BlurMode::Remove),
+            BlurMode::Light => Some(scoopy_camera_effects::BlurMode::Light),
+            BlurMode::Heavy => Some(scoopy_camera_effects::BlurMode::Heavy),
+            BlurMode::Remove => Some(scoopy_camera_effects::BlurMode::Remove),
         }
     }
 

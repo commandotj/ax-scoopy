@@ -8,7 +8,7 @@
 			"dependsOn": ["^build"],
 			"outputs": [".next/**", "!.next/cache/**", "dist/**"]
 		},
-		"@cap/desktop#build": {
+		"@scoopy/desktop#build": {
 			"dependsOn": ["^build"],
 			"outputs": [".output/**"]
 		},

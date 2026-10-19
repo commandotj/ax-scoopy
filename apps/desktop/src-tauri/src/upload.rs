@@ -9,12 +9,12 @@ use crate::{
 };
 use async_stream::{stream, try_stream};
 use bytes::Bytes;
-use cap_project::{RecordingMeta, S3UploadMeta, UploadMeta};
-use cap_recording::{
+use scoopy_project::{RecordingMeta, S3UploadMeta, UploadMeta};
+use scoopy_recording::{
     upload_resume::UploadLock,
     upload_verification::{UploadVerification, VerifiedUploadReceipt},
 };
-use cap_utils::spawn_actor;
+use scoopy_utils::spawn_actor;
 use ffmpeg::ffi::AV_TIME_BASE;
 use flume::Receiver;
 use futures::future::join;
@@ -96,9 +96,9 @@ async fn await_upload_verification(
 
 fn validate_uploaded_segment_inventory(
     manifest: &SegmentUploadManifest,
-    expected: &[cap_enc_ffmpeg::segmented_stream::SegmentCompletedEvent],
+    expected: &[scoopy_enc_ffmpeg::segmented_stream::SegmentCompletedEvent],
 ) -> Result<(), AuthedApiError> {
-    use cap_enc_ffmpeg::segmented_stream::SegmentMediaType;
+    use scoopy_enc_ffmpeg::segmented_stream::SegmentMediaType;
     for media_type in [SegmentMediaType::Video, SegmentMediaType::Audio] {
         let mut indices = expected
             .iter()
@@ -230,15 +230,15 @@ fn content_type_for_upload_subpath(subpath: &str) -> &'static str {
 }
 
 pub fn reusable_video_id(
-    sharing: Option<&cap_project::SharingMeta>,
-    upload: Option<&cap_project::UploadMeta>,
+    sharing: Option<&scoopy_project::SharingMeta>,
+    upload: Option<&scoopy_project::UploadMeta>,
 ) -> Option<String> {
     sharing
         .map(|sharing| sharing.id.clone())
         .or_else(|| match upload {
-            Some(cap_project::UploadMeta::SinglePartUpload { video_id, .. })
-            | Some(cap_project::UploadMeta::SegmentUpload { video_id, .. })
-            | Some(cap_project::UploadMeta::MultipartUpload { video_id, .. }) => {
+            Some(scoopy_project::UploadMeta::SinglePartUpload { video_id, .. })
+            | Some(scoopy_project::UploadMeta::SegmentUpload { video_id, .. })
+            | Some(scoopy_project::UploadMeta::MultipartUpload { video_id, .. }) => {
                 Some(video_id.clone())
             }
             _ => None,
@@ -279,7 +279,7 @@ fn validate_replacement_restart_session(
     restarted: bool,
     upload_id: &str,
 ) -> Result<(), AuthedApiError> {
-    if restarted && !upload_id.starts_with("cap-reupload.") {
+    if restarted && !upload_id.starts_with("scoopy-reupload.") {
         return Err(
             "Replacement restart requires a signed upload session; local files retained".into(),
         );
@@ -403,7 +403,7 @@ impl LegacyReplacementInput {
 }
 
 fn legacy_replacement_session(replace_existing: bool, upload_id: &str) -> bool {
-    replace_existing && !upload_id.starts_with("cap-reupload.")
+    replace_existing && !upload_id.starts_with("scoopy-reupload.")
 }
 
 #[instrument(skip(app, channel, file_path, screenshot_path))]
@@ -1073,7 +1073,7 @@ struct FailedSegmentInfo {
     subpath: String,
     file_path: PathBuf,
     is_init: bool,
-    media_type: cap_enc_ffmpeg::segmented_stream::SegmentMediaType,
+    media_type: scoopy_enc_ffmpeg::segmented_stream::SegmentMediaType,
     index: u32,
     duration: f64,
     expected_size: u64,
@@ -1314,7 +1314,7 @@ impl SegmentUploader {
     pub(crate) fn spawn(
         app: AppHandle,
         segment_rx: std::sync::mpsc::Receiver<
-            cap_enc_ffmpeg::segmented_stream::SegmentCompletedEvent,
+            scoopy_enc_ffmpeg::segmented_stream::SegmentCompletedEvent,
         >,
         recording_done: Option<flume::Receiver<()>>,
         session: Arc<lifecycle::Session>,
@@ -1573,7 +1573,7 @@ impl SegmentUploader {
     async fn run(
         app: AppHandle,
         segment_rx: std::sync::mpsc::Receiver<
-            cap_enc_ffmpeg::segmented_stream::SegmentCompletedEvent,
+            scoopy_enc_ffmpeg::segmented_stream::SegmentCompletedEvent,
         >,
         recording_done: Option<flume::Receiver<()>>,
         recording_dir: PathBuf,
@@ -1581,7 +1581,7 @@ impl SegmentUploader {
         required_audio: bool,
         session: Arc<lifecycle::Session>,
     ) -> Result<u64, AuthedApiError> {
-        use cap_enc_ffmpeg::segmented_stream::SegmentMediaType;
+        use scoopy_enc_ffmpeg::segmented_stream::SegmentMediaType;
         let video_id = pre_created_video.id.clone();
 
         session.check()?;
@@ -1677,7 +1677,7 @@ impl SegmentUploader {
         };
 
         let (async_segment_tx, mut async_segment_rx) = tokio::sync::mpsc::unbounded_channel::<
-            cap_enc_ffmpeg::segmented_stream::SegmentCompletedEvent,
+            scoopy_enc_ffmpeg::segmented_stream::SegmentCompletedEvent,
         >();
 
         let bridge_handle = {
@@ -2748,7 +2748,7 @@ async fn completed_drive_upload_identity(
         .ok()?
         .ok()
         .and_then(|value| {
-            cap_recording::upload_verification::completed_drive_object_identity(
+            scoopy_recording::upload_verification::completed_drive_object_identity(
                 &value,
                 expected_size,
             )
@@ -3013,7 +3013,7 @@ mod tests {
 
     #[tokio::test]
     async fn restart_requires_a_signed_session_before_any_further_upload_work() {
-        for upload_id in ["legacy-again", "cap-reupload.signed"] {
+        for upload_id in ["legacy-again", "scoopy-reupload.signed"] {
             let uploads = AtomicUsize::new(0);
             let uploads = &uploads;
             let result = with_replacement_restart(true, |restarted| async move {
@@ -3029,7 +3029,7 @@ mod tests {
                 })
             })
             .await;
-            assert_eq!(result.is_ok(), upload_id.starts_with("cap-reupload."));
+            assert_eq!(result.is_ok(), upload_id.starts_with("scoopy-reupload."));
             assert_eq!(
                 uploads.load(Ordering::Acquire),
                 if result.is_ok() { 2 } else { 1 }
@@ -3132,7 +3132,7 @@ mod tests {
         for replace_existing in [false, true] {
             assert!(!legacy_replacement_session(
                 replace_existing,
-                "cap-reupload.signed-token"
+                "scoopy-reupload.signed-token"
             ));
         }
         for upload_id in [
@@ -3249,15 +3249,15 @@ mod tests {
 
     #[test]
     fn reupload_keeps_sharing_identity_after_completion_or_failure() {
-        let sharing = cap_project::SharingMeta {
+        let sharing = scoopy_project::SharingMeta {
             id: "existing-video".into(),
-            link: "https://cap.link/existing-video".into(),
+            link: "https://example.com/existing-video".into(),
             content_hash: None,
         };
         for upload in [
             None,
-            Some(cap_project::UploadMeta::Complete),
-            Some(cap_project::UploadMeta::Failed {
+            Some(scoopy_project::UploadMeta::Complete),
+            Some(scoopy_project::UploadMeta::Failed {
                 error: "offline".into(),
             }),
         ] {
@@ -3270,11 +3270,11 @@ mod tests {
 
     #[test]
     fn retry_keeps_the_reserved_identity_until_sharing_is_saved() {
-        let upload = cap_project::UploadMeta::SinglePartUpload {
+        let upload = scoopy_project::UploadMeta::SinglePartUpload {
             video_id: "reserved-video".into(),
             file_path: "output.mp4".into(),
             screenshot_path: "display.jpg".into(),
-            recording_dir: "recording.cap".into(),
+            recording_dir: "recording.scoopy".into(),
         };
         assert_eq!(
             reusable_video_id(None, Some(&upload)).as_deref(),
@@ -3847,7 +3847,7 @@ mod tests {
 
     #[tokio::test]
     async fn failed_required_segment_prevents_all_completion_side_effects() {
-        use cap_enc_ffmpeg::segmented_stream::SegmentMediaType;
+        use scoopy_enc_ffmpeg::segmented_stream::SegmentMediaType;
 
         for (media_type, is_init) in [
             (SegmentMediaType::Video, true),
@@ -3885,7 +3885,7 @@ mod tests {
             subpath: "segments/video/segment_002.m4s".to_string(),
             file_path: PathBuf::from("segment_002.m4s"),
             is_init: false,
-            media_type: cap_enc_ffmpeg::segmented_stream::SegmentMediaType::Video,
+            media_type: scoopy_enc_ffmpeg::segmented_stream::SegmentMediaType::Video,
             index: 2,
             duration: 3.0,
             expected_size: 7,
@@ -4161,7 +4161,7 @@ mod tests {
 #[cfg(target_os = "linux")]
 pub(crate) mod strict_instant {
     use super::*;
-    use cap_enc_ffmpeg::segmented_stream::{SegmentCompletedEvent, SegmentMediaType};
+    use scoopy_enc_ffmpeg::segmented_stream::{SegmentCompletedEvent, SegmentMediaType};
     use futures::{FutureExt as _, stream::FuturesUnordered};
     use std::{future::Future, panic::AssertUnwindSafe, sync::atomic::AtomicBool};
 
@@ -5039,7 +5039,7 @@ pub(crate) mod strict_instant {
         fn directory(tag: &str) -> PathBuf {
             static NEXT: AtomicUsize = AtomicUsize::new(0);
             let path = std::env::temp_dir().join(format!(
-                "cap-strict-upload-{tag}-{}-{}",
+                "scoopy-strict-upload-{tag}-{}-{}",
                 std::process::id(),
                 NEXT.fetch_add(1, Ordering::AcqRel)
             ));

@@ -300,7 +300,7 @@ fn report_unexpected_termination(prev: &SessionRecord) {
         prev_graphics_recovery = prev.graphics_recovery,
         prev_blur_active = prev.blur_active,
         prev_blur_recovery = prev.blur_recovery,
-        "Previous Cap session terminated without a clean shutdown"
+        "Previous Scoopy session terminated without a clean shutdown"
     );
 
     sentry::with_scope(
@@ -319,7 +319,7 @@ fn report_unexpected_termination(prev: &SessionRecord) {
         },
         || {
             sentry::capture_message(
-                "Cap session terminated unexpectedly (no clean shutdown)",
+                "Scoopy session terminated unexpectedly (no clean shutdown)",
                 sentry::Level::Error,
             );
         },

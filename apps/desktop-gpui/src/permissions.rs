@@ -354,7 +354,7 @@ fn relaunch_command(exe: &std::path::Path, pid: u32) -> std::process::Command {
     };
     let mut command = std::process::Command::new("/bin/sh");
     command
-        .args(["-c", script, "cap-relaunch"])
+        .args(["-c", script, "scoopy-relaunch"])
         .arg(pid.to_string())
         .arg(target);
     command
@@ -586,7 +586,7 @@ mod tests {
         let output = root.join("relaunched");
         std::fs::write(
             &executable,
-            b"#!/bin/sh\nprintf relaunched > \"$CAP_GPUI_RELAUNCH_TEST_OUTPUT\"\n",
+            b"#!/bin/sh\nprintf relaunched > \"$SCOOPY_GPUI_RELAUNCH_TEST_OUTPUT\"\n",
         )
         .unwrap();
         std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
@@ -597,7 +597,7 @@ mod tests {
             .spawn()
             .unwrap();
         let mut replacement = relaunch_command(&executable, previous.id())
-            .env("CAP_GPUI_RELAUNCH_TEST_OUTPUT", &output)
+            .env("SCOOPY_GPUI_RELAUNCH_TEST_OUTPUT", &output)
             .spawn()
             .unwrap();
         std::thread::sleep(std::time::Duration::from_millis(400));

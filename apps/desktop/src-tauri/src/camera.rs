@@ -1,11 +1,11 @@
 use anyhow::{Context, anyhow};
 #[cfg(not(target_os = "macos"))]
-use cap_recording::FFmpegVideoFrame;
+use scoopy_recording::FFmpegVideoFrame;
 #[cfg(target_os = "macos")]
-use cap_recording::NativeCameraFrame;
-use cap_recording::feeds::{self, camera::CameraFeed};
+use scoopy_recording::NativeCameraFrame;
+use scoopy_recording::feeds::{self, camera::CameraFeed};
 #[cfg(target_os = "macos")]
-use cap_utils::macos_qos::{MacOsQosClass, set_current_thread_qos};
+use scoopy_utils::macos_qos::{MacOsQosClass, set_current_thread_qos};
 
 #[cfg(target_os = "macos")]
 use crate::camera_native::{NativeFrameConverter, classify_frame};
@@ -173,7 +173,7 @@ pub struct CameraPreviewState {
     pub shape: CameraPreviewShape,
     pub mirrored: bool,
     #[serde(default)]
-    pub background_blur: cap_project::BackgroundBlurMode,
+    pub background_blur: scoopy_project::BackgroundBlurMode,
 }
 
 impl Default for CameraPreviewState {
@@ -182,7 +182,7 @@ impl Default for CameraPreviewState {
             size: DEFAULT_CAMERA_SIZE,
             shape: CameraPreviewShape::default(),
             mirrored: false,
-            background_blur: cap_project::BackgroundBlurMode::Off,
+            background_blur: scoopy_project::BackgroundBlurMode::Off,
         }
     }
 }
@@ -279,7 +279,7 @@ impl CameraPreviewManager {
             store_save_generation: Arc::new(AtomicU64::new(0)),
             preview: None,
             preview_session_id: Arc::new(AtomicU64::new(0)),
-            wgpu_instance: cap_rendering::create_wgpu_instance_sync(),
+            wgpu_instance: scoopy_rendering::create_wgpu_instance_sync(),
         }
     }
 
@@ -508,7 +508,7 @@ fn wait_for_shutdown_signal(runtime: &Runtime, receiver: oneshot::Receiver<()>, 
 // crashes after ~4-5 toggle cycles.
 //
 // Pause/Resume hide/show the window while keeping GPU resources alive.
-// See the comment in windows.rs ShowCapWindow::Camera for the critical detail
+// See the comment in windows.rs ShowScoopyWindow::Camera for the critical detail
 // about avoiding order_front_regardless().
 #[derive(Clone)]
 enum ReconfigureEvent {
@@ -561,7 +561,7 @@ impl InitializedCameraPreview {
             .with_context(|| "Failed to receive initialized wgpu surface")?;
         let surface = surface.with_context(|| "Failed to initialize wgpu surface")?;
 
-        let force_software_adapter = cap_rendering::force_software_wgpu_adapter();
+        let force_software_adapter = scoopy_rendering::force_software_wgpu_adapter();
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::LowPower,
@@ -828,7 +828,7 @@ struct Renderer {
     uniform_bind_group: wgpu::BindGroup,
     texture: Cached<(u32, u32), PreparedTexture>,
     aspect_ratio: Cached<f32>,
-    blur_processor: Option<cap_camera_effects::BlurProcessor>,
+    blur_processor: Option<scoopy_camera_effects::BlurProcessor>,
     blur_processor_init_attempted: bool,
     blur_source_texture: Option<wgpu::Texture>,
     #[cfg(target_os = "macos")]
@@ -943,7 +943,7 @@ impl Renderer {
             if needs_full_reconfigure {
                 needs_full_reconfigure = false;
                 self.update_state_uniforms(&state);
-                if state.background_blur == cap_project::BackgroundBlurMode::Off {
+                if state.background_blur == scoopy_project::BackgroundBlurMode::Off {
                     self.release_blur_resources();
                 }
                 source_dimensions = Cached::default();
@@ -1086,7 +1086,7 @@ impl Renderer {
                                             "Camera GPU-native preview unavailable ({err}); using CPU conversion"
                                         );
                                     }
-                                    match cap_camera_ffmpeg::sample_buf_as_ffmpeg(&frame.sample_buf)
+                                    match scoopy_camera_ffmpeg::sample_buf_as_ffmpeg(&frame.sample_buf)
                                     {
                                         Ok(inner) => {
                                             if self.render_cpu_frame(
@@ -1142,7 +1142,7 @@ impl Renderer {
                     self.sync_ratio_uniform_and_resize_window_to_it(&window, &state, aspect_ratio)
                         .await;
                     self.update_state_uniforms(&state);
-                    if state.background_blur == cap_project::BackgroundBlurMode::Off {
+                    if state.background_blur == scoopy_project::BackgroundBlurMode::Off {
                         self.release_blur_resources();
                     }
                     if let Ok((width, height, scale)) =
@@ -1212,7 +1212,7 @@ impl Renderer {
         inner: &frame::Video,
         output_width: u32,
         output_height: u32,
-        blur_mode: Option<cap_camera_effects::BlurMode>,
+        blur_mode: Option<scoopy_camera_effects::BlurMode>,
         surface: &SurfaceTexture,
         scaler: &mut scaling::Context,
         resampler_frame: &mut Cached<(u32, u32), frame::Video>,
@@ -1332,7 +1332,7 @@ impl Renderer {
         frame: &NativeCameraFrame,
         output_width: u32,
         output_height: u32,
-        blur_mode: Option<cap_camera_effects::BlurMode>,
+        blur_mode: Option<scoopy_camera_effects::BlurMode>,
         surface: &SurfaceTexture,
     ) -> Result<(), String> {
         let kind = classify_frame(frame).map_err(|err| err.to_string())?;
@@ -1433,7 +1433,7 @@ impl Renderer {
         frame_stride: u32,
         width: u32,
         height: u32,
-        mode: cap_camera_effects::BlurMode,
+        mode: scoopy_camera_effects::BlurMode,
     ) -> bool {
         if !self.ensure_blur_processor() {
             return false;
@@ -1503,7 +1503,7 @@ impl Renderer {
         }
 
         self.blur_processor_init_attempted = true;
-        match cap_camera_effects::BlurProcessor::new(&self.device, wgpu::TextureFormat::Rgba8Unorm)
+        match scoopy_camera_effects::BlurProcessor::new(&self.device, wgpu::TextureFormat::Rgba8Unorm)
         {
             Ok(processor) => {
                 let mut processor = processor;
@@ -1637,7 +1637,7 @@ impl Renderer {
             (clamped_size - MIN_CAMERA_SIZE) / (MAX_CAMERA_SIZE - MIN_CAMERA_SIZE);
 
         let state_uniforms = StateUniforms {
-            shape: if state.background_blur == cap_project::BackgroundBlurMode::Remove {
+            shape: if state.background_blur == scoopy_project::BackgroundBlurMode::Remove {
                 3.0
             } else {
                 match state.shape {
@@ -1873,14 +1873,14 @@ mod tests {
 }
 
 fn blur_mode_from_project(
-    mode: cap_project::BackgroundBlurMode,
-) -> Option<cap_camera_effects::BlurMode> {
+    mode: scoopy_project::BackgroundBlurMode,
+) -> Option<scoopy_camera_effects::BlurMode> {
     match mode {
-        cap_project::BackgroundBlurMode::Off => None,
-        cap_project::BackgroundBlurMode::Light => Some(cap_camera_effects::BlurMode::Light),
-        cap_project::BackgroundBlurMode::Heavy => Some(cap_camera_effects::BlurMode::Heavy),
-        cap_project::BackgroundBlurMode::Remove => {
-            cfg!(target_os = "macos").then_some(cap_camera_effects::BlurMode::Remove)
+        scoopy_project::BackgroundBlurMode::Off => None,
+        scoopy_project::BackgroundBlurMode::Light => Some(scoopy_camera_effects::BlurMode::Light),
+        scoopy_project::BackgroundBlurMode::Heavy => Some(scoopy_camera_effects::BlurMode::Heavy),
+        scoopy_project::BackgroundBlurMode::Remove => {
+            cfg!(target_os = "macos").then_some(scoopy_camera_effects::BlurMode::Remove)
         }
     }
 }

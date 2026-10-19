@@ -352,7 +352,7 @@ fn http_client() -> &'static reqwest::Client {
     HTTP_CLIENT.get_or_init(|| {
         // OpenPanel derives device/OS breakdowns from the user agent.
         let user_agent = format!(
-            "Cap/{} ({}; {})",
+            "Scoopy/{} ({}; {})",
             env!("CARGO_PKG_VERSION"),
             std::env::consts::OS,
             std::env::consts::ARCH
@@ -383,13 +383,13 @@ pub fn init() {
 }
 
 pub fn set_server_url(url: &str) {
-    *API_SERVER_IS_CAP_CLOUD
+    *API_SERVER_IS_SCOOPY_CLOUD
         .get_or_init(Default::default)
         .write()
-        .unwrap_or_else(PoisonError::into_inner) = Some(url == "https://cap.so");
+        .unwrap_or_else(PoisonError::into_inner) = Some(url == "https://example.com");
 }
 
-static API_SERVER_IS_CAP_CLOUD: OnceLock<RwLock<Option<bool>>> = OnceLock::new();
+static API_SERVER_IS_SCOOPY_CLOUD: OnceLock<RwLock<Option<bool>>> = OnceLock::new();
 
 static TELEMETRY_ENABLED: AtomicBool = AtomicBool::new(true);
 
@@ -424,10 +424,10 @@ pub fn async_capture_event(app: &AppHandle, event: AnalyticsEvent) {
     tokio::spawn(async move {
         let (name, mut properties) = analytics_event(event);
 
-        properties.insert("cap_version".into(), env!("CARGO_PKG_VERSION").into());
+        properties.insert("scoopy_version".into(), env!("CARGO_PKG_VERSION").into());
         properties.insert(
-            "cap_backend".into(),
-            match *API_SERVER_IS_CAP_CLOUD
+            "scoopy_backend".into(),
+            match *API_SERVER_IS_SCOOPY_CLOUD
                 .get_or_init(Default::default)
                 .read()
                 .unwrap_or_else(PoisonError::into_inner)

@@ -15,7 +15,7 @@ use tracing::info;
 
 use crate::{DecodedFrame, PixelFormat};
 #[cfg(target_os = "windows")]
-use cap_video_decode::FrameTextures;
+use scoopy_video_decode::FrameTextures;
 
 use crate::cpu_yuv::YuvMatrix;
 
@@ -357,14 +357,14 @@ impl DecoderInput {
         &self,
         hardware: Option<ffmpeg::sys::AVHWDeviceType>,
         managed: Option<&Arc<ManagedVideoControl>>,
-    ) -> Result<cap_video_decode::FFmpegDecoder, String> {
+    ) -> Result<scoopy_video_decode::FFmpegDecoder, String> {
         match self {
-            Self::Ordinary(path) => cap_video_decode::FFmpegDecoder::new(path.clone(), hardware),
+            Self::Ordinary(path) => scoopy_video_decode::FFmpegDecoder::new(path.clone(), hardware),
             Self::Managed(input) => {
                 let control = managed
                     .cloned()
                     .ok_or("Managed video input requires a cancellation owner")?;
-                cap_video_decode::FFmpegDecoder::new_relocatable_interruptible(
+                scoopy_video_decode::FFmpegDecoder::new_relocatable_interruptible(
                     &input.source,
                     input.paths.iter().map(PathBuf::as_path),
                     hardware,
@@ -542,7 +542,7 @@ impl FfmpegDecoder {
             #[cfg(not(any(target_os = "windows", target_os = "macos")))]
             {
                 // Opt-in NVDEC for Linux GPU hosts (render farm workers).
-                match std::env::var("CAP_LINUX_HW_DECODE").as_deref() {
+                match std::env::var("SCOOPY_LINUX_HW_DECODE").as_deref() {
                     Ok("cuda") => Some(ffmpeg::sys::AVHWDeviceType::AV_HWDEVICE_TYPE_CUDA),
                     _ => None,
                 }
@@ -1175,14 +1175,14 @@ impl FfmpegDecoder {
         // at once instead of waiting out NVDEC latency (~4.5 ms per 3K frame,
         // which otherwise sits in every export frame). Bounded by `readahead`
         // frames past the last request and by the cache's byte budget (hw
-        // surfaces). Off unless CAP_DECODER_READAHEAD is set: editor
+        // surfaces). Off unless SCOOPY_DECODER_READAHEAD is set: editor
         // playback keeps its on-demand behaviour.
         // More than the cache holds would evict the frames just decoded ahead.
         #[cfg(target_os = "linux")]
         let readahead_limit = (MAX_FRAME_CACHE_BYTES / CUDA_FRAME_CACHE_WEIGHT) as u32;
         #[cfg(not(target_os = "linux"))]
         let readahead_limit = FRAME_CACHE_SIZE as u32;
-        let readahead = std::env::var("CAP_DECODER_READAHEAD")
+        let readahead = std::env::var("SCOOPY_DECODER_READAHEAD")
             .ok()
             .and_then(|value| value.parse::<u32>().ok())
             .unwrap_or(0)

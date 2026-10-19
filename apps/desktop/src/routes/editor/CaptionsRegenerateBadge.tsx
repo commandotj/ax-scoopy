@@ -97,7 +97,7 @@ export function CaptionsRegenerateBadge(props: { class?: string }) {
 							</svg>
 						}
 					>
-						<IconCapCaptions class="size-3.5" />
+						<IconScoopyCaptions class="size-3.5" />
 					</Show>
 					{editorState.captions.isGenerating
 						? "Regenerating..."

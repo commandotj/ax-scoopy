@@ -1,12 +1,12 @@
 use crate::{ExporterBase, Mp4ExporterBase};
-use cap_editor::{
+use scoopy_editor::{
     AudioRenderer, ExportAudioError, ExportAudioRenderer, get_audio_segments,
     load_music_tracks_uncached,
 };
-use cap_enc_ffmpeg::{AudioEncoder, PacketQueue, aac::AACEncoder, h264::H264Encoder, mp4::*};
-use cap_media_info::{RawVideoFormat, VideoInfo};
-use cap_project::XY;
-use cap_rendering::{
+use scoopy_enc_ffmpeg::{AudioEncoder, PacketQueue, aac::AACEncoder, h264::H264Encoder, mp4::*};
+use scoopy_media_info::{RawVideoFormat, VideoInfo};
+use scoopy_project::XY;
+use scoopy_rendering::{
     GpuOutputFormat, Nv12RenderedFrame, ProjectUniforms, RenderSegment, SharedNv12Buffer,
 };
 use futures::FutureExt;
@@ -171,13 +171,13 @@ struct ExportNv12Mode {
     stop_after_frames_sent: Option<u32>,
     record_first_queued_ms_since_pipeline: Option<Arc<AtomicU64>>,
     nv12_render_startup_breakdown_ms:
-        Option<Arc<Mutex<Option<cap_rendering::Nv12RenderStartupBreakdownMs>>>>,
+        Option<Arc<Mutex<Option<scoopy_rendering::Nv12RenderStartupBreakdownMs>>>>,
 }
 
 #[derive(Debug, serde::Serialize)]
 pub struct FirstFrameQueuedBenchmark {
     pub ms_to_first_frame_queued_since_export_pipeline_start: u64,
-    pub nv12_render_startup_breakdown_ms: Option<cap_rendering::Nv12RenderStartupBreakdownMs>,
+    pub nv12_render_startup_breakdown_ms: Option<scoopy_rendering::Nv12RenderStartupBreakdownMs>,
 }
 
 #[derive(Serialize, Deserialize, Type, Clone, Copy, Debug)]
@@ -213,7 +213,7 @@ impl Mp4ExportSettings {
         base: ExporterBase,
         on_progress: impl FnMut(u32) -> bool + Send + 'static,
     ) -> Result<PathBuf, String> {
-        use cap_utils::operation_diagnostics::{Field, observe};
+        use scoopy_utils::operation_diagnostics::{Field, observe};
         observe(
             "export_mp4",
             &[
@@ -222,7 +222,7 @@ impl Mp4ExportSettings {
                 Field::number("requested_height", self.resolution_base.y as u64),
                 Field::identifier(
                     "resource",
-                    cap_utils::operation_diagnostics::resource_id(&base.project_path),
+                    scoopy_utils::operation_diagnostics::resource_id(&base.project_path),
                 ),
                 Field::number(
                     "source_width",
@@ -678,7 +678,7 @@ impl Mp4ExportSettings {
         )
         .then(move |v| async move {
             let result = v.map_err(|error| match &error {
-                cap_rendering::RenderingError::ImageLoadError(message)
+                scoopy_rendering::RenderingError::ImageLoadError(message)
                     if render_result_cancellation.is_some() && message == "Export cancelled" =>
                 {
                     Mp4PipelineError::Interrupted
@@ -738,7 +738,7 @@ impl Mp4ExportSettings {
 enum ExportFramePayload {
     Cpu(SharedNv12Buffer),
     #[cfg(target_os = "macos")]
-    Surface(cap_rendering::Nv12Surface),
+    Surface(scoopy_rendering::Nv12Surface),
 }
 
 struct ExportFrame {
@@ -837,7 +837,7 @@ fn nv12_from_rendered_frame(frame: Nv12RenderedFrame) -> ExportFrame {
         width,
         height,
         ffmpeg::software::scaling::flag::Flags::FAST_BILINEAR,
-    ) && cap_enc_ffmpeg::colour::use_bt709_for_rgb_input(
+    ) && scoopy_enc_ffmpeg::colour::use_bt709_for_rgb_input(
         &mut converter,
         ffmpeg::format::Pixel::RGBA,
         ffmpeg::format::Pixel::NV12,
@@ -1186,7 +1186,7 @@ impl TemporaryMp4Output {
 pub(crate) fn temporary_mp4_output(output: &std::path::Path) -> Result<TemporaryMp4Output, String> {
     let parent = output.parent().unwrap_or_else(|| std::path::Path::new("."));
     let temporary = tempfile::Builder::new()
-        .prefix(".cap-export-")
+        .prefix(".scoopy-export-")
         .suffix(".mp4")
         .tempfile_in(parent)
         .map_err(|error| error.to_string())?;
@@ -1196,7 +1196,7 @@ pub(crate) fn temporary_mp4_output(output: &std::path::Path) -> Result<Temporary
         // An empty sibling captures creation permissions without changing the
         // process-wide umask or exposing incomplete media to other users.
         let probe = tempfile::Builder::new()
-            .prefix(".cap-export-permissions-")
+            .prefix(".scoopy-export-permissions-")
             .permissions(std::fs::Permissions::from_mode(0o666))
             .tempfile_in(parent)
             .map_err(|error| error.to_string())?;
@@ -1251,7 +1251,7 @@ fn silent_audio_frame(samples: usize) -> ffmpeg::frame::Audio {
 #[cfg(target_os = "macos")]
 fn fill_nv12_frame_from_surface(
     frame: &mut ffmpeg::frame::Video,
-    surface: &cap_rendering::Nv12Surface,
+    surface: &scoopy_rendering::Nv12Surface,
     width: u32,
     height: u32,
     pts: i64,
@@ -1390,7 +1390,7 @@ fn save_screenshot_from_nv12(
 
     let mut rgba = vec![0u8; (width * height * 4) as usize];
     // The export's own NV12, so BT.709 like the stream it is encoded into.
-    cap_rendering::cpu_yuv::nv12_to_rgba_simd(
+    scoopy_rendering::cpu_yuv::nv12_to_rgba_simd(
         y_data,
         uv_data,
         width,
@@ -1398,7 +1398,7 @@ fn save_screenshot_from_nv12(
         y_stride,
         width,
         &mut rgba,
-        cap_rendering::cpu_yuv::YuvMatrix::Bt709,
+        scoopy_rendering::cpu_yuv::YuvMatrix::Bt709,
     );
     drop(nv12_data);
 
@@ -1418,8 +1418,8 @@ fn save_screenshot_from_nv12(
     let _ = rgb_img.save(&screenshot_path);
 }
 
-use cap_project::{ProjectConfiguration, RecordingMeta, StudioRecordingMeta};
-use cap_rendering::{ProjectRecordingsMeta, RenderVideoConstants};
+use scoopy_project::{ProjectConfiguration, RecordingMeta, StudioRecordingMeta};
+use scoopy_rendering::{ProjectRecordingsMeta, RenderVideoConstants};
 
 const FRAME_RECEIVE_INITIAL_TIMEOUT_SECS: u64 = 120;
 const FRAME_RECEIVE_STEADY_TIMEOUT_SECS: u64 = 90;
@@ -1436,20 +1436,20 @@ async fn export_render_to_channel(
     fps: u32,
     resolution_base: XY<u32>,
     recordings: &ProjectRecordingsMeta,
-    frame_windows: Option<cap_rendering::FrameWindows>,
+    frame_windows: Option<scoopy_rendering::FrameWindows>,
     stop_after_frames_sent: Option<u32>,
-    startup_breakdown_ms: Option<Arc<Mutex<Option<cap_rendering::Nv12RenderStartupBreakdownMs>>>>,
+    startup_breakdown_ms: Option<Arc<Mutex<Option<scoopy_rendering::Nv12RenderStartupBreakdownMs>>>>,
     stop_on_encoder_drop: bool,
     mut on_progress: impl FnMut(u32) -> bool + Send + 'static,
     project_path: PathBuf,
-) -> Result<(), cap_rendering::RenderingError> {
+) -> Result<(), scoopy_rendering::RenderingError> {
     let (tx_image_data, mut video_rx) = tokio::sync::mpsc::channel::<(Nv12RenderedFrame, u32)>(8);
 
     let screenshot_project_path = frame_windows.is_none().then_some(project_path);
     let sampling = frame_windows.is_some();
 
     let render_result = {
-        let render_future = Box::pin(cap_rendering::render_video_to_channel_nv12(
+        let render_future = Box::pin(scoopy_rendering::render_video_to_channel_nv12(
             constants,
             project,
             tx_image_data,
@@ -1490,7 +1490,7 @@ async fn export_render_to_channel(
                         consecutive_timeouts += 1;
 
                         if consecutive_timeouts >= MAX_CONSECUTIVE_FRAME_TIMEOUTS {
-                            return Err(cap_rendering::RenderingError::ImageLoadError(format!(
+                            return Err(scoopy_rendering::RenderingError::ImageLoadError(format!(
                                 "Export timed out {MAX_CONSECUTIVE_FRAME_TIMEOUTS} times consecutively after {timeout_secs}s each waiting for frame {frame_count}"
                             )));
                         }
@@ -1508,7 +1508,7 @@ async fn export_render_to_channel(
                 };
 
                 if !(on_progress)(frame_count) {
-                    return Err(cap_rendering::RenderingError::ImageLoadError(
+                    return Err(scoopy_rendering::RenderingError::ImageLoadError(
                         "Export cancelled".to_string(),
                     ));
                 }
@@ -1533,7 +1533,7 @@ async fn export_render_to_channel(
                 if sender.send(export_frame).is_err() {
                     warn!("Encoder dropped, stopping render forwarding");
                     if stop_on_encoder_drop {
-                        return Err(cap_rendering::RenderingError::ImageLoadError(
+                        return Err(scoopy_rendering::RenderingError::ImageLoadError(
                             "Export cancelled".to_string(),
                         ));
                     }
@@ -1559,7 +1559,7 @@ async fn export_render_to_channel(
                 });
             }
 
-            Ok::<_, cap_rendering::RenderingError>(())
+            Ok::<_, scoopy_rendering::RenderingError>(())
         };
 
         tokio::try_join!(render_future, forward_future)
@@ -1907,7 +1907,7 @@ mod tests {
 
     #[test]
     fn nv12_from_rendered_frame_passthrough_for_nv12_format() {
-        use cap_rendering::{GpuOutputFormat, Nv12RenderedFrame};
+        use scoopy_rendering::{GpuOutputFormat, Nv12RenderedFrame};
 
         let data = vec![1u8, 2, 3, 4, 5, 6];
         let frame = Nv12RenderedFrame {

@@ -1,4 +1,4 @@
-use cap_project::{ClipOffsets, StudioRecordingMeta};
+use scoopy_project::{ClipOffsets, StudioRecordingMeta};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct SegmentVideoTiming {

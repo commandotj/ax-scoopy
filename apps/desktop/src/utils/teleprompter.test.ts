@@ -89,7 +89,7 @@ describe("openTeleprompter on macOS", () => {
 		mocks.state.existingWindow = null;
 		mocks.state.createdWindow = undefined;
 		mocks.osType.mockReturnValue("macos");
-		vi.stubGlobal("window", { __CAP__: {} });
+		vi.stubGlobal("window", { __SCOOPY__: {} });
 	});
 
 	afterEach(() => {

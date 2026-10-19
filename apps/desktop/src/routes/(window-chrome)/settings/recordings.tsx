@@ -1,4 +1,4 @@
-import { Button, ProgressCircle } from "@cap/ui-solid";
+import { Button, ProgressCircle } from "@scoopy/ui-solid";
 import Tooltip from "@corvu/tooltip";
 import {
 	createMutation,
@@ -21,7 +21,7 @@ import {
 	Show,
 } from "solid-js";
 import { createStore, produce } from "solid-js/store";
-import CapTooltip from "~/components/Tooltip";
+import ScoopyTooltip from "~/components/Tooltip";
 import { Input } from "~/routes/editor/ui";
 import { trackEvent } from "~/utils/analytics";
 import { createTauriEventListener } from "~/utils/createEventListener";
@@ -51,12 +51,12 @@ const Tabs = [
 	},
 	{
 		id: "instant",
-		icon: <IconCapInstant class="invert size-3 dark:invert-0" />,
+		icon: <IconScoopyInstant class="invert size-3 dark:invert-0" />,
 		label: "Instant",
 	},
 	{
 		id: "studio",
-		icon: <IconCapFilmCut class="invert size-3 dark:invert-0" />,
+		icon: <IconScoopyFilmCut class="invert size-3 dark:invert-0" />,
 		label: "Studio",
 	},
 ] satisfies { id: string; label: string; icon?: JSX.Element }[];
@@ -197,7 +197,7 @@ export default function Recordings() {
 	};
 
 	return (
-		<div class="cap-settings-page flex relative flex-col w-full h-full custom-scroll">
+		<div class="scoopy-settings-page flex relative flex-col w-full h-full custom-scroll">
 			<SettingsPageContent class="max-w-none space-y-4">
 				<Section
 					title="Recordings"
@@ -374,9 +374,9 @@ function RecordingItem(props: {
 							)}
 						>
 							{mode() === "instant" ? (
-								<IconCapInstant class="invert size-2.5 dark:invert-0" />
+								<IconScoopyInstant class="invert size-2.5 dark:invert-0" />
 							) : (
-								<IconCapFilmCut class="invert size-2.5 dark:invert-0" />
+								<IconScoopyFilmCut class="invert size-2.5 dark:invert-0" />
 							)}
 							<p>{firstLetterUpperCase()}</p>
 						</div>
@@ -399,7 +399,7 @@ function RecordingItem(props: {
 						</Show>
 
 						<Show when={props.recording.meta.status.status === "Failed"}>
-							<CapTooltip
+							<ScoopyTooltip
 								content={
 									<span>
 										{props.recording.meta.status.status === "Failed"
@@ -416,7 +416,7 @@ function RecordingItem(props: {
 									<IconPhWarningBold class="invert size-2.5 dark:invert-0" />
 									<p>Recording failed</p>
 								</div>
-							</CapTooltip>
+							</ScoopyTooltip>
 						</Show>
 					</div>
 				</div>
@@ -424,13 +424,13 @@ function RecordingItem(props: {
 			<div class="flex gap-2 items-center">
 				<Show when={mode() === "studio"}>
 					<Show when={props.uploadProgress}>
-						<CapTooltip content={`${(props.uploadProgress || 0).toFixed(2)}%`}>
+						<ScoopyTooltip content={`${(props.uploadProgress || 0).toFixed(2)}%`}>
 							<ProgressCircle
 								variant="primary"
 								progress={props.uploadProgress || 0}
 								size="sm"
 							/>
-						</CapTooltip>
+						</ScoopyTooltip>
 					</Show>
 					<Show when={props.recording.meta.sharing}>
 						{(sharing) => (
@@ -438,7 +438,7 @@ function RecordingItem(props: {
 								tooltipText="Open link"
 								onClick={() => shell.open(sharing().link)}
 							>
-								<IconCapLink class="size-4" />
+								<IconScoopyLink class="size-4" />
 							</TooltipIconButton>
 						)}
 					</Show>
@@ -501,7 +501,7 @@ function RecordingItem(props: {
 											tooltipText="Open link"
 											onClick={() => shell.open(sharing().link)}
 										>
-											<IconCapLink class="size-4" />
+											<IconScoopyLink class="size-4" />
 										</TooltipIconButton>
 									)}
 								</Show>
@@ -527,7 +527,7 @@ function RecordingItem(props: {
 						queryClient.refetchQueries(recordingsQuery);
 					}}
 				>
-					<IconCapTrash class="size-4" />
+					<IconScoopyTrash class="size-4" />
 				</TooltipIconButton>
 			</div>
 		</li>

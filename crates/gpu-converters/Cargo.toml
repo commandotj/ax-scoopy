@@ -1,5 +1,5 @@
 [package]
-name = "cap-gpu-converters"
+name = "scoopy-gpu-converters"
 version = "0.1.0"
 edition = "2024"
 

@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { createMutation } from "@tanstack/solid-query";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { createSignal, onMount, Show } from "solid-js";

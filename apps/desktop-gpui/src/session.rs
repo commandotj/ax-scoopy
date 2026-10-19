@@ -11,7 +11,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use cap_utils::disk_space::{DiskSpaceStatus, RecordingStorageMonitor};
+use scoopy_utils::disk_space::{DiskSpaceStatus, RecordingStorageMonitor};
 use gpui::{App, AppContext as _, Context, Entity, Global, Task};
 
 use crate::app_sounds::AppSound;
@@ -435,7 +435,7 @@ pub struct RecordingSession {
     recording_generation: u64,
     countdown_remaining: Option<u32>,
     countdown_cue_abort: Option<futures_util::future::AbortHandle>,
-    start_gate: Option<cap_recording::RecordingStartGate>,
+    start_gate: Option<scoopy_recording::RecordingStartGate>,
     start_cue: Option<crate::app_sounds::StartCue>,
     /// A capture pipeline that finished warming up while the countdown or the
     /// start cue was still running; activated the moment the cue ends.
@@ -649,7 +649,7 @@ impl RecordingSession {
         let countdown = crate::store::GeneralSettings::load()
             .recording_countdown
             .unwrap_or(0);
-        let start_gate = cap_recording::RecordingStartGate::new();
+        let start_gate = scoopy_recording::RecordingStartGate::new();
         let config = StartConfig {
             start_gate: Some(start_gate.clone()),
             ..config
@@ -816,7 +816,7 @@ impl RecordingSession {
                     Some(attempt) => {
                         attempt.cancel();
                         attempt.wait_for_quiescence().await
-                            == cap_recording::instant_recording::InstantQuiescence::Joined
+                            == scoopy_recording::instant_recording::InstantQuiescence::Joined
                     }
                     None => true,
                 }
@@ -951,7 +951,7 @@ impl RecordingSession {
         }));
     }
 
-    fn monitor_recording_failure(&mut self, done: cap_recording::DoneFut, cx: &mut Context<Self>) {
+    fn monitor_recording_failure(&mut self, done: scoopy_recording::DoneFut, cx: &mut Context<Self>) {
         let generation = self.recording_generation;
         let task = gpui_tokio::Tokio::spawn(cx, done);
         self.failure_monitor = Some(cx.spawn(async move |this, cx| {
@@ -1072,7 +1072,7 @@ impl RecordingSession {
                 let result = task.await;
                 this.update(cx, |this, cx| {
                     if this.recording_generation != generation || this.phase != Phase::Starting || this.active.is_some() { return; }
-                    if matches!(result, Ok(cap_recording::instant_recording::InstantQuiescence::Joined)) {
+                    if matches!(result, Ok(scoopy_recording::instant_recording::InstantQuiescence::Joined)) {
                         this.finish(cx);
                     } else {
                         this.stop_requested = false;
@@ -1423,7 +1423,7 @@ impl RecordingSession {
     #[cfg(target_os = "linux")]
     pub fn instant_cleanup_safe(&self) -> bool {
         self.instant_attempt.as_ref().is_none_or(|attempt| {
-            attempt.quiescence() == cap_recording::instant_recording::InstantQuiescence::Joined
+            attempt.quiescence() == scoopy_recording::instant_recording::InstantQuiescence::Joined
         })
     }
 
@@ -2371,7 +2371,7 @@ mod instant_terminal_tests {
 
     #[tokio::test]
     async fn late_stop_completion_cannot_release_a_retry_or_new_recording() {
-        let original = owner(3, "original.cap");
+        let original = owner(3, "original.scoopy");
         let ticket = TerminalTicket {
             owner: original.clone(),
             operation: 1,
@@ -2390,12 +2390,12 @@ mod instant_terminal_tests {
         complete.send(()).unwrap();
         let ticket = operation.await;
         assert!(!ticket.is_current(Phase::Stopping, 3, 2, Some(&original), true));
-        assert!(!ticket.is_current(Phase::Stopping, 4, 1, Some(&owner(4, "next.cap")), true));
+        assert!(!ticket.is_current(Phase::Stopping, 4, 1, Some(&owner(4, "next.scoopy")), true));
         assert!(!ticket.is_current(
             Phase::Stopping,
             3,
             1,
-            Some(&owner(3, "different.cap")),
+            Some(&owner(3, "different.scoopy")),
             true
         ));
         assert!(ticket.is_current(Phase::Stopping, 3, 1, Some(&original), true));
@@ -2404,7 +2404,7 @@ mod instant_terminal_tests {
     #[tokio::test]
     async fn restart_settle_completion_cannot_override_stop_or_later_generation() {
         let ticket = TerminalTicket {
-            owner: owner(8, "prior.cap"),
+            owner: owner(8, "prior.scoopy"),
             operation: 5,
         };
         let (release, wait) = tokio::sync::oneshot::channel();

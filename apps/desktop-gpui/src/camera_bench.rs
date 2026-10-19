@@ -1,4 +1,4 @@
-//! `CAP_GPUI_AUTO_CAMERA_BENCH=1`: the camera bubble's per-frame draw cost,
+//! `SCOOPY_GPUI_AUTO_CAMERA_BENCH=1`: the camera bubble's per-frame draw cost,
 //! measured on the production path. Opens the real camera window, pumps
 //! synthetic 420v camera frames through `deliver_camera_frame` at ~30fps, and
 //! times `Window::draw` for that window: view render + taffy layout + prepaint
@@ -9,7 +9,7 @@
 //! display too, where the display link never ticks.
 //!
 //! Run:
-//!   CAP_GPUI_AUTO_CAMERA_BENCH=1 CAP_GPUI_NO_MENUS=1 CAP_GPUI_NO_TRAY=1 \
+//!   SCOOPY_GPUI_AUTO_CAMERA_BENCH=1 SCOOPY_GPUI_NO_MENUS=1 SCOOPY_GPUI_NO_TRAY=1 \
 //!     cargo run --release
 
 use std::time::{Duration, Instant};
@@ -125,10 +125,10 @@ fn draw_camera_window(
 
 fn native_frame(
     sample_buf: &cidre::arc::R<cidre::cm::SampleBuf>,
-) -> cap_recording::NativeCameraFrame {
-    cap_recording::NativeCameraFrame {
+) -> scoopy_recording::NativeCameraFrame {
+    scoopy_recording::NativeCameraFrame {
         sample_buf: sample_buf.clone(),
-        timestamp: cap_timestamp::Timestamp::Instant(Instant::now()),
+        timestamp: scoopy_timestamp::Timestamp::Instant(Instant::now()),
     }
 }
 

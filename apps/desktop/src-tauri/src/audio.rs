@@ -1,4 +1,4 @@
-use cap_audio::DecodedAudio;
+use scoopy_audio::DecodedAudio;
 
 #[path = "recording_start_sound.rs"]
 mod recording_start_sound;
@@ -9,7 +9,7 @@ pub fn prime_recording_start_sound() -> StartCue {
     recording_start_sound::prime(AppSounds::StartRecording.get_sound_bytes())
 }
 
-pub async fn play_recording_start_sound(cue: StartCue, gate: cap_recording::RecordingStartGate) {
+pub async fn play_recording_start_sound(cue: StartCue, gate: scoopy_recording::RecordingStartGate) {
     recording_start_sound::play(cue, gate).await;
 }
 
@@ -53,7 +53,7 @@ impl AppSounds {
 }
 
 pub fn get_waveform(audio: &DecodedAudio) -> Vec<f32> {
-    cap_audio::waveform_peaks(audio.sample_slices(), audio.channels())
+    scoopy_audio::waveform_peaks(audio.sample_slices(), audio.channels())
 }
 
 const WAVEFORM_PEAKS_PER_SECOND: f64 = 10.0;

@@ -1,6 +1,6 @@
 use std::{thread, time::Duration};
 
-use cap_media_info::{Pixel, VideoInfo, ensure_even};
+use scoopy_media_info::{Pixel, VideoInfo, ensure_even};
 use ffmpeg::{
     Dictionary,
     codec::{codec::Codec, context, encoder},
@@ -1064,7 +1064,7 @@ fn requires_software_encoder(config: &VideoInfo, preset: H264Preset, is_export: 
 
     #[cfg(target_os = "windows")]
     {
-        use cap_frame_converter::{GpuVendor, detect_primary_gpu};
+        use scoopy_frame_converter::{GpuVendor, detect_primary_gpu};
 
         let fps =
             config.frame_rate.numerator() as f64 / config.frame_rate.denominator().max(1) as f64;
@@ -1110,7 +1110,7 @@ fn get_default_encoder_priority(_config: &VideoInfo) -> &'static [&'static str] 
 
     #[cfg(target_os = "windows")]
     {
-        use cap_frame_converter::{GpuVendor, detect_primary_gpu};
+        use scoopy_frame_converter::{GpuVendor, detect_primary_gpu};
 
         static ENCODER_PRIORITY_NVIDIA: &[&str] =
             &["h264_nvenc", "h264_mf", "h264_qsv", "h264_amf", "libx264"];
@@ -1162,7 +1162,7 @@ fn get_encoder_priority_with_override(
 }
 
 fn force_software_encoder() -> bool {
-    std::env::var("CAP_EXPORT_FORCE_SOFTWARE_ENCODER").is_ok_and(|value| {
+    std::env::var("SCOOPY_EXPORT_FORCE_SOFTWARE_ENCODER").is_ok_and(|value| {
         matches!(
             value.to_ascii_lowercase().as_str(),
             "1" | "true" | "yes" | "on"
@@ -1176,7 +1176,7 @@ fn export_encoder_priority_override(
 ) -> Option<&'static [&'static str]> {
     #[cfg(target_os = "windows")]
     {
-        use cap_frame_converter::{GpuVendor, detect_primary_gpu};
+        use scoopy_frame_converter::{GpuVendor, detect_primary_gpu};
 
         static ENCODER_PRIORITY_AMD_EXPORT: &[&str] =
             &["h264_amf", "h264_mf", "h264_nvenc", "h264_qsv", "libx264"];
@@ -1350,7 +1350,7 @@ fn get_codec_and_options(
 /// add to recording start for a failure mode never observed there. Results
 /// are cached per everything that shapes the encode path (encoder, resolution,
 /// input pixel format, frame rate, bitrate inputs, and the full option set)
-/// so the cost is one-time per process, and `CAP_DISABLE_ENCODER_SELF_TEST=1`
+/// so the cost is one-time per process, and `SCOOPY_DISABLE_ENCODER_SELF_TEST=1`
 /// bypasses the check as an escape hatch.
 fn cached_hardware_self_test(
     codec: Codec,
@@ -1372,7 +1372,7 @@ fn cached_hardware_self_test(
         return Ok(());
     }
 
-    if std::env::var("CAP_DISABLE_ENCODER_SELF_TEST")
+    if std::env::var("SCOOPY_DISABLE_ENCODER_SELF_TEST")
         .is_ok_and(|v| matches!(v.to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
     {
         return Ok(());
@@ -1659,7 +1659,7 @@ mod self_test_tests {
         let mut options = Dictionary::new();
         options.set("preset", "ultrafast");
 
-        let config = VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 160, 120, 30);
+        let config = VideoInfo::from_raw(scoopy_media_info::RawVideoFormat::Bgra, 160, 120, 30);
         hardware_encoder_self_test(codec, options, &config, 160, 120, 0.3, None)
             .expect("healthy encoder passes the round trip");
     }
@@ -1671,7 +1671,7 @@ mod self_test_tests {
             return;
         }
         ffmpeg::init().ok();
-        let config = VideoInfo::from_raw(cap_media_info::RawVideoFormat::Nv12, 1920, 1080, 60);
+        let config = VideoInfo::from_raw(scoopy_media_info::RawVideoFormat::Nv12, 1920, 1080, 60);
         let videotoolbox_options = |is_export| {
             get_codec_and_options(
                 &config,
@@ -1709,7 +1709,7 @@ mod self_test_tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn linux_high_throughput_preserves_software_encoder() {
-        let config = VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 160, 120, 30);
+        let config = VideoInfo::from_raw(scoopy_media_info::RawVideoFormat::Bgra, 160, 120, 30);
 
         assert_eq!(
             get_encoder_priority_with_override(
@@ -1726,7 +1726,7 @@ mod self_test_tests {
     #[test]
     fn linux_crf_preserves_software_encoder() {
         ffmpeg::init().ok();
-        let config = VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 160, 120, 30);
+        let config = VideoInfo::from_raw(scoopy_media_info::RawVideoFormat::Bgra, 160, 120, 30);
         let codecs = get_codec_and_options(
             &config,
             H264Preset::Ultrafast,
@@ -1750,7 +1750,7 @@ mod self_test_tests {
         let Some(codec) = encoder::find_by_name("h264_nvenc") else {
             return;
         };
-        let config = VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 160, 120, 30);
+        let config = VideoInfo::from_raw(scoopy_media_info::RawVideoFormat::Bgra, 160, 120, 30);
         let options = get_codec_and_options(
             &config,
             H264Preset::Ultrafast,

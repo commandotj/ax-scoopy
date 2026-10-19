@@ -1,12 +1,12 @@
 use crate::completed_audio::{CompletedAudioHandoff, CompletedAudioSegment};
 use crate::editor;
 use crate::playback::{self, PlaybackHandle, PlaybackStartError};
-use cap_project::StudioRecordingMeta;
-use cap_project::{
+use scoopy_project::StudioRecordingMeta;
+use scoopy_project::{
     CursorEvents, ProjectConfiguration, RecordingMeta, RecordingMetaInner, TimelineConfiguration,
     TimelineFrameMapping, TimelineSegment, XY,
 };
-use cap_rendering::{
+use scoopy_rendering::{
     PrecomputedCursorTimeline, ProjectRecordingsMeta, ProjectUniforms, RecordingSegmentDecoders,
     RenderVideoConstants, SegmentVideoPaths, SharedWgpuDevice, Video, ZoomTransformTimeline,
     get_duration, spring_mass_damper::SpringMassDamperSimulationConfig,
@@ -344,7 +344,7 @@ impl EditorInstance {
             return Err(format!("Video path {} not found!", project_path.display()));
         }
 
-        let recording_meta = cap_project::RecordingMeta::load_for_project(&project_path)
+        let recording_meta = scoopy_project::RecordingMeta::load_for_project(&project_path)
             .map_err(|e| format!("Failed to load recording meta: {e}"))?;
 
         let RecordingMetaInner::Studio(meta) = &recording_meta.inner else {
@@ -458,7 +458,7 @@ impl EditorInstance {
         // VideoToolbox is too slow for real-time playback fall back to the
         // FFmpeg decoder.
         let force_ffmpeg_for_editor = cfg!(target_os = "windows")
-            || std::env::var_os("CAP_EDITOR_FORCE_FFMPEG_DECODER").is_some();
+            || std::env::var_os("SCOOPY_EDITOR_FORCE_FFMPEG_DECODER").is_some();
         if force_ffmpeg_for_editor {
             tracing::info!("Using FFmpeg decoder for editor preview");
         }
@@ -532,8 +532,8 @@ impl EditorInstance {
             )?),
         };
 
-        cap_project::synchronize_legacy_keyboard(&recording_meta, &mut project);
-        cap_project::synchronize_captions(
+        scoopy_project::synchronize_legacy_keyboard(&recording_meta, &mut project);
+        scoopy_project::synchronize_captions(
             &mut project,
             &recordings
                 .segments
@@ -897,7 +897,7 @@ impl EditorInstance {
                     .start_with_diagnostics(
                         fps,
                         resolution_base,
-                        Some(cap_utils::operation_diagnostics::resource_id(
+                        Some(scoopy_utils::operation_diagnostics::resource_id(
                             &self.project_path,
                         )),
                     )
@@ -1443,11 +1443,11 @@ pub struct SegmentMedia {
     pub system_audio: AudioLoader,
     pub audio_timing_repair: SegmentAudioTimingRepair,
     pub cursor: Arc<CursorEvents>,
-    pub keyboard: Arc<cap_project::KeyboardEvents>,
+    pub keyboard: Arc<scoopy_project::KeyboardEvents>,
     pub decoders: RecordingSegmentDecoders,
 }
 
-pub type AudioLoader = cap_audio::ProgressiveAudio;
+pub type AudioLoader = scoopy_audio::ProgressiveAudio;
 
 #[derive(Default)]
 pub struct EditorStartupInputs {
@@ -1485,7 +1485,7 @@ impl LegacyAudioTimingRepair<'_> {
         &self,
         segment_index: usize,
         track: LegacyAudioLogTrack,
-        structured_summary: Option<&cap_project::AudioGapSummary>,
+        structured_summary: Option<&scoopy_project::AudioGapSummary>,
     ) -> f32 {
         let structured_offset = audio_timing_repair_offset(structured_summary);
         if structured_offset != 0.0 {
@@ -1512,7 +1512,7 @@ impl LegacyAudioTimingRepair<'_> {
         &self,
         segment_index: usize,
         track: LegacyAudioLogTrack,
-    ) -> Option<cap_project::AudioGapSummary> {
+    ) -> Option<scoopy_project::AudioGapSummary> {
         legacy_audio_gap_summary_from_log(self.log?, segment_index, track)
     }
 }
@@ -1535,10 +1535,10 @@ fn legacy_audio_gap_summary_from_log(
     log: &str,
     segment_index: usize,
     track: LegacyAudioLogTrack,
-) -> Option<cap_project::AudioGapSummary> {
+) -> Option<scoopy_project::AudioGapSummary> {
     let segment_marker = format!("segment{{index={segment_index}}}");
     let track_marker = format!(":{}:", track.span());
-    let mut summary = cap_project::AudioGapSummary {
+    let mut summary = scoopy_project::AudioGapSummary {
         total_overlap_trimmed_ms: 0,
         startup_overlap_trimmed_ms: 0,
         overlap_dropped_frames: 0,
@@ -1583,7 +1583,7 @@ fn legacy_audio_gap_summary_from_log(
     (summary.total_overlap_trimmed_ms > 0).then_some(summary)
 }
 
-fn audio_timing_repair_offset(summary: Option<&cap_project::AudioGapSummary>) -> f32 {
+fn audio_timing_repair_offset(summary: Option<&scoopy_project::AudioGapSummary>) -> f32 {
     let Some(summary) = summary else {
         return 0.0;
     };
@@ -1657,7 +1657,7 @@ fn segment_audio_timing_repair(
 fn audio_loader_with_completed(
     path: PathBuf,
     label: String,
-    completed: Option<&Arc<cap_audio::DecodedAudio>>,
+    completed: Option<&Arc<scoopy_audio::DecodedAudio>>,
 ) -> AudioLoader {
     match completed {
         Some(audio) => AudioLoader::from_result(Ok(Some(audio.clone()))),
@@ -1693,7 +1693,7 @@ async fn create_segments_with_audio(
     let legacy_log = legacy_log.as_deref();
 
     match &meta {
-        cap_project::StudioRecordingMeta::SingleSegment { segment: s } => {
+        scoopy_project::StudioRecordingMeta::SingleSegment { segment: s } => {
             let audio = s
                 .audio
                 .as_ref()
@@ -1751,7 +1751,7 @@ async fn create_segments_with_audio(
                 decoders,
             }])
         }
-        cap_project::StudioRecordingMeta::MultipleSegments { inner, .. } => {
+        scoopy_project::StudioRecordingMeta::MultipleSegments { inner, .. } => {
             // Segments initialize concurrently: decoder setup dominates and is
             // independent per segment, while audio decodes lazily in the
             // background via AudioLoader.
@@ -1821,7 +1821,7 @@ async fn create_segments_with_audio(
 pub fn initial_clip_configuration(
     project_path: &std::path::Path,
     meta: &StudioRecordingMeta,
-) -> Vec<cap_project::ClipConfiguration> {
+) -> Vec<scoopy_project::ClipConfiguration> {
     let calibration_store = load_calibration_store(project_path);
     match meta {
         StudioRecordingMeta::MultipleSegments { inner } => inner
@@ -1834,35 +1834,35 @@ pub fn initial_clip_configuration(
                     segment.mic_device_id(),
                     &calibration_store,
                 );
-                cap_project::ClipConfiguration {
+                scoopy_project::ClipConfiguration {
                     index: i as u32,
                     offsets: segment.calculate_audio_offsets_with_calibration(calibration_offset),
                     offsets_auto_calculated: true,
                 }
             })
             .collect(),
-        StudioRecordingMeta::SingleSegment { .. } => vec![cap_project::ClipConfiguration {
+        StudioRecordingMeta::SingleSegment { .. } => vec![scoopy_project::ClipConfiguration {
             index: 0,
-            offsets: cap_project::ClipOffsets::default(),
+            offsets: scoopy_project::ClipOffsets::default(),
             offsets_auto_calculated: false,
         }],
     }
 }
 
-fn load_calibration_store(project_path: &std::path::Path) -> cap_audio::CalibrationStore {
+fn load_calibration_store(project_path: &std::path::Path) -> scoopy_audio::CalibrationStore {
     let calibration_dir = project_path
         .parent()
         .and_then(|p| p.parent())
         .map(|p| p.to_path_buf())
         .unwrap_or_else(|| project_path.to_path_buf());
 
-    cap_audio::CalibrationStore::load(&calibration_dir)
+    scoopy_audio::CalibrationStore::load(&calibration_dir)
 }
 
 fn get_calibration_offset(
     camera_id: Option<&str>,
     mic_id: Option<&str>,
-    store: &cap_audio::CalibrationStore,
+    store: &scoopy_audio::CalibrationStore,
 ) -> Option<f32> {
     match (camera_id, mic_id) {
         (Some(cam), Some(mic)) => store.get_offset(cam, mic).map(|o| o as f32),
@@ -1873,7 +1873,7 @@ fn get_calibration_offset(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cap_project::{AudioGapSummary, CursorClickEvent, CursorConfiguration, CursorMoveEvent};
+    use scoopy_project::{AudioGapSummary, CursorClickEvent, CursorConfiguration, CursorMoveEvent};
 
     #[tokio::test]
     async fn completed_pcm_loader_reuses_arc_without_opening_a_missing_file() {
@@ -2040,7 +2040,7 @@ mod tests {
         assert_eq!(Arc::strong_count(&cursor), 1);
 
         project.cursor.tension += 1.0;
-        project.cursor.click_spring = Some(cap_project::ClickSpringConfig {
+        project.cursor.click_spring = Some(scoopy_project::ClickSpringConfig {
             tension: 900.0,
             mass: 2.0,
             friction: 60.0,
@@ -2201,7 +2201,7 @@ mod tests {
                 (false, None),
                 (
                     false,
-                    Some(cap_project::ClickSpringConfig {
+                    Some(scoopy_project::ClickSpringConfig {
                         tension: 720.0,
                         mass: 2.0,
                         friction: 55.0,
@@ -2265,11 +2265,11 @@ mod tests {
     #[test]
     fn legacy_audio_timing_repair_reads_startup_trimmed_overlap_from_log() {
         let log = r#"
-2026-06-01T12:37:20.016795Z DEBUG recording:studio_recording:segment{index=0}:mic-out:{task="mux-audio"}: cap_recording::output_pipeline::core: Trimmed overlapping audio frame frame_count=1 overlap_ms=34 frame_samples=1680 trim_samples=1656 kept_samples=24
-2026-06-01T12:37:20.051756Z DEBUG recording:studio_recording:segment{index=0}:mic-out:{task="mux-audio"}: cap_recording::output_pipeline::core: Dropping overlapping audio frame frame_count=2 overlap_ms=35 frame_samples=1680 trim_samples=1680
-2026-06-01T12:37:20.086773Z DEBUG recording:studio_recording:segment{index=0}:mic-out:{task="mux-audio"}: cap_recording::output_pipeline::core: Dropping overlapping audio frame frame_count=2 overlap_ms=35 frame_samples=1680 trim_samples=1680
-2026-06-01T12:37:20.121809Z DEBUG recording:studio_recording:segment{index=0}:mic-out:{task="mux-audio"}: cap_recording::output_pipeline::core: Dropping overlapping audio frame frame_count=2 overlap_ms=35 frame_samples=1680 trim_samples=1680
-2026-06-01T12:37:30.121809Z DEBUG recording:studio_recording:segment{index=0}:mic-out:{task="mux-audio"}: cap_recording::output_pipeline::core: Dropping overlapping audio frame frame_count=50 overlap_ms=800 frame_samples=1680 trim_samples=1680
+2026-06-01T12:37:20.016795Z DEBUG recording:studio_recording:segment{index=0}:mic-out:{task="mux-audio"}: scoopy_recording::output_pipeline::core: Trimmed overlapping audio frame frame_count=1 overlap_ms=34 frame_samples=1680 trim_samples=1656 kept_samples=24
+2026-06-01T12:37:20.051756Z DEBUG recording:studio_recording:segment{index=0}:mic-out:{task="mux-audio"}: scoopy_recording::output_pipeline::core: Dropping overlapping audio frame frame_count=2 overlap_ms=35 frame_samples=1680 trim_samples=1680
+2026-06-01T12:37:20.086773Z DEBUG recording:studio_recording:segment{index=0}:mic-out:{task="mux-audio"}: scoopy_recording::output_pipeline::core: Dropping overlapping audio frame frame_count=2 overlap_ms=35 frame_samples=1680 trim_samples=1680
+2026-06-01T12:37:20.121809Z DEBUG recording:studio_recording:segment{index=0}:mic-out:{task="mux-audio"}: scoopy_recording::output_pipeline::core: Dropping overlapping audio frame frame_count=2 overlap_ms=35 frame_samples=1680 trim_samples=1680
+2026-06-01T12:37:30.121809Z DEBUG recording:studio_recording:segment{index=0}:mic-out:{task="mux-audio"}: scoopy_recording::output_pipeline::core: Dropping overlapping audio frame frame_count=50 overlap_ms=800 frame_samples=1680 trim_samples=1680
 "#;
 
         let summary = legacy_audio_gap_summary_from_log(log, 0, LegacyAudioLogTrack::Mic).unwrap();
@@ -2338,7 +2338,7 @@ mod initial_clip_configuration_tests {
         })).unwrap()
     }
 
-    fn assert_bits(clips: &[cap_project::ClipConfiguration], calibration: f32) {
+    fn assert_bits(clips: &[scoopy_project::ClipConfiguration], calibration: f32) {
         assert_eq!(clips.len(), 1);
         assert_eq!(clips[0].index, 0);
         assert!(clips[0].offsets_auto_calculated);
@@ -2356,14 +2356,14 @@ mod initial_clip_configuration_tests {
     #[test]
     fn calibration_projection_preserves_store_location_confidence_and_cast_order_without_writes() {
         let directory = tempfile::tempdir().unwrap();
-        let project = directory.path().join("recordings/test.cap");
+        let project = directory.path().join("recordings/test.scoopy");
         std::fs::create_dir_all(&project).unwrap();
         let config = project.join("project-config.json");
         std::fs::write(&config, b"untouched config sentinel").unwrap();
-        let mut store = cap_audio::CalibrationStore::new();
+        let mut store = scoopy_audio::CalibrationStore::new();
         for confidence in [0.49, 0.5, 1.0] {
             let offset = -0.03123456789_f64;
-            store.update_calibration(&cap_audio::DeviceSyncCalibration {
+            store.update_calibration(&scoopy_audio::DeviceSyncCalibration {
                 camera_id: "camera".into(),
                 microphone_id: "mic".into(),
                 measured_offset_secs: offset,
@@ -2395,7 +2395,7 @@ mod initial_clip_configuration_tests {
     #[test]
     fn missing_store_invalid_store_and_missing_device_ids_keep_uncalibrated_offsets() {
         let directory = tempfile::tempdir().unwrap();
-        let project = directory.path().join("recordings/test.cap");
+        let project = directory.path().join("recordings/test.scoopy");
         assert_bits(&initial_clip_configuration(&project, &metadata(true)), 0.0);
         assert!(!directory.path().join("sync_calibrations.json").exists());
         std::fs::write(
@@ -2404,8 +2404,8 @@ mod initial_clip_configuration_tests {
         )
         .unwrap();
         assert_bits(&initial_clip_configuration(&project, &metadata(true)), 0.0);
-        let mut store = cap_audio::CalibrationStore::new();
-        store.update_calibration(&cap_audio::DeviceSyncCalibration {
+        let mut store = scoopy_audio::CalibrationStore::new();
+        store.update_calibration(&scoopy_audio::DeviceSyncCalibration {
             camera_id: "camera".into(),
             microphone_id: "mic".into(),
             measured_offset_secs: 0.7,

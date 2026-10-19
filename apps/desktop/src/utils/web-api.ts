@@ -2,7 +2,7 @@ import {
 	contract,
 	licenseContract,
 	orgCustomDomainContract,
-} from "@cap/web-api-contract";
+} from "@scoopy/web-api-contract";
 import { fetch } from "@tauri-apps/plugin-http";
 import { type ApiFetcher, initClient } from "@ts-rest/core";
 
@@ -52,7 +52,7 @@ export const apiClient = initClient(contract, {
 	api,
 });
 export const licenseApiClient = initClient(licenseContract, {
-	baseUrl: `https://l.cap.so/api`,
+	baseUrl: `https://l.example.com/api`,
 	api,
 });
 
@@ -78,7 +78,7 @@ export async function protectedHeaders() {
 	const { authorization } = await maybeProtectedHeaders();
 	if (!authorization)
 		throw new Error(
-			"Please sign in to continue. Alternatively, email hello@cap.so or join our Discord at cap.link/discord",
+			"Please sign in to continue. Alternatively, email hello@example.com or join our Discord at example.com/discord",
 		);
 	return { authorization };
 }

@@ -11,9 +11,9 @@
 //! opens segment-1), then verifies every segment's display.mp4 is a plain
 //! finalized MP4 with the expected content duration.
 
-use cap_enc_ffmpeg::remux::{get_media_duration, probe_media_valid, probe_video_can_decode};
-use cap_recording::sources::screen_capture::ScreenCaptureTarget;
-use cap_recording::{SendableShareableContent, studio_recording};
+use scoopy_enc_ffmpeg::remux::{get_media_duration, probe_media_valid, probe_video_can_decode};
+use scoopy_recording::sources::screen_capture::ScreenCaptureTarget;
+use scoopy_recording::{SendableShareableContent, studio_recording};
 use std::{path::PathBuf, time::Duration};
 use tempfile::TempDir;
 
@@ -41,7 +41,7 @@ async fn studio_failed_second_resume_can_save_or_retry_with_real_screen() {
         [(false, false), (true, false), (false, true), (true, true)]
     {
         let temp = TempDir::new().unwrap();
-        let recording_dir = temp.path().join("failed-resume.cap");
+        let recording_dir = temp.path().join("failed-resume.scoopy");
         let handle = studio_recording::Actor::builder(
             recording_dir.clone(),
             ScreenCaptureTarget::Display {
@@ -108,7 +108,7 @@ async fn studio_failed_second_resume_can_save_or_retry_with_real_screen() {
         .expect("Stop must complete after failed resume");
         assert!(report.accepted_intent && report.stop_acknowledged);
         let completed = report.result.unwrap();
-        let cap_project::StudioRecordingMeta::MultipleSegments { inner } = completed.meta else {
+        let scoopy_project::StudioRecordingMeta::MultipleSegments { inner } = completed.meta else {
             panic!("expected multiple segments");
         };
         assert_eq!(inner.segments.len(), if retry { 3 } else { 2 });
@@ -150,7 +150,7 @@ async fn studio_nonfragmented_record_pause_resume_with_real_screen() {
         .into();
 
     let temp = TempDir::new().unwrap();
-    let recording_dir = temp.path().join("test_studio_recording.cap");
+    let recording_dir = temp.path().join("test_studio_recording.scoopy");
 
     let record_before_pause = Duration::from_secs(6);
     let pause_duration = Duration::from_secs(3);

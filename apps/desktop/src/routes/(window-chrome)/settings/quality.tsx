@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { cx } from "cva";
 import {
 	createMemo,
@@ -81,12 +81,12 @@ export default function RecordingQualitySettings() {
 	const studioQuality = createMemo(
 		() => settings().studioRecordingQuality ?? "balanced",
 	);
-	const hasCapPro = createMemo(
+	const hasScoopyPro = createMemo(
 		() => !!(auth.data?.plan?.upgraded || auth.data?.plan?.manual),
 	);
 	const [saving, setSaving] = createSignal(false);
 	const instantResolution = createMemo(() =>
-		hasCapPro() ? (settings().instantModeMaxResolution ?? 1920) : 1280,
+		hasScoopyPro() ? (settings().instantModeMaxResolution ?? 1920) : 1280,
 	);
 	const instantDescription = createMemo(
 		() =>
@@ -124,8 +124,8 @@ export default function RecordingQualitySettings() {
 			.then(() => auth.refetch())
 			.catch(console.error);
 		try {
-			const section = localStorage.getItem("cap.settings.scrollToSection");
-			localStorage.removeItem("cap.settings.scrollToSection");
+			const section = localStorage.getItem("scoopy.settings.scrollToSection");
+			localStorage.removeItem("scoopy.settings.scrollToSection");
 			if (section) scrollToSection(section);
 		} catch {}
 		const unlisten = events.requestScrollToSettingsSection.listen((event) =>
@@ -156,7 +156,7 @@ export default function RecordingQualitySettings() {
 	return (
 		<div
 			ref={scrollContainer}
-			class="cap-settings-page h-full overflow-y-auto custom-scroll"
+			class="scoopy-settings-page h-full overflow-y-auto custom-scroll"
 		>
 			<SettingsPageContent>
 				<Section
@@ -266,7 +266,7 @@ export default function RecordingQualitySettings() {
 												disabled={
 													saving() ||
 													auth.isPending ||
-													(!hasCapPro() && option.value > 1280)
+													(!hasScoopyPro() && option.value > 1280)
 												}
 												onClick={() =>
 													void save("instantModeMaxResolution", option.value)
@@ -279,7 +279,7 @@ export default function RecordingQualitySettings() {
 												)}
 											>
 												{option.label}
-												<Show when={!hasCapPro() && option.value > 1280}>
+												<Show when={!hasScoopyPro() && option.value > 1280}>
 													<span class="text-[9px] text-gray-10">Pro</span>
 												</Show>
 											</button>
@@ -290,7 +290,7 @@ export default function RecordingQualitySettings() {
 									{instantDescription()} Resolution is limited by the screen or
 									area you record.
 								</p>
-								<Show when={!auth.isPending && !hasCapPro()}>
+								<Show when={!auth.isPending && !hasScoopyPro()}>
 									<div class="flex flex-col items-start gap-3 mt-4 pt-4 border-t border-gray-4">
 										<p class="text-xs leading-relaxed text-gray-11">
 											720p is included. Scoopy Pro unlocks 1080p, 1440p and 4K for

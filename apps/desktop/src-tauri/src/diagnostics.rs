@@ -66,7 +66,7 @@ impl DiagnosticProgress {
     }
 }
 
-/// The subset of `cap selftest av-sync --progress-json` NDJSON we act on.
+/// The subset of `scoopy selftest av-sync --progress-json` NDJSON we act on.
 /// Lines with an unknown `type` (or no `type` at all) are ignored so the CLI
 /// can add message kinds without breaking older apps.
 #[derive(Debug, Deserialize, PartialEq)]
@@ -185,7 +185,7 @@ async fn collect_sync_test_stderr_tail(stderr: tokio::process::ChildStderr) -> V
     tail
 }
 
-/// Drives `cap selftest av-sync` in the exporter sidecar. The verdict lives in
+/// Drives `scoopy selftest av-sync` in the exporter sidecar. The verdict lives in
 /// the `Report` message, never in the exit code: the CLI exits non-zero for
 /// fail/inconclusive runs that still produced a full report.
 async fn run_sync_test(
@@ -193,7 +193,7 @@ async fn run_sync_test(
     options: &DiagnosticOptions,
 ) -> Result<serde_json::Value, String> {
     let mode = normalize_mode(&options.mode)?;
-    // The sync test lives in the `cap` CLI, shipped as the `cap-exporter`
+    // The sync test lives in the `scoopy` CLI, shipped as the `scoopy-exporter`
     // sidecar; a dev build without the sidecar has no way to run it.
     let bin_path = crate::export::resolve_exporter_binary()
         .map_err(|e| format!("Sync test helper unavailable: {e}"))?;
@@ -283,7 +283,7 @@ fn redact_url_credentials(url: &str) -> String {
 }
 
 fn settings_snapshot(settings: &GeneralSettingsStore) -> serde_json::Value {
-    use cap_recording::diagnostics::redact_home_paths;
+    use scoopy_recording::diagnostics::redact_home_paths;
 
     serde_json::json!({
         "maxFps": settings.max_fps,
@@ -345,7 +345,7 @@ fn prune_reports(dir: &Path, keep: usize) -> Result<(), String> {
             let name = path.file_name()?.to_owned();
             let name_str = name.to_str()?;
             if !path.is_file()
-                || !name_str.starts_with("cap-diagnostic-")
+                || !name_str.starts_with("scoopy-diagnostic-")
                 || !name_str.ends_with(".json")
             {
                 return None;
@@ -463,7 +463,7 @@ pub async fn run_diagnostic(
     let fragmented_recording = settings
         .as_ref()
         .map(|s| s.crash_recovery_recording)
-        .unwrap_or(cap_recording::DEFAULT_CRASH_RECOVERY_RECORDING);
+        .unwrap_or(scoopy_recording::DEFAULT_CRASH_RECOVERY_RECORDING);
     let settings_json = settings.as_ref().map(settings_snapshot);
     let app_version = env!("CARGO_PKG_VERSION").to_string();
     let sync_test_error_for_report = sync_test_error.clone();
@@ -471,8 +471,8 @@ pub async fn run_diagnostic(
     // `collect_report` probes displays and disk mounts; both can block for tens
     // of seconds, so it never runs on the async runtime's cooperative threads.
     let report = tokio::task::spawn_blocking(move || {
-        cap_recording::diagnostics::collect_report(
-            cap_recording::diagnostics::DiagnosticReportArgs {
+        scoopy_recording::diagnostics::collect_report(
+            scoopy_recording::diagnostics::DiagnosticReportArgs {
                 flavor: "tauri",
                 app_version: &app_version,
                 settings: settings_json,
@@ -508,7 +508,7 @@ pub async fn run_diagnostic(
 
     let dir = reports_dir(&app)?;
     let report_path = dir.join(format!(
-        "cap-diagnostic-{}.json",
+        "scoopy-diagnostic-{}.json",
         chrono::Local::now().format("%Y%m%d-%H%M%S")
     ));
     std::fs::write(&report_path, &report_json)
@@ -557,7 +557,7 @@ mod tests {
     use super::*;
 
     fn temp_dir() -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("cap-diagnostics-{}", uuid::Uuid::new_v4()));
+        let dir = std::env::temp_dir().join(format!("scoopy-diagnostics-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         dir
     }
@@ -687,7 +687,7 @@ mod tests {
         let root = temp_dir();
         let dir = root.join("diagnostics");
         std::fs::create_dir_all(&dir).unwrap();
-        let file = dir.join("cap-diagnostic-1.json");
+        let file = dir.join("scoopy-diagnostic-1.json");
         std::fs::write(&file, "{}").unwrap();
 
         let resolved = resolve_within(&dir, &file).unwrap();
@@ -719,29 +719,29 @@ mod tests {
         let dir = temp_dir();
         for i in 0..8 {
             std::fs::write(
-                dir.join(format!("cap-diagnostic-2026010{i}-120000.json")),
+                dir.join(format!("scoopy-diagnostic-2026010{i}-120000.json")),
                 "{}",
             )
             .unwrap();
         }
         // Unrelated files are never touched.
         std::fs::write(dir.join("notes.txt"), "keep me").unwrap();
-        std::fs::write(dir.join("cap-diagnostic-partial.txt"), "keep me").unwrap();
+        std::fs::write(dir.join("scoopy-diagnostic-partial.txt"), "keep me").unwrap();
 
         prune_reports(&dir, 5).unwrap();
 
         let mut remaining: Vec<String> = std::fs::read_dir(&dir)
             .unwrap()
             .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
-            .filter(|n| n.starts_with("cap-diagnostic-") && n.ends_with(".json"))
+            .filter(|n| n.starts_with("scoopy-diagnostic-") && n.ends_with(".json"))
             .collect();
         remaining.sort();
 
         assert_eq!(remaining.len(), 5);
-        assert!(remaining.contains(&"cap-diagnostic-20260107-120000.json".to_string()));
-        assert!(!remaining.contains(&"cap-diagnostic-20260100-120000.json".to_string()));
+        assert!(remaining.contains(&"scoopy-diagnostic-20260107-120000.json".to_string()));
+        assert!(!remaining.contains(&"scoopy-diagnostic-20260100-120000.json".to_string()));
         assert!(dir.join("notes.txt").exists());
-        assert!(dir.join("cap-diagnostic-partial.txt").exists());
+        assert!(dir.join("scoopy-diagnostic-partial.txt").exists());
 
         std::fs::remove_dir_all(&dir).ok();
     }
@@ -749,12 +749,12 @@ mod tests {
     #[test]
     fn redacts_only_url_credentials() {
         assert_eq!(
-            redact_url_credentials("https://cap.so"),
-            "https://cap.so".to_string()
+            redact_url_credentials("https://example.com"),
+            "https://example.com".to_string()
         );
         assert_eq!(
-            redact_url_credentials("https://user:pass@self.hosted/cap"),
-            "https://***@self.hosted/cap".to_string()
+            redact_url_credentials("https://user:pass@self.hosted/scoopy"),
+            "https://***@self.hosted/scoopy".to_string()
         );
         assert_eq!(redact_url_credentials("not a url"), "not a url".to_string());
     }

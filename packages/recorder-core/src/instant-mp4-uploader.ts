@@ -461,7 +461,7 @@ export class InstantRecordingUploader {
 
 		this.setUploadStatus({
 			status: "uploadingVideo",
-			capId: this.videoId,
+			scoopyId: this.videoId,
 			progress,
 			thumbnailUrl: undefined,
 		});
@@ -1058,7 +1058,7 @@ export class InstantRecordingUploader {
 		this.uploadedBytes = this.finalTotalBytes ?? this.uploadedBytes;
 		this.setUploadStatus({
 			status: "uploadingVideo",
-			capId: this.videoId,
+			scoopyId: this.videoId,
 			progress: 100,
 			thumbnailUrl: undefined,
 		});

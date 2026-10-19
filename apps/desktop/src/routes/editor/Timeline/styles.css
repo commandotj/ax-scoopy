@@ -20,7 +20,7 @@
 	cursor: inherit;
 }
 
-.cap-track-fill {
+.scoopy-track-fill {
 	--seg-color: var(--ed-text-3);
 	--ed-seg-tint-selected: calc(var(--ed-seg-tint) + 10%);
 	--ed-seg-line-hover: calc(var(--ed-seg-line) + 10%);
@@ -37,7 +37,7 @@
 		box-shadow 0.15s ease;
 }
 
-.cap-track-fill::before {
+.scoopy-track-fill::before {
 	content: "";
 	position: absolute;
 	top: 0;
@@ -49,12 +49,12 @@
 	z-index: 1;
 }
 
-.cap-track-fill:hover {
+.scoopy-track-fill:hover {
 	box-shadow: inset 0 0 0 1px
 		color-mix(in srgb, var(--seg-color) var(--ed-seg-line-hover), transparent);
 }
 
-.cap-track-fill[data-selected] {
+.scoopy-track-fill[data-selected] {
 	background-color: color-mix(
 		in srgb,
 		var(--seg-color) var(--ed-seg-tint-selected),
@@ -63,7 +63,7 @@
 	box-shadow: inset 0 0 0 1.5px var(--ed-accent);
 }
 
-.cap-track-fill[data-muted] {
+.scoopy-track-fill[data-muted] {
 	background-color: color-mix(
 		in srgb,
 		var(--seg-color) calc(var(--ed-seg-tint) / 2),
@@ -71,18 +71,18 @@
 	);
 }
 
-.cap-track-fill[data-ghost] {
+.scoopy-track-fill[data-ghost] {
 	opacity: 0.55;
 }
 
-.cap-seg-labels {
+.scoopy-seg-labels {
 	display: flex;
 	align-items: center;
 	gap: 8px;
 	min-width: 0;
 }
 
-.cap-seg-label {
+.scoopy-seg-label {
 	font-size: 12px;
 	font-weight: 500;
 	line-height: 1.2;
@@ -94,7 +94,7 @@
 	);
 }
 
-.cap-seg-sublabel {
+.scoopy-seg-sublabel {
 	font-size: 11px;
 	line-height: 1.2;
 	white-space: nowrap;
@@ -102,12 +102,12 @@
 	color: color-mix(in srgb, var(--seg-color) 45%, var(--ed-text-3));
 }
 
-.cap-track-fill[data-muted] .cap-seg-label,
-.cap-track-fill[data-muted] .cap-seg-sublabel {
+.scoopy-track-fill[data-muted] .scoopy-seg-label,
+.scoopy-track-fill[data-muted] .scoopy-seg-sublabel {
 	color: var(--ed-text-3);
 }
 
-.cap-seg-handle {
+.scoopy-seg-handle {
 	width: 3px;
 	height: 16px;
 	border-radius: 2px;
@@ -118,50 +118,50 @@
 	);
 }
 
-.cap-fade-shade {
+.scoopy-fade-shade {
 	fill: color-mix(in srgb, var(--ed-seg-label-base) 22%, transparent);
 }
 
-.cap-fade-curve,
-.cap-fade-corner {
+.scoopy-fade-curve,
+.scoopy-fade-corner {
 	stroke: color-mix(in srgb, var(--seg-color) 70%, var(--ed-seg-label-base));
 	fill: color-mix(in srgb, var(--seg-color) 70%, var(--ed-seg-label-base));
 }
 
-.cap-fade-curve {
+.scoopy-fade-curve {
 	fill: none;
 }
 
-.cap-fade-corner-line {
+.scoopy-fade-corner-line {
 	stroke: color-mix(in srgb, var(--ed-card) 65%, transparent);
 }
 
-.cap-track-tile {
+.scoopy-track-tile {
 	background-color: color-mix(in srgb, var(--seg-color) 16%, transparent);
 	color: color-mix(in srgb, var(--seg-color) 62%, var(--ed-seg-label-base));
 }
 
-.cap-track-tray[data-expanded] {
-	animation: cap-track-tray-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+.scoopy-track-tray[data-expanded] {
+	animation: scoopy-track-tray-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.cap-track-tray[data-closed] {
-	animation: cap-track-tray-out 120ms ease-in both;
+.scoopy-track-tray[data-closed] {
+	animation: scoopy-track-tray-out 120ms ease-in both;
 }
 
 /* `backwards` (not `both`) so the finished entrance releases `transform`
  * back to the tile's own `active:scale-95` press feedback. */
-.cap-track-tray-tile {
-	animation: cap-track-tray-tile-in 320ms cubic-bezier(0.34, 1.35, 0.64, 1)
+.scoopy-track-tray-tile {
+	animation: scoopy-track-tray-tile-in 320ms cubic-bezier(0.34, 1.35, 0.64, 1)
 		backwards;
 	animation-delay: calc(60ms + var(--tray-index) * 24ms);
 }
 
-.cap-track-tray[data-closed] .cap-track-tray-tile {
+.scoopy-track-tray[data-closed] .scoopy-track-tray-tile {
 	animation: none;
 }
 
-@keyframes cap-track-tray-in {
+@keyframes scoopy-track-tray-in {
 	from {
 		opacity: 0;
 		transform: translateX(-12px) scale(0.96);
@@ -172,7 +172,7 @@
 	}
 }
 
-@keyframes cap-track-tray-out {
+@keyframes scoopy-track-tray-out {
 	from {
 		opacity: 1;
 		transform: none;
@@ -183,7 +183,7 @@
 	}
 }
 
-@keyframes cap-track-tray-tile-in {
+@keyframes scoopy-track-tray-tile-in {
 	from {
 		opacity: 0;
 		transform: translateX(-10px) scale(0.85);
@@ -195,14 +195,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.cap-track-tray[data-expanded],
-	.cap-track-tray[data-closed],
-	.cap-track-tray-tile {
+	.scoopy-track-tray[data-expanded],
+	.scoopy-track-tray[data-closed],
+	.scoopy-track-tray-tile {
 		animation: none;
 	}
 }
 
-.cap-empty-lane {
+.scoopy-empty-lane {
 	display: flex;
 	width: 100%;
 	height: 100%;
@@ -216,27 +216,27 @@
 	transition: color 0.15s ease;
 }
 
-button.cap-empty-lane:hover:not(:disabled),
-.cap-empty-lane[data-active] {
+button.scoopy-empty-lane:hover:not(:disabled),
+.scoopy-empty-lane[data-active] {
 	color: var(--ed-text-2);
 }
 
-.cap-empty-lane-action {
+.scoopy-empty-lane-action {
 	font-weight: 500;
 	color: var(--ed-text-2);
 }
 
-button.cap-empty-lane-action:hover:not(:disabled) {
+button.scoopy-empty-lane-action:hover:not(:disabled) {
 	color: var(--ed-text-1);
 }
 
-.cap-empty-lane-action:disabled {
+.scoopy-empty-lane-action:disabled {
 	opacity: 0.6;
 }
 
 /* Empty-lane call to action: one filled chip for the one-click path and one
  * outlined chip for the manual one, matching the Zoom lane's grammar. */
-.cap-lane-chip {
+.scoopy-lane-chip {
 	display: flex;
 	height: 26px;
 	align-items: center;
@@ -254,23 +254,23 @@ button.cap-empty-lane-action:hover:not(:disabled) {
 		color 0.15s ease;
 }
 
-.cap-lane-chip:hover:not(:disabled) {
+.scoopy-lane-chip:hover:not(:disabled) {
 	background-color: color-mix(in srgb, var(--ed-thumb) 88%, var(--ed-accent));
 }
 
-.cap-lane-chip-ghost {
+.scoopy-lane-chip-ghost {
 	background-color: transparent;
 	color: var(--ed-text-1);
 	box-shadow: inset 0 0 0 1px var(--ed-line-strong);
 }
 
-.cap-lane-chip-ghost:hover:not(:disabled) {
+.scoopy-lane-chip-ghost:hover:not(:disabled) {
 	background-color: var(--ed-ctl-hover);
 	box-shadow: inset 0 0 0 1px var(--ed-line-strong);
 }
 
 /* The shot a click on empty 3D lane space would create. */
-.cap-add-shot-ghost {
+.scoopy-add-shot-ghost {
 	position: absolute;
 	top: 3px;
 	bottom: 3px;
@@ -290,7 +290,7 @@ button.cap-empty-lane-action:hover:not(:disabled) {
 }
 
 /* Auto-scene shot counts, in the lane and in the shot panel. */
-.cap-shot-pill {
+.scoopy-shot-pill {
 	display: flex;
 	width: 22px;
 	height: 22px;
@@ -308,23 +308,23 @@ button.cap-empty-lane-action:hover:not(:disabled) {
 		box-shadow 0.12s ease;
 }
 
-.cap-shot-pill:hover:not(:disabled) {
+.scoopy-shot-pill:hover:not(:disabled) {
 	background-color: var(--ed-ctl-hover);
 	color: var(--ed-text-1);
 }
 
-.cap-shot-pill[data-selected="true"] {
+.scoopy-shot-pill[data-selected="true"] {
 	background-color: var(--ed-accent);
 	color: #ffffff;
 }
 
-.cap-shot-pill:disabled {
+.scoopy-shot-pill:disabled {
 	opacity: 0.35;
 }
 
 /* The start and end pose of the selected shot, on the shot itself. The resize
  * handles sit on the edge above these, so a drag still grabs the edge. */
-.cap-pose-dot {
+.scoopy-pose-dot {
 	position: absolute;
 	top: 50%;
 	z-index: 20;
@@ -336,6 +336,6 @@ button.cap-empty-lane-action:hover:not(:disabled) {
 	transition: background-color 0.12s ease;
 }
 
-.cap-pose-dot[data-active="true"] {
+.scoopy-pose-dot[data-active="true"] {
 	background-color: var(--ed-accent);
 }

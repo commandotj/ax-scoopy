@@ -5,21 +5,21 @@ import {
 } from "./server-url-routing";
 
 describe("server-url-routing", () => {
-	it("keeps production Cap Cloud on the hybrid desktop session", () => {
+	it("keeps production Scoopy Cloud on the hybrid desktop session", () => {
 		expect(
 			shouldUseLocalServerSessionForUrl(
-				"https://cap.so",
-				"https://cap.so",
+				"https://example.com",
+				"https://example.com",
 				false,
 			),
 		).toBe(false);
 	});
 
-	it("treats equivalent Cap Cloud origins as the same production auth path", () => {
+	it("treats equivalent Scoopy Cloud origins as the same production auth path", () => {
 		expect(
 			shouldUseLocalServerSessionForUrl(
-				"https://cap.so/",
-				"https://cap.so",
+				"https://example.com/",
+				"https://example.com",
 				false,
 			),
 		).toBe(false);
@@ -28,8 +28,8 @@ describe("server-url-routing", () => {
 	it("uses the local callback session for custom production origins", () => {
 		expect(
 			shouldUseLocalServerSessionForUrl(
-				"https://cap-web-production-7301.up.railway.app",
-				"https://cap.so",
+				"https://scoopy-web-production-7301.up.railway.app",
+				"https://example.com",
 				false,
 			),
 		).toBe(true);
@@ -38,49 +38,49 @@ describe("server-url-routing", () => {
 	it("keeps development on the local callback session", () => {
 		expect(
 			shouldUseLocalServerSessionForUrl(
-				"https://cap.so",
-				"https://cap.so",
+				"https://example.com",
+				"https://example.com",
 				true,
 			),
 		).toBe(true);
 	});
 
-	it("does not rewrite Cap Cloud API requests for the default origin", () => {
-		const path = "https://cap.so/api/desktop/user/profile";
+	it("does not rewrite Scoopy Cloud API requests for the default origin", () => {
+		const path = "https://example.com/api/desktop/user/profile";
 
 		expect(
-			resolveServerRequestPath(path, "https://cap.so", "https://cap.so"),
+			resolveServerRequestPath(path, "https://example.com", "https://example.com"),
 		).toBe(path);
 	});
 
-	it("does not rewrite Cap Cloud API requests for equivalent origins", () => {
-		const path = "https://cap.so/api/desktop/user/profile";
+	it("does not rewrite Scoopy Cloud API requests for equivalent origins", () => {
+		const path = "https://example.com/api/desktop/user/profile";
 
 		expect(
-			resolveServerRequestPath(path, "https://cap.so/", "https://cap.so"),
+			resolveServerRequestPath(path, "https://example.com/", "https://example.com"),
 		).toBe(path);
 	});
 
 	it("rewrites packaged API requests to custom origins", () => {
 		expect(
 			resolveServerRequestPath(
-				"https://cap.so/api/desktop/user/profile?refresh=true#profile",
-				"https://cap-web-production-7301.up.railway.app",
-				"https://cap.so",
+				"https://example.com/api/desktop/user/profile?refresh=true#profile",
+				"https://scoopy-web-production-7301.up.railway.app",
+				"https://example.com",
 			),
 		).toBe(
-			"https://cap-web-production-7301.up.railway.app/api/desktop/user/profile?refresh=true#profile",
+			"https://scoopy-web-production-7301.up.railway.app/api/desktop/user/profile?refresh=true#profile",
 		);
 	});
 
 	it("does not rewrite external API requests", () => {
-		const path = "https://l.cap.so/api/license/activate";
+		const path = "https://l.example.com/api/license/activate";
 
 		expect(
 			resolveServerRequestPath(
 				path,
-				"https://cap-web-production-7301.up.railway.app",
-				"https://cap.so",
+				"https://scoopy-web-production-7301.up.railway.app",
+				"https://example.com",
 			),
 		).toBe(path);
 	});

@@ -1,7 +1,7 @@
 use anyhow::bail;
-use cap_audio::{AudioData, SyncAnalyzer};
-use cap_project::{RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
-use cap_rendering::decoder::spawn_decoder;
+use scoopy_audio::{AudioData, SyncAnalyzer};
+use scoopy_project::{RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
+use scoopy_rendering::decoder::spawn_decoder;
 use chrono::{Local, Utc};
 use clap::{Parser, Subcommand};
 use std::{
@@ -14,17 +14,17 @@ use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 #[cfg(windows)]
 fn default_input_dir() -> PathBuf {
-    std::env::temp_dir().join("cap-real-device-tests")
+    std::env::temp_dir().join("scoopy-real-device-tests")
 }
 
 #[cfg(not(windows))]
 fn default_input_dir() -> PathBuf {
-    PathBuf::from("/tmp/cap-real-device-tests")
+    PathBuf::from("/tmp/scoopy-real-device-tests")
 }
 
 #[derive(Parser)]
 #[command(name = "playback-test-runner")]
-#[command(about = "Run playback validation tests on existing Cap recordings")]
+#[command(about = "Run playback validation tests on existing Scoopy recordings")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -1316,7 +1316,7 @@ async fn main() -> anyhow::Result<()> {
 
     if cli.benchmark_output {
         let command = format!(
-            "cargo run -p cap-recording --example playback-test-runner -- {} --fps {}{}",
+            "cargo run -p scoopy-recording --example playback-test-runner -- {} --fps {}{}",
             match cli.command {
                 Some(Commands::Decoder) => "decoder",
                 Some(Commands::Playback) => "playback",

@@ -51,13 +51,13 @@ fn parse_config(
                 .into(),
         );
     }
-    let output = environment("CAP_STOP_EDITOR_BENCHMARK_OUTPUT")
+    let output = environment("SCOOPY_STOP_EDITOR_BENCHMARK_OUTPUT")
         .filter(|value| !value.is_empty())
-        .ok_or("Benchmark invocation requires CAP_STOP_EDITOR_BENCHMARK_OUTPUT")?;
-    let log_directory = environment("CAP_STOP_BENCH_LOG_DIR")
+        .ok_or("Benchmark invocation requires SCOOPY_STOP_EDITOR_BENCHMARK_OUTPUT")?;
+    let log_directory = environment("SCOOPY_STOP_BENCH_LOG_DIR")
         .filter(|value| !value.is_empty())
-        .ok_or("Benchmark invocation requires CAP_STOP_BENCH_LOG_DIR")?;
-    let seconds = environment("CAP_STOP_BENCH_SECONDS")
+        .ok_or("Benchmark invocation requires SCOOPY_STOP_BENCH_LOG_DIR")?;
+    let seconds = environment("SCOOPY_STOP_BENCH_SECONDS")
         .map(|value| {
             value
                 .into_string()
@@ -70,7 +70,7 @@ fn parse_config(
     if !(1..=86_400).contains(&seconds) {
         return Err("Benchmark duration must be between 1 and 86400 seconds".into());
     }
-    let microphone = environment("CAP_STOP_BENCH_MIC")
+    let microphone = environment("SCOOPY_STOP_BENCH_MIC")
         .map(|value| {
             value
                 .into_string()
@@ -89,10 +89,10 @@ fn parse_config(
         log_directory: PathBuf::from(log_directory),
         seconds,
         microphone,
-        system_audio: environment("CAP_STOP_BENCH_SYSTEM_AUDIO").is_some(),
-        fixture_window: environment("CAP_STOP_BENCH_FIXTURE_WINDOW").is_some(),
-        frame_directory: environment("CAP_STOP_BENCH_FRAME_DIR").map(PathBuf::from),
-        dom_capture: environment("CAP_STOP_BENCH_DOM_CAPTURE").is_some(),
+        system_audio: environment("SCOOPY_STOP_BENCH_SYSTEM_AUDIO").is_some(),
+        fixture_window: environment("SCOOPY_STOP_BENCH_FIXTURE_WINDOW").is_some(),
+        frame_directory: environment("SCOOPY_STOP_BENCH_FRAME_DIR").map(PathBuf::from),
+        dom_capture: environment("SCOOPY_STOP_BENCH_DOM_CAPTURE").is_some(),
     }))
 }
 
@@ -162,7 +162,7 @@ fn admit_identifier(requested: bool, identifier: &str) -> Result<bool, String> {
         return Ok(false);
     }
     if identifier
-        .strip_prefix("so.cap.desktop.stop-editor-benchmark.")
+        .strip_prefix("me.systembug.scoopy.stop-editor-benchmark.")
         .is_some_and(|suffix| !suffix.is_empty())
     {
         Ok(true)
@@ -225,7 +225,7 @@ async fn measure(
         crate::recording::StartRecordingInputs {
             capture_target,
             capture_system_audio: config.system_audio,
-            mode: cap_recording::RecordingMode::Studio,
+            mode: scoopy_recording::RecordingMode::Studio,
             organization_id: None,
         },
     )
@@ -249,7 +249,7 @@ async fn measure(
     }
     let dom_capture = DomCapture::start(app);
     let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
-    let listener = app.listen_any("cap-stop-benchmark-frame", move |_| {
+    let listener = app.listen_any("scoopy-stop-benchmark-frame", move |_| {
         let _ = sender.send(Instant::now());
     });
     let started = Instant::now();
@@ -279,8 +279,8 @@ async fn measure(
 
 fn benchmark_capture_target(
     fixture_window: bool,
-) -> Result<cap_recording::screen_capture::ScreenCaptureTarget, String> {
-    use cap_recording::screen_capture::ScreenCaptureTarget;
+) -> Result<scoopy_recording::screen_capture::ScreenCaptureTarget, String> {
+    use scoopy_recording::screen_capture::ScreenCaptureTarget;
     if !fixture_window {
         return Ok(ScreenCaptureTarget::Display {
             id: scap_targets::Display::primary().id(),
@@ -298,7 +298,7 @@ fn select_exact_fixture<T>(
     windows: impl Iterator<Item = (T, Option<String>)>,
 ) -> Result<T, String> {
     let mut matching =
-        windows.filter(|(_, name)| name.as_deref() == Some("Cap Stop benchmark fixture"));
+        windows.filter(|(_, name)| name.as_deref() == Some("Scoopy Stop benchmark fixture"));
     let window = matching
         .next()
         .ok_or("Exact benchmark fixture window is absent")?
@@ -362,7 +362,7 @@ fn arm_frame_capture(app: &tauri::AppHandle, project: Option<&Path>) -> Result<(
     if !app
         .config()
         .identifier
-        .starts_with("so.cap.desktop.stop-editor-benchmark.")
+        .starts_with("me.systembug.scoopy.stop-editor-benchmark.")
     {
         return Err("Frame capture requires a private benchmark app identifier".into());
     }
@@ -385,11 +385,11 @@ fn arm_frame_capture(app: &tauri::AppHandle, project: Option<&Path>) -> Result<(
         .map_err(|_| "Frame capture was already armed".to_string())
 }
 
-pub fn capture_output(kind: CaptureKind, project: &Path, output: &cap_editor::EditorFrameOutput) {
+pub fn capture_output(kind: CaptureKind, project: &Path, output: &scoopy_editor::EditorFrameOutput) {
     let Some(capture) = FRAME_CAPTURE.get() else {
         return;
     };
-    let cap_editor::EditorFrameOutput::Rgba(frame) = output else {
+    let scoopy_editor::EditorFrameOutput::Rgba(frame) = output else {
         return;
     };
     capture
@@ -520,7 +520,7 @@ impl DomCapture {
         }
         let observations = Arc::new(Mutex::new(Vec::new()));
         let captured = observations.clone();
-        let listener = app.listen_any("cap-stop-benchmark-dom", move |event| {
+        let listener = app.listen_any("scoopy-stop-benchmark-dom", move |event| {
             if let Ok(value) = serde_json::from_str(event.payload()) {
                 let mut observations = captured
                     .lock()
@@ -572,8 +572,8 @@ mod invocation_tests {
 
     fn settings() -> [(&'static str, &'static str); 2] {
         [
-            ("CAP_STOP_EDITOR_BENCHMARK_OUTPUT", "/benchmark/result.json"),
-            ("CAP_STOP_BENCH_LOG_DIR", "/benchmark/logs"),
+            ("SCOOPY_STOP_EDITOR_BENCHMARK_OUTPUT", "/benchmark/result.json"),
+            ("SCOOPY_STOP_BENCH_LOG_DIR", "/benchmark/logs"),
         ]
     }
 
@@ -581,7 +581,7 @@ mod invocation_tests {
     fn ordinary_arguments_never_read_benchmark_environment_or_create_logs() {
         for arguments in [
             vec![],
-            vec!["recording.cap"],
+            vec!["recording.scoopy"],
             vec!["--stop-editor-benchmark=true"],
             vec!["https://example.invalid/--allow-real-recording"],
         ] {
@@ -612,7 +612,7 @@ mod invocation_tests {
             vec![
                 "--stop-editor-benchmark",
                 "--allow-real-recording",
-                "recording.cap",
+                "recording.scoopy",
             ],
             vec!["--", "--stop-editor-benchmark", "--allow-real-recording"],
         ] {
@@ -630,7 +630,7 @@ mod invocation_tests {
         assert!(request(&[]).is_err());
         assert!(request(&settings()[..1]).is_err());
         assert!(request(&settings()[1..]).is_err());
-        for missing in ["CAP_STOP_EDITOR_BENCHMARK_OUTPUT", "CAP_STOP_BENCH_LOG_DIR"] {
+        for missing in ["SCOOPY_STOP_EDITOR_BENCHMARK_OUTPUT", "SCOOPY_STOP_BENCH_LOG_DIR"] {
             let mut settings = settings();
             for (name, value) in &mut settings {
                 if *name == missing {
@@ -658,12 +658,12 @@ mod invocation_tests {
     fn explicit_invocation_freezes_all_capture_settings() {
         let mut settings = settings().to_vec();
         settings.extend([
-            ("CAP_STOP_BENCH_SECONDS", "7200"),
-            ("CAP_STOP_BENCH_MIC", "Test microphone"),
-            ("CAP_STOP_BENCH_SYSTEM_AUDIO", "1"),
-            ("CAP_STOP_BENCH_FIXTURE_WINDOW", "1"),
-            ("CAP_STOP_BENCH_FRAME_DIR", "/benchmark/frames"),
-            ("CAP_STOP_BENCH_DOM_CAPTURE", "1"),
+            ("SCOOPY_STOP_BENCH_SECONDS", "7200"),
+            ("SCOOPY_STOP_BENCH_MIC", "Test microphone"),
+            ("SCOOPY_STOP_BENCH_SYSTEM_AUDIO", "1"),
+            ("SCOOPY_STOP_BENCH_FIXTURE_WINDOW", "1"),
+            ("SCOOPY_STOP_BENCH_FRAME_DIR", "/benchmark/frames"),
+            ("SCOOPY_STOP_BENCH_DOM_CAPTURE", "1"),
         ]);
         let config = request(&settings).unwrap().unwrap();
         assert_eq!(config.seconds, 7200);
@@ -689,11 +689,11 @@ mod invocation_tests {
             "18446744073709551616",
         ] {
             let mut settings = settings().to_vec();
-            settings.push(("CAP_STOP_BENCH_SECONDS", value));
+            settings.push(("SCOOPY_STOP_BENCH_SECONDS", value));
             assert!(request(&settings).is_err());
         }
         let mut settings = settings().to_vec();
-        settings.push(("CAP_STOP_BENCH_MIC", ""));
+        settings.push(("SCOOPY_STOP_BENCH_MIC", ""));
         assert!(request(&settings).is_err());
     }
 
@@ -724,15 +724,15 @@ mod invocation_tests {
     #[test]
     fn app_admission_rejects_normal_and_empty_private_identifiers() {
         for identifier in [
-            "so.cap.desktop",
-            "so.cap.desktop.dev",
-            "so.cap.desktop.stop-editor-benchmark.",
-            "other.so.cap.desktop.stop-editor-benchmark.test",
+            "me.systembug.scoopy",
+            "me.systembug.scoopy.dev",
+            "me.systembug.scoopy.stop-editor-benchmark.",
+            "other.me.systembug.scoopy.stop-editor-benchmark.test",
         ] {
             assert!(!admit_identifier(false, identifier).unwrap());
             assert!(admit_identifier(true, identifier).is_err());
         }
-        let private = "so.cap.desktop.stop-editor-benchmark.test";
+        let private = "me.systembug.scoopy.stop-editor-benchmark.test";
         assert!(!admit_identifier(false, private).unwrap());
         assert!(admit_identifier(true, private).unwrap());
     }
@@ -759,8 +759,8 @@ mod parity_capture_tests {
         assert_eq!(
             select_exact_fixture(
                 [
-                    (1, Some("Cap Stop benchmark fixture".into())),
-                    (2, Some("Cap Stop benchmark fixture extra".into()))
+                    (1, Some("Scoopy Stop benchmark fixture".into())),
+                    (2, Some("Scoopy Stop benchmark fixture extra".into()))
                 ]
                 .into_iter()
             )
@@ -770,8 +770,8 @@ mod parity_capture_tests {
         assert!(
             select_exact_fixture(
                 [
-                    (1, Some("Cap Stop benchmark fixture".into())),
-                    (2, Some("Cap Stop benchmark fixture".into()))
+                    (1, Some("Scoopy Stop benchmark fixture".into())),
+                    (2, Some("Scoopy Stop benchmark fixture".into()))
                 ]
                 .into_iter()
             )
@@ -781,7 +781,7 @@ mod parity_capture_tests {
 
     #[test]
     fn first_frames_are_bound_to_project_and_capture_closure() {
-        let project = PathBuf::from("owned.cap");
+        let project = PathBuf::from("owned.scoopy");
         let mut capture = FrameCapture {
             directory: PathBuf::new(),
             project: project.clone(),
@@ -789,7 +789,7 @@ mod parity_capture_tests {
             ordinary: None,
             closed: false,
         };
-        capture.record(CaptureKind::Preparing, Path::new("other.cap"), frame(1));
+        capture.record(CaptureKind::Preparing, Path::new("other.scoopy"), frame(1));
         assert!(capture.preparing.is_none());
         capture.record(CaptureKind::Preparing, &project, frame(2));
         capture.record(CaptureKind::Preparing, &project, frame(3));

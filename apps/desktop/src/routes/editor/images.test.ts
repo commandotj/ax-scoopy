@@ -36,7 +36,7 @@ describe("image import", () => {
 		const io = importIO();
 		io.decode.mockResolvedValue({ width: 400, height: 600 });
 		const image = await importImagePath(
-			"/project.cap",
+			"/project.scoopy",
 			"/original/photo.png",
 			io,
 		);
@@ -46,9 +46,9 @@ describe("image import", () => {
 			width: 400,
 			height: 600,
 		});
-		expect(io.mkdir).toHaveBeenCalledWith("/project.cap/content/images");
+		expect(io.mkdir).toHaveBeenCalledWith("/project.scoopy/content/images");
 		expect(io.write).toHaveBeenCalledWith(
-			"/project.cap/content/images/unique.png",
+			"/project.scoopy/content/images/unique.png",
 			png(600, 400),
 		);
 		expect(io.write).toHaveBeenCalledTimes(1);
@@ -57,7 +57,7 @@ describe("image import", () => {
 	it("rejects oversized dimensions before allocating a decoded image or copying", async () => {
 		const io = importIO(png(20_000, 20_000));
 		await expect(
-			importImagePath("/project.cap", "/original/large.png", io),
+			importImagePath("/project.scoopy", "/original/large.png", io),
 		).rejects.toThrow("16 megapixels");
 		expect(io.decode).not.toHaveBeenCalled();
 		expect(io.write).not.toHaveBeenCalled();
@@ -66,12 +66,12 @@ describe("image import", () => {
 	it("rejects unsupported or corrupt bytes and allows retrying the same source", async () => {
 		const io = importIO(new Uint8Array([1, 2, 3]));
 		await expect(
-			importImagePath("/project.cap", "/original/photo.png", io),
+			importImagePath("/project.scoopy", "/original/photo.png", io),
 		).rejects.toThrow("unsupported");
 		expect(io.write).not.toHaveBeenCalled();
 		io.read.mockResolvedValue(png(600, 400));
 		await expect(
-			importImagePath("/project.cap", "/original/photo.png", io),
+			importImagePath("/project.scoopy", "/original/photo.png", io),
 		).resolves.toMatchObject({ path: "content/images/unique.png" });
 	});
 
@@ -79,7 +79,7 @@ describe("image import", () => {
 		const io = importIO();
 		io.decode.mockRejectedValue(new Error("bad data"));
 		await expect(
-			importImagePath("/project.cap", "/original/photo.png", io),
+			importImagePath("/project.scoopy", "/original/photo.png", io),
 		).rejects.toThrow("could not be decoded");
 		expect(io.write).not.toHaveBeenCalled();
 	});
@@ -88,7 +88,7 @@ describe("image import", () => {
 		const io = importIO();
 		io.write.mockRejectedValue(new Error("disk full"));
 		await expect(
-			importImagePath("/project.cap", "/original/photo.png", io),
+			importImagePath("/project.scoopy", "/original/photo.png", io),
 		).rejects.toThrow("disk full");
 	});
 
@@ -147,8 +147,8 @@ describe("image import", () => {
 	});
 
 	it("rejects paths outside project image assets", () => {
-		expect(imageAssetPath("/project.cap", "content/images/a.png")).toBe(
-			"/project.cap/content/images/a.png",
+		expect(imageAssetPath("/project.scoopy", "content/images/a.png")).toBe(
+			"/project.scoopy/content/images/a.png",
 		);
 		for (const path of [
 			"/original/a.png",
@@ -156,7 +156,7 @@ describe("image import", () => {
 			"content/images/../a.png",
 			"content/images/sub/a.png",
 		])
-			expect(imageAssetPath("/project.cap", path)).toBeNull();
+			expect(imageAssetPath("/project.scoopy", path)).toBeNull();
 	});
 });
 

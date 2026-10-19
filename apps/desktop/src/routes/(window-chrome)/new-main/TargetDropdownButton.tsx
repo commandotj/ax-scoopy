@@ -2,7 +2,7 @@ import type { PolymorphicProps } from "@kobalte/core/polymorphic";
 import { Polymorphic } from "@kobalte/core/polymorphic";
 import { cx } from "cva";
 import { splitProps, type ValidComponent } from "solid-js";
-import IconCapChevronDown from "~icons/cap/chevron-down";
+import IconScoopyChevronDown from "~icons/scoopy/chevron-down";
 
 type TargetDropdownButtonProps<T extends ValidComponent> = PolymorphicProps<
 	T,
@@ -33,7 +33,7 @@ export default function TargetDropdownButton<
 				local.class,
 			)}
 		>
-			<IconCapChevronDown
+			<IconScoopyChevronDown
 				class={cx(
 					"size-4 text-gray-11 transition-transform duration-150",
 					local.expanded && "rotate-180 text-gray-12",

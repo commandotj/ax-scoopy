@@ -129,7 +129,7 @@ struct CachedFrame {
     _shared_handle: Option<HANDLE>,
     _y_handle: Option<HANDLE>,
     _uv_handle: Option<HANDLE>,
-    nv12_data: Option<Arc<cap_video_decode::NV12Data>>,
+    nv12_data: Option<Arc<scoopy_video_decode::NV12Data>>,
     width: u32,
     height: u32,
 }
@@ -190,7 +190,7 @@ impl MFDecoder {
         ready_tx: oneshot::Sender<Result<DecoderInitResult, String>>,
     ) -> Result<(), String> {
         std::thread::spawn(move || {
-            let mut decoder = match cap_video_decode::MediaFoundationDecoder::new(&path) {
+            let mut decoder = match scoopy_video_decode::MediaFoundationDecoder::new(&path) {
                 Err(e) => {
                     let _ = ready_tx.send(Err(e));
                     return;

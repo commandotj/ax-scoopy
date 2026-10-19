@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { action, useAction, useSubmission } from "@solidjs/router";
 import { getVersion } from "@tauri-apps/api/app";
 import { CheckMenuItem, Menu } from "@tauri-apps/api/menu";
@@ -116,7 +116,7 @@ function SelectDiagnosticItem<T extends string | number>(props: {
 			>
 				{props.options.find((option) => option.value === props.value)?.text ??
 					String(props.value)}
-				<IconCapChevronDown class="size-3.5 text-gray-10" />
+				<IconScoopyChevronDown class="size-3.5 text-gray-10" />
 			</button>
 		</SettingItem>
 	);
@@ -216,7 +216,7 @@ export default function FeedbackTab() {
 	};
 
 	return (
-		<div class="cap-settings-page flex flex-col w-full h-full custom-scroll">
+		<div class="scoopy-settings-page flex flex-col w-full h-full custom-scroll">
 			<SettingsPageContent>
 				<Section
 					title="Feedback"
@@ -269,7 +269,7 @@ export default function FeedbackTab() {
 					description="Have questions, want to share ideas, or just hang out? Join the Scoopy Discord community."
 				>
 					<Button
-						onClick={() => shell.open("https://cap.link/discord")}
+						onClick={() => shell.open("https://example.com/discord")}
 						size="md"
 						variant="gray"
 					>

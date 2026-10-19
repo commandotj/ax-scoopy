@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use cap_project::{AudioMeta, StudioRecordingMeta, VideoMeta};
+use scoopy_project::{AudioMeta, StudioRecordingMeta, VideoMeta};
 use serde::Serialize;
 use specta::Type;
 
@@ -20,7 +20,7 @@ impl Video {
     pub fn new(path: impl AsRef<Path>, start_time: f64) -> Result<Self, String> {
         let path = path.as_ref();
         if path.is_dir() {
-            let input = cap_video_decode::ffmpeg::open_fragmented_input(path)?;
+            let input = scoopy_video_decode::ffmpeg::open_fragmented_input(path)?;
             Self::from_input(input.input(), start_time)
         } else {
             let input = ffmpeg::format::input(path)
@@ -273,7 +273,7 @@ impl SegmentRecordings {
 #[cfg(test)]
 mod ordinary_media_access_tests {
     use super::ProjectRecordingsMeta;
-    use cap_project::StudioRecordingMeta;
+    use scoopy_project::StudioRecordingMeta;
     use std::path::PathBuf;
 
     #[test]

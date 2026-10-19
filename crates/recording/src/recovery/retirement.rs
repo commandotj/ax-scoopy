@@ -149,7 +149,7 @@ fn sync_directories(path: &Path) -> Result<(), RecoveryError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cap_enc_ffmpeg::RelocatableSource;
+    use scoopy_enc_ffmpeg::RelocatableSource;
     use std::{
         io::Read,
         sync::Arc,
@@ -158,7 +158,7 @@ mod tests {
 
     fn fixture() -> (tempfile::TempDir, PathBuf, PathBuf) {
         let temporary = tempfile::tempdir().unwrap();
-        let project = temporary.path().join("recording.cap");
+        let project = temporary.path().join("recording.scoopy");
         let workspace = project.join(".recovery-00000000-0000-4000-8000-000000000042");
         fs::create_dir_all(project.join("content/segments")).unwrap();
         super::super::create_private_recovery_dir(&workspace).unwrap();

@@ -1,7 +1,7 @@
 use crate::output_pipeline::{HealthSender, PipelineHealthEvent, emit_health};
-use cap_audio::estimate_input_latency;
-use cap_media_info::{AudioInfo, ffmpeg_sample_format_for};
-use cap_timestamp::Timestamp;
+use scoopy_audio::estimate_input_latency;
+use scoopy_media_info::{AudioInfo, ffmpeg_sample_format_for};
+use scoopy_timestamp::Timestamp;
 use cpal::{
     BufferSize, Device, InputCallbackInfo, SampleFormat, StreamError, SupportedStreamConfig,
     SupportedStreamConfigRange,
@@ -103,7 +103,7 @@ fn audio_follows_confirmed_route(
     callback_received: Instant,
     capture_delay: Option<Duration>,
     route_required: bool,
-    routed_at: Option<cap_timestamp::Timestamps>,
+    routed_at: Option<scoopy_timestamp::Timestamps>,
 ) -> bool {
     !route_required
         || capture_delay
@@ -1304,7 +1304,7 @@ impl MicrophoneFeed {
                 let mut pending_samples = VecDeque::new();
                 #[cfg(windows)]
                 let mut capture_clock = crate::sources::capture_clock::CaptureClock::new(
-                    cap_timestamp::Timestamps::now(),
+                    scoopy_timestamp::Timestamps::now(),
                 );
 
                 let latency_info = estimate_input_latency(
@@ -1343,7 +1343,7 @@ impl MicrophoneFeed {
                 #[cfg(target_os = "linux")]
                 let route_required = input_route.is_some();
                 #[cfg(target_os = "linux")]
-                let routed_at = Arc::new(std::sync::OnceLock::<cap_timestamp::Timestamps>::new());
+                let routed_at = Arc::new(std::sync::OnceLock::<scoopy_timestamp::Timestamps>::new());
 
                 if setup_cancel.is_cancelled() || ready_tx.is_canceled() {
                     return;
@@ -1502,7 +1502,7 @@ impl MicrophoneFeed {
                 }
 
                 #[cfg(target_os = "linux")]
-                let _ = routed_at.set(cap_timestamp::Timestamps::now());
+                let _ = routed_at.set(scoopy_timestamp::Timestamps::now());
                 #[cfg(target_os = "linux")]
                 if system_stream_cancel.is_cancelled() {
                     return;
@@ -3652,7 +3652,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn routed_audio_rejects_old_samples_delivered_after_the_route_changed() {
-        let routed_at = cap_timestamp::Timestamps::now();
+        let routed_at = scoopy_timestamp::Timestamps::now();
         let received = routed_at.instant() + Duration::from_millis(20);
         assert!(!audio_follows_confirmed_route(
             received,
@@ -3671,7 +3671,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn routed_audio_rejects_an_unknown_or_unrepresentable_capture_delay() {
-        let routed_at = cap_timestamp::Timestamps::now();
+        let routed_at = scoopy_timestamp::Timestamps::now();
         let received = routed_at.instant() + Duration::from_millis(20);
         assert!(!audio_follows_confirmed_route(
             received,
@@ -4979,7 +4979,7 @@ mod recording_subscription_tests {
         async fn setup(
             _: (),
             _: std::path::PathBuf,
-            _: Option<cap_media_info::VideoInfo>,
+            _: Option<scoopy_media_info::VideoInfo>,
             _: Option<AudioInfo>,
             _: Arc<AtomicBool>,
             _: &mut TaskPool,

@@ -1,5 +1,5 @@
 use anyhow::{Context, ensure};
-use cap_camera_effects::{BlurMode, BlurProcessor};
+use scoopy_camera_effects::{BlurMode, BlurProcessor};
 use std::time::{Duration, Instant};
 
 fn heap_mib() -> Option<[f64; 2]> {
@@ -198,7 +198,7 @@ async fn main() -> anyhow::Result<()> {
         started.elapsed().as_secs_f64(),
         heap_mib()
     );
-    if let Ok(seconds) = std::env::var("CAP_EFFECTS_SOAK_HOLD_SECONDS") {
+    if let Ok(seconds) = std::env::var("SCOOPY_EFFECTS_SOAK_HOLD_SECONDS") {
         std::thread::sleep(Duration::from_secs(seconds.parse()?));
     }
     Ok(())

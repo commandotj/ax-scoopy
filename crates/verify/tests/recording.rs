@@ -3,16 +3,16 @@
 //! A helper process shows the screen marker of a monotonically increasing
 //! frame index at a fixed rate and plays system-audio markers; synthetic
 //! camera and microphone feeds deliver their own markers with exact capture
-//! times. Cap's real Studio and Instant pipelines record it all through
+//! times. Scoopy's real Studio and Instant pipelines record it all through
 //! ScreenCaptureKit and VideoToolbox, stop and finalize exactly like the app
 //! and the CLI, and every output frame and audio marker is then checked
 //! against the host-clock truth logged by the sources.
 //!
-//! Capture mode (`CAP_VERIFY_CAPTURE`): `display` records the primary display
+//! Capture mode (`SCOOPY_VERIFY_CAPTURE`): `display` records the primary display
 //! with a fullscreen stimulus (CI); `window` records only the stimulus window
 //! (default on a developer Mac, so other screen activity cannot leak in);
 //! `off` skips. Without Screen Recording permission the cases skip unless
-//! `CAP_VERIFY_REQUIRE_CAPTURE=1`.
+//! `SCOOPY_VERIFY_REQUIRE_CAPTURE=1`.
 
 #![cfg(target_os = "macos")]
 
@@ -26,9 +26,9 @@ use std::{
     time::Duration,
 };
 
-use cap_media_info::{RawVideoFormat, VideoInfo};
-use cap_project::{InstantRecordingMeta, RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
-use cap_recording::{
+use scoopy_media_info::{RawVideoFormat, VideoInfo};
+use scoopy_project::{InstantRecordingMeta, RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
+use scoopy_recording::{
     NativeCameraFrame, RecordingDefaults, SendableShareableContent, StudioQuality,
     feeds::{
         Admission, camera::synthetic::SyntheticCamera, microphone::synthetic::SyntheticMicrophone,
@@ -38,8 +38,8 @@ use cap_recording::{
     screen_capture::ScreenCaptureTarget,
     studio_recording,
 };
-use cap_timestamp::{MachAbsoluteTimestamp, Timestamp};
-use cap_verify::{
+use scoopy_timestamp::{MachAbsoluteTimestamp, Timestamp};
+use scoopy_verify::{
     audio_code::{self, AudioSource, MarkerPlacement},
     fixture_avf, media,
     report::{self, Case, Tier},
@@ -58,7 +58,7 @@ const MIC_CHUNK: usize = 480;
 const CAMERA_FPS: u32 = 30;
 const CAMERA_SIZE: (usize, usize) = (640, 360);
 const AUDIO_PERIOD: f64 = 0.5;
-const WINDOW_TITLE: &str = "Cap Verify Stimulus";
+const WINDOW_TITLE: &str = "Scoopy Verify Stimulus";
 const SYSTEM_AUDIO_STARTUP: f64 = 1.0;
 const START_CUE_MS: u64 = 400;
 /// Frames a track may lose while its encoder starts (the capture pool is full
@@ -294,10 +294,10 @@ fn specs() -> Vec<Spec> {
     specs
 }
 
-/// `CAP_VERIFY_SOAK_SECS`: at most 1800 s, because the microphone's 12-bit
+/// `SCOOPY_VERIFY_SOAK_SECS`: at most 1800 s, because the microphone's 12-bit
 /// marker index (one marker every 0.5 s) runs out past 34 minutes.
 fn soak_specs() -> Vec<Spec> {
-    let Some(value) = std::env::var("CAP_VERIFY_SOAK_SECS")
+    let Some(value) = std::env::var("SCOOPY_VERIFY_SOAK_SECS")
         .ok()
         .filter(|v| !v.trim().is_empty())
     else {
@@ -309,7 +309,7 @@ fn soak_specs() -> Vec<Spec> {
         .ok()
         .filter(|s| s.is_finite() && *s > 0.0)
         .unwrap_or_else(|| {
-            panic!("CAP_VERIFY_SOAK_SECS={value:?} is not a positive number of seconds")
+            panic!("SCOOPY_VERIFY_SOAK_SECS={value:?} is not a positive number of seconds")
         });
     let seconds = seconds.min(1800.0);
     vec![
@@ -352,7 +352,7 @@ enum CaptureMode {
 }
 
 fn capture_mode() -> Option<CaptureMode> {
-    match std::env::var("CAP_VERIFY_CAPTURE").as_deref() {
+    match std::env::var("SCOOPY_VERIFY_CAPTURE").as_deref() {
         Ok("display") => Some(CaptureMode::Display),
         Ok("window") => Some(CaptureMode::Window),
         Ok("off") => None,
@@ -362,16 +362,16 @@ fn capture_mode() -> Option<CaptureMode> {
 }
 
 /// System audio is required on a developer Mac and, with
-/// `CAP_VERIFY_REQUIRE_SYSTEM_AUDIO=1`, anywhere.
+/// `SCOOPY_VERIFY_REQUIRE_SYSTEM_AUDIO=1`, anywhere.
 fn require_system_audio() -> bool {
-    match std::env::var("CAP_VERIFY_REQUIRE_SYSTEM_AUDIO").as_deref() {
+    match std::env::var("SCOOPY_VERIFY_REQUIRE_SYSTEM_AUDIO").as_deref() {
         Ok("1") | Ok("true") => true,
         Ok(_) => false,
         Err(_) => std::env::var_os("CI").is_none(),
     }
 }
 
-/// `CAP_VERIFY_STIMULUS_AUDIO=0` keeps the stimulus silent, so the system
+/// `SCOOPY_VERIFY_STIMULUS_AUDIO=0` keeps the stimulus silent, so the system
 /// audio track carries no markers and is not checked (unless system audio
 /// is required). On a host whose output device does reach
 /// ScreenCaptureKit but whose system-audio timing is not yet characterised
@@ -379,7 +379,7 @@ fn require_system_audio() -> bool {
 /// runners, where the output devices give ScreenCaptureKit only silence.
 fn stimulus_plays_system_audio() -> bool {
     !matches!(
-        std::env::var("CAP_VERIFY_STIMULUS_AUDIO").as_deref(),
+        std::env::var("SCOOPY_VERIFY_STIMULUS_AUDIO").as_deref(),
         Ok("0") | Ok("false")
     )
 }
@@ -429,7 +429,7 @@ fn init() {
 fn real_capture() {
     init();
     let Some(capture) = capture_mode() else {
-        eprintln!("[cap-verify] recording: CAP_VERIFY_CAPTURE=off, skipping");
+        eprintln!("[scoopy-verify] recording: SCOOPY_VERIFY_CAPTURE=off, skipping");
         return;
     };
     let rt = runtime();
@@ -437,15 +437,15 @@ fn real_capture() {
         Ok(content) => SendableShareableContent::from(content),
         Err(e) => {
             let message = format!("ScreenCaptureKit unavailable ({e:?}); grant Screen Recording");
-            if env_flag("CAP_VERIFY_REQUIRE_CAPTURE") {
+            if env_flag("SCOOPY_VERIFY_REQUIRE_CAPTURE") {
                 panic!("{message}");
             }
-            eprintln!("[cap-verify] recording: {message}, skipping");
+            eprintln!("[scoopy-verify] recording: {message}, skipping");
             return;
         }
     };
     let tier = report::tier();
-    let repeat: usize = std::env::var("CAP_VERIFY_REPEAT")
+    let repeat: usize = std::env::var("SCOOPY_VERIFY_REPEAT")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(1);
@@ -491,7 +491,7 @@ fn real_capture() {
             recorded.map(|_| ())
         });
         eprintln!(
-            "[cap-verify] warm-up recording {} in {:.1}s",
+            "[scoopy-verify] warm-up recording {} in {:.1}s",
             if result.is_ok() { "done" } else { "failed" },
             started.elapsed().as_secs_f64()
         );
@@ -503,10 +503,10 @@ fn real_capture() {
         }
         if !spec.mic && !require_system_audio() {
             // Recorded, so the summary shows it (and CI's
-            // CAP_VERIFY_REQUIRE_SUPPORTED fails it unless allowlisted).
+            // SCOOPY_VERIFY_REQUIRE_SUPPORTED fails it unless allowlisted).
             let mut case = Case::new(spec.id);
             case.unsupported(
-                "system audio is this case's only audio and this host does not play and require system audio (CAP_VERIFY_REQUIRE_SYSTEM_AUDIO unset)",
+                "system audio is this case's only audio and this host does not play and require system audio (SCOOPY_VERIFY_REQUIRE_SYSTEM_AUDIO unset)",
             );
             if let Err(e) = report::settle(case) {
                 failures.push(e);
@@ -631,7 +631,7 @@ fn wait_for(thread: u32, due: u64) -> (u64, i32) {
 /// Synthetic sources stand in for capture devices, which the system feeds
 /// from its own real-time threads and which never wait for the recorder:
 /// each runs on a dedicated thread under a time constraint of its own
-/// period (`cap_verify::sched`, shared with the stimulus) and hands over
+/// period (`scoopy_verify::sched`, shared with the stimulus) and hands over
 /// with `try_send`, exactly like the device callbacks. A feed that cannot
 /// keep up therefore shows as rejected hand-offs (a product failure), and a
 /// late hand-off can only come from the source thread itself.
@@ -645,7 +645,7 @@ fn start_feeds(
     let stop = Arc::new(AtomicBool::new(false));
     let started = Arc::new(AtomicU64::new(0));
     let mic = Arc::new(SyntheticMicrophone::spawn(
-        "Cap Verify Synthetic Microphone",
+        "Scoopy Verify Synthetic Microphone",
         MIC_RATE,
         1,
     ));
@@ -724,7 +724,7 @@ fn start_feeds(
             CAMERA_SIZE.1 as u32,
             CAMERA_FPS,
         );
-        let feed = Arc::new(SyntheticCamera::spawn("Cap Verify Synthetic Camera", info));
+        let feed = Arc::new(SyntheticCamera::spawn("Scoopy Verify Synthetic Camera", info));
         let task = {
             let feed = feed.clone();
             let stop = stop.clone();
@@ -838,20 +838,20 @@ struct SourceVerdict {
 /// A late hand-off is attributed by its debt chain: while a hand-off was
 /// due before the previous one returned, the time spent inside the feed's
 /// hand-offs is the feed's. When the lateness without that time stays within
-/// `SOURCE_STALL_SECS`, Cap delayed the source: a product failure, never
+/// `SOURCE_STALL_SECS`, Scoopy delayed the source: a product failure, never
 /// inconclusive. Otherwise the source thread itself woke or ran late.
 fn judge_source(trace: &SourceTrace, reference: u64, window: (f64, f64)) -> SourceVerdict {
     let class = ingress_class(trace.name);
     let mut verdict = SourceVerdict::default();
     let mut rejected: Vec<(u32, f64, Admission)> = Vec::new();
-    let mut cap_debt = 0.0f64;
+    let mut scoopy_debt = 0.0f64;
     let mut held = 0usize;
     let mut held_worst: Option<(f64, String)> = None;
     let mut previous: Option<&Handoff> = None;
     for h in &trace.handoffs {
         let busy = previous.is_some_and(|p| p.pushed > h.due);
-        cap_debt = match previous {
-            Some(p) if busy => cap_debt + host_secs(p.pushed, p.built),
+        scoopy_debt = match previous {
+            Some(p) if busy => scoopy_debt + host_secs(p.pushed, p.built),
             _ => 0.0,
         };
         let due = host_secs(h.due, reference);
@@ -868,17 +868,17 @@ fn judge_source(trace: &SourceTrace, reference: u64, window: (f64, f64)) -> Sour
             let late = host_secs(h.built, h.due);
             verdict.worst = verdict.worst.max(late);
             if late > SOURCE_STALL_SECS {
-                let cap = cap_debt.min(late);
+                let cap = scoopy_debt.min(late);
                 let asleep_from = previous.map_or(h.due, |p| p.pushed.max(h.due));
                 let breakdown = format!(
                     "woke {:.1} ms past its deadline at scheduler priority {}, built in {:.1} ms, \
-                     {:.1} ms inside Cap's hand-offs of earlier frames",
+                     {:.1} ms inside Scoopy's hand-offs of earlier frames",
                     host_secs(h.wake, asleep_from).max(0.0) * 1000.0,
                     h.pri,
                     host_secs(h.built, h.wake) * 1000.0,
                     cap * 1000.0
                 );
-                if late - cap <= SOURCE_STALL_SECS {
+                if late - scoopy <= SOURCE_STALL_SECS {
                     held += 1;
                     if held_worst.as_ref().is_none_or(|(worst, _)| late > *worst) {
                         held_worst = Some((
@@ -913,7 +913,7 @@ fn judge_source(trace: &SourceTrace, reference: u64, window: (f64, f64)) -> Sour
         verdict.product.push((
             class,
             format!(
-                "Cap's {} feed held the source: {held} hand-offs more than {:.0} ms late because of time spent inside the feed; worst {worst}",
+                "Scoopy's {} feed held the source: {held} hand-offs more than {:.0} ms late because of time spent inside the feed; worst {worst}",
                 trace.name,
                 SOURCE_STALL_SECS * 1000.0
             ),
@@ -927,7 +927,7 @@ fn judge_source(trace: &SourceTrace, reference: u64, window: (f64, f64)) -> Sour
         verdict.product.push((
             class,
             format!(
-                "Cap's {} feed rejected {} of {} hand-offs inside the recording ({full} mailbox full, {} closed); first {index} at {at:.2}s ({admission:?})",
+                "Scoopy's {} feed rejected {} of {} hand-offs inside the recording ({full} mailbox full, {} closed); first {index} at {at:.2}s ({admission:?})",
                 trace.name,
                 rejected.len(),
                 verdict.inside,
@@ -978,7 +978,7 @@ fn persist_sources(
     verdicts: &[SourceVerdict],
     fallback: &Path,
 ) -> PathBuf {
-    let dir = std::env::var_os("CAP_VERIFY_DUMP")
+    let dir = std::env::var_os("SCOOPY_VERIFY_DUMP")
         .map(|d| PathBuf::from(d).join("sources"))
         .unwrap_or_else(|| fallback.to_path_buf());
     let path = dir.join(format!("{stem}.json"));
@@ -1022,7 +1022,7 @@ fn persist_sources(
     let written =
         std::fs::create_dir_all(&dir).and_then(|()| std::fs::write(&path, value.to_string()));
     if let Err(e) = written {
-        eprintln!("[cap-verify] could not write {}: {e}", path.display());
+        eprintln!("[scoopy-verify] could not write {}: {e}", path.display());
     }
     path
 }
@@ -1119,20 +1119,20 @@ fn studio_builder(
 }
 
 fn stimulus_binary() -> PathBuf {
-    std::env::var_os("CAP_VERIFY_STIMULUS_BIN")
+    std::env::var_os("SCOOPY_VERIFY_STIMULUS_BIN")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
-            // Built by `cargo build -p cap-verify-stimulus` into the same
+            // Built by `cargo build -p scoopy-verify-stimulus` into the same
             // target directory as this test (target/<profile>/deps/..).
             let exe = std::env::current_exe().expect("test executable path");
             let path = exe
                 .parent()
                 .and_then(|deps| deps.parent())
                 .expect("target profile directory")
-                .join("cap-verify-stimulus");
+                .join("scoopy-verify-stimulus");
             assert!(
                 path.exists(),
-                "{} not found: build it first with `cargo build -p cap-verify-stimulus` (same profile), or set CAP_VERIFY_STIMULUS_BIN",
+                "{} not found: build it first with `cargo build -p scoopy-verify-stimulus` (same profile), or set SCOOPY_VERIFY_STIMULUS_BIN",
                 path.display()
             );
             path
@@ -1292,7 +1292,7 @@ async fn run_case(
             break (recorded, reference);
         };
         // Every unexpected failure lies inside a machine freeze: the
-        // recording cannot tell Cap from the host. Discard the analysis.
+        // recording cannot tell Scoopy from the host. Discard the analysis.
         case.rollback(before);
         let reason = format!("{reason}; evidence {}", sentinel_evidence.display());
         keep_stimulus_log(&attempt_scratch, &stem);
@@ -1307,7 +1307,7 @@ async fn run_case(
     if self_check_enabled() {
         self_check(&recorded, reference, case)?;
     }
-    if !case.failed() && !env_flag("CAP_VERIFY_KEEP") {
+    if !case.failed() && !env_flag("SCOOPY_VERIFY_KEEP") {
         let _ = std::fs::remove_dir_all(&scratch);
     } else {
         case.note(format!("artifacts kept at {}", scratch.display()));
@@ -1331,7 +1331,7 @@ const SOURCE_STALL_SECS: f64 = 0.1;
 ///   service stalled, so the pictures never reached any recorder;
 /// - a synthetic source's own thread handed over input more than
 ///   `SOURCE_STALL_SECS` late inside the recording (`judge_source`; time
-///   spent inside Cap's feed is a product failure instead).
+///   spent inside Scoopy's feed is a product failure instead).
 fn inconclusive(spec: &Spec, rec: &Recorded, verdicts: &[SourceVerdict]) -> Option<String> {
     if let Some(reason) = starved(spec, &rec.stimulus) {
         return Some(reason);
@@ -1449,7 +1449,7 @@ fn frozen_failures(
 
 /// Keeps every attempt's sentinel log with the source evidence.
 fn keep_sentinel_log(attempt_scratch: &Path, stem: &str) -> PathBuf {
-    let Some(dir) = std::env::var_os("CAP_VERIFY_DUMP") else {
+    let Some(dir) = std::env::var_os("SCOOPY_VERIFY_DUMP") else {
         return attempt_scratch.join(SENTINEL_FILE);
     };
     let dir = PathBuf::from(dir).join("sources");
@@ -1477,7 +1477,7 @@ fn implicate(case: &Case, times: impl IntoIterator<Item = f64>) {
 /// observer) next to the source evidence: the case's scratch directory is
 /// removed when a retry passes.
 fn keep_stimulus_log(attempt_scratch: &Path, stem: &str) {
-    if let Some(dir) = std::env::var_os("CAP_VERIFY_DUMP") {
+    if let Some(dir) = std::env::var_os("SCOOPY_VERIFY_DUMP") {
         let dir = PathBuf::from(dir).join("sources");
         let _ = std::fs::create_dir_all(&dir);
         let _ = std::fs::copy(
@@ -1765,8 +1765,8 @@ fn source_lateness_is_attributed_to_the_source_or_to_cap() {
             .stalled
             .is_none()
     );
-    // Cap's feed held the source for 200 ms inside hand-off 90: the later
-    // hand-offs are late because of Cap, never inconclusive.
+    // Scoopy's feed held the source for 200 ms inside hand-off 90: the later
+    // hand-offs are late because of Scoopy, never inconclusive.
     let blocked = test_trace(
         "camera",
         simulated_handoffs(
@@ -1869,7 +1869,7 @@ fn sentinel_freezes_excuse_only_failures_localized_inside_them() {
     // Expected classes (sync-screen-mic here) never need an excuse.
     let clock = ("sync-screen-mic", None);
     assert!(excuse(&[lost.clone(), clock.clone()], &freezes).is_some());
-    // Without a freeze, or outside it, a loss stays a Cap failure.
+    // Without a freeze, or outside it, a loss stays a Scoopy failure.
     assert!(excuse(&[lost.clone()], &[]).is_none());
     assert!(excuse(&[("missing", Some(vec![10.0, 10.6]))], &freezes).is_none());
     assert!(excuse(&[("missing", Some(vec![9.7]))], &freezes).is_none());
@@ -1964,9 +1964,9 @@ fn unscripted_stimulus_stalls_remain_failures() {
 }
 
 fn scratch_root() -> PathBuf {
-    std::env::var_os("CAP_VERIFY_SCRATCH")
+    std::env::var_os("SCOOPY_VERIFY_SCRATCH")
         .map(PathBuf::from)
-        .unwrap_or_else(|| std::env::temp_dir().join("cap-verify-recording"))
+        .unwrap_or_else(|| std::env::temp_dir().join("scoopy-verify-recording"))
 }
 
 async fn record(
@@ -2023,9 +2023,9 @@ async fn record(
     // starts.
     tokio::time::sleep(Duration::from_millis(300)).await;
 
-    let project = scratch.join("recording.cap");
+    let project = scratch.join("recording.scoopy");
     let defaults = RecordingDefaults::default();
-    let gate = spec.gated.then(cap_recording::RecordingStartGate::new);
+    let gate = spec.gated.then(scoopy_recording::RecordingStartGate::new);
     let (handle, max_fps) = match spec.mode {
         Mode::Studio { fragmented, .. } => {
             let (builder, max_fps) = studio_builder(
@@ -2067,7 +2067,7 @@ async fn record(
             };
             (
                 Handle::Instant(builder.build(Some(shareable.clone())).await?),
-                cap_recording::DEFAULT_INSTANT_MODE_FPS,
+                scoopy_recording::DEFAULT_INSTANT_MODE_FPS,
             )
         }
         Mode::StudioCrashed => {
@@ -2104,7 +2104,7 @@ async fn record(
     tokio::time::sleep(Duration::from_millis(400)).await;
     let stopped_host = host_now();
     let crashed = if spec.mode == Mode::StudioCrashed {
-        let snapshot = scratch.join("crash-snapshot.cap");
+        let snapshot = scratch.join("crash-snapshot.scoopy");
         let snapshot_started = host_now();
         let status = std::process::Command::new("cp")
             .arg("-cR")
@@ -2176,7 +2176,7 @@ async fn record(
     waited?;
     let (project_path, loss_budget) = match crashed {
         Some(snapshot) => {
-            let recovery_copy = scratch.join("crashed.cap");
+            let recovery_copy = scratch.join("crashed.scoopy");
             let status = std::process::Command::new("cp")
                 .arg("-cR")
                 .arg(&snapshot)
@@ -2251,9 +2251,9 @@ async fn finalize_instant(
         other => other.clone(),
     };
     RecordingMeta {
-        platform: Some(cap_project::Platform::default()),
+        platform: Some(scoopy_project::Platform::default()),
         project_path: project.clone(),
-        pretty_name: "Cap Verify".to_string(),
+        pretty_name: "Scoopy Verify".to_string(),
         sharing: None,
         inner: RecordingMetaInner::Instant(meta),
         upload: None,
@@ -2307,7 +2307,7 @@ fn layout(project: &Path, case: &mut Case) -> anyhow::Result<Layout> {
             };
             if !matches!(
                 studio.status(),
-                cap_project::StudioRecordingStatus::Complete
+                scoopy_project::StudioRecordingStatus::Complete
             ) {
                 case.problem(
                     "finalize",
@@ -2598,7 +2598,7 @@ impl Injection {
 }
 
 fn self_check_enabled() -> bool {
-    match std::env::var("CAP_VERIFY_SELF_CHECK").as_deref() {
+    match std::env::var("SCOOPY_VERIFY_SELF_CHECK").as_deref() {
         Ok("0") | Ok("false") => false,
         Ok(_) => true,
         Err(_) => std::env::var_os("CI").is_some(),
@@ -2993,7 +2993,7 @@ fn check_video(case: &mut Case, track: &Track, check: VideoCheck) -> anyhow::Res
             skipped
         ));
     }
-    if let Some(dir) = std::env::var_os("CAP_VERIFY_DUMP").filter(|_| INJECTION.get().is_none()) {
+    if let Some(dir) = std::env::var_os("SCOOPY_VERIFY_DUMP").filter(|_| INJECTION.get().is_none()) {
         let rows: Vec<String> = indices
             .iter()
             .map(|(pts, i)| {
@@ -3222,7 +3222,7 @@ fn check_audio(
     if order.windows(2).any(|w| w[1].0 < w[0].0) {
         case.problem("timestamps", format!("{name}: markers out of order"));
     }
-    if let Some(dir) = std::env::var_os("CAP_VERIFY_DUMP").filter(|_| INJECTION.get().is_none()) {
+    if let Some(dir) = std::env::var_os("SCOOPY_VERIFY_DUMP").filter(|_| INJECTION.get().is_none()) {
         let rows: Vec<String> = located
             .iter()
             .map(|m| {
@@ -3395,7 +3395,7 @@ fn analyze(rec: &Recorded, reference: u64, case: &mut Case) -> anyhow::Result<()
         }
     }
     // ScreenCaptureKit starts delivering system audio some time after the
-    // stream starts (measured 0.2-0.6 s); Cap fills that span with silence.
+    // stream starts (measured 0.2-0.6 s); Scoopy fills that span with silence.
     let system_window = (rec.started + SYSTEM_AUDIO_STARTUP, window.1);
     let mic_window = (window.0 + rec.mic_delay, window.1);
     let system_truth: Truth = rec

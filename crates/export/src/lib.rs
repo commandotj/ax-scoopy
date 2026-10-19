@@ -5,12 +5,12 @@ pub mod mp4;
 pub mod preview;
 pub mod settings;
 
-use cap_editor::{ExportAudioPreparation, ExportAudioRenderer, SegmentMedia};
-use cap_project::{
+use scoopy_editor::{ExportAudioPreparation, ExportAudioRenderer, SegmentMedia};
+use scoopy_project::{
     BackgroundSource, ProjectConfiguration, RecordingMeta, StudioRecordingMeta,
     TimelineConfiguration, TimelineSegment,
 };
-use cap_rendering::{ProjectRecordingsMeta, RenderVideoConstants};
+use scoopy_rendering::{ProjectRecordingsMeta, RenderVideoConstants};
 use std::{
     path::PathBuf,
     sync::{
@@ -28,10 +28,10 @@ pub enum ExportError {
     IO(#[from] std::io::Error),
 
     #[error("Rendering: {0}")]
-    Rendering(#[from] cap_rendering::RenderingError),
+    Rendering(#[from] scoopy_rendering::RenderingError),
 
     #[error("Media/{0}")]
-    Media(#[from] cap_media::MediaError),
+    Media(#[from] scoopy_media::MediaError),
 
     #[error("Join: {0}")]
     Join(#[from] tokio::task::JoinError),
@@ -54,7 +54,7 @@ pub enum ExporterBuildError {
     #[error("Failed to load recordings meta: {0}")]
     RecordingsMeta(String),
     #[error("Failed to setup renderer: {0}")]
-    RendererSetup(#[source] cap_rendering::RenderingError),
+    RendererSetup(#[source] scoopy_rendering::RenderingError),
     #[error("Failed to load media: {0}")]
     MediaLoad(String),
     #[error("IO error at path '{0}': {1}")]
@@ -128,8 +128,8 @@ impl ExporterBuilder {
 
         synthesize_default_timeline(&mut project_config, &recordings);
 
-        cap_project::synchronize_legacy_keyboard(&recording_meta, &mut project_config);
-        cap_project::synchronize_captions(
+        scoopy_project::synchronize_legacy_keyboard(&recording_meta, &mut project_config);
+        scoopy_project::synchronize_captions(
             &mut project_config,
             &recordings
                 .segments
@@ -170,7 +170,7 @@ impl ExporterBuilder {
             let preparation = tokio::task::spawn_blocking(move || {
                 ExportAudioPreparation::open(&recording, &studio, cancellation, abort)
             });
-            let segments = cap_editor::create_segments_without_audio(
+            let segments = scoopy_editor::create_segments_without_audio(
                 &recording_meta,
                 studio_meta,
                 self.force_ffmpeg_decoder,
@@ -180,7 +180,7 @@ impl ExporterBuilder {
                 finish_audio_preparation(segments, preparation, &control.stop).await?;
             (segments, Some(audio))
         } else {
-            let segments = cap_editor::create_segments(
+            let segments = scoopy_editor::create_segments(
                 &recording_meta,
                 studio_meta,
                 self.force_ffmpeg_decoder,
@@ -226,7 +226,7 @@ impl ExporterBuilder {
 async fn finish_audio_preparation(
     segments: Result<Vec<SegmentMedia>, String>,
     preparation: tokio::task::JoinHandle<
-        Result<ExportAudioPreparation, cap_editor::ExportAudioError>,
+        Result<ExportAudioPreparation, scoopy_editor::ExportAudioError>,
     >,
     abort: &AtomicBool,
 ) -> Result<(Vec<SegmentMedia>, ExportAudioRenderer), ExporterBuildError> {
@@ -243,10 +243,10 @@ async fn finish_audio_preparation(
     Ok((segments, audio))
 }
 
-/// A freshly recorded .cap has no timeline — only the editor creates one. Without it the
+/// A freshly recorded .scoopy has no timeline — only the editor creates one. Without it the
 /// render loop's get_segment_time() returns None on frame 0 and produces zero frames (an empty
 /// export). Synthesize the same default timeline the editor would (one segment per recording,
-/// spanning its full duration) so raw recordings — e.g. from `cap export` — render correctly.
+/// spanning its full duration) so raw recordings — e.g. from `scoopy export` — render correctly.
 /// Desktop exports already carry a timeline by export time, so this only fires for un-edited
 /// projects and changes nothing for them.
 pub fn synthesize_default_timeline(
@@ -314,7 +314,7 @@ fn reads_recordings_forward(project_config: &ProjectConfiguration) -> bool {
 }
 
 pub fn make_cursor_only_project(mut project_config: ProjectConfiguration) -> ProjectConfiguration {
-    fn clear_background_pixels(background: &mut cap_project::BackgroundConfiguration) {
+    fn clear_background_pixels(background: &mut scoopy_project::BackgroundConfiguration) {
         background.source = BackgroundSource::Color {
             value: [0, 0, 0],
             alpha: 0,
@@ -342,7 +342,7 @@ pub fn make_cursor_only_project(mut project_config: ProjectConfiguration) -> Pro
         // the cursor with the display, so both need invisible placeholders.
         timeline
             .text_segments
-            .retain(|text| text.layout != cap_project::TextLayout::Overlay);
+            .retain(|text| text.layout != scoopy_project::TextLayout::Overlay);
         for text in &mut timeline.text_segments {
             text.content.clear();
         }
@@ -410,13 +410,13 @@ pub struct ExporterBase {
     streaming_audio: Option<ExportAudioRenderer>,
     streaming_output: Option<mp4::TemporaryMp4Output>,
     audio_cancellation: Option<ExportAudioCancellation>,
-    sample_windows: Option<cap_rendering::FrameWindows>,
+    sample_windows: Option<scoopy_rendering::FrameWindows>,
     sample_timing: Option<Arc<estimates::SampleTiming>>,
 }
 
 impl ExporterBase {
     pub fn total_frames(&self, fps: u32) -> u32 {
-        let duration = cap_rendering::get_duration(
+        let duration = scoopy_rendering::get_duration(
             &self.recordings,
             &self.recording_meta,
             &self.studio_meta,
@@ -439,7 +439,7 @@ impl ExporterBase {
 #[cfg(test)]
 mod cursor_only_tests {
     use super::*;
-    use cap_project::TextLayout;
+    use scoopy_project::TextLayout;
 
     #[test]
     fn cursor_only_preserves_style_geometry_without_image_or_background_pixels() {
@@ -463,7 +463,7 @@ mod cursor_only_tests {
         assert_eq!(styled.background.padding, 15.0);
         assert_eq!(
             styled.background.crop.as_ref().expect("crop").size,
-            cap_project::XY::new(800, 600)
+            scoopy_project::XY::new(800, 600)
         );
         assert!(matches!(
             styled.background.source,
@@ -515,7 +515,7 @@ mod cursor_only_tests {
             );
             assert!(matches!(
                 timeline.scene_segments[0].mode,
-                cap_project::SceneMode::SplitScreen
+                scoopy_project::SceneMode::SplitScreen
             ));
         }
     }
@@ -543,7 +543,7 @@ mod cancellation_tests {
             }
             assert!(abort.load(Ordering::Relaxed));
             worker_completed.store(true, Ordering::Release);
-            Err(cap_editor::ExportAudioError::Sink(
+            Err(scoopy_editor::ExportAudioError::Sink(
                 "audio preparation error".into(),
             ))
         });
@@ -567,7 +567,7 @@ mod cancellation_tests {
         for panic in [false, true] {
             let preparation = tokio::task::spawn_blocking(move || {
                 assert!(!panic, "preparation panic");
-                Err(cap_editor::ExportAudioError::Sink(
+                Err(scoopy_editor::ExportAudioError::Sink(
                     "preparation error".into(),
                 ))
             });
@@ -601,7 +601,7 @@ mod cancellation_tests {
                     std::thread::yield_now();
                 }
                 finished.send(abort.load(Ordering::Relaxed)).unwrap();
-                Err(cap_editor::ExportAudioError::Cancelled)
+                Err(scoopy_editor::ExportAudioError::Cancelled)
             });
             finish_audio_preparation(Ok(Vec::new()), preparation, &control.stop)
                 .await

@@ -11,26 +11,26 @@ use crate::{
 pub const SCRIPT: &str = include_str!("picker-benchmark.js");
 
 pub fn enabled() -> bool {
-    std::env::var_os("CAP_PICKER_BENCHMARK_OUTPUT").is_some()
+    std::env::var_os("SCOOPY_PICKER_BENCHMARK_OUTPUT").is_some()
 }
 
 pub fn run(app: tauri::AppHandle) {
-    let Some(output) = std::env::var_os("CAP_PICKER_BENCHMARK_OUTPUT") else {
+    let Some(output) = std::env::var_os("SCOOPY_PICKER_BENCHMARK_OUTPUT") else {
         return;
     };
     tokio::spawn(async move {
-        let delay = std::env::var("CAP_PICKER_BENCHMARK_DELAY_MS")
+        let delay = std::env::var("SCOOPY_PICKER_BENCHMARK_DELAY_MS")
             .ok()
             .and_then(|delay| delay.parse().ok())
             .unwrap_or(2000);
         tokio::time::sleep(Duration::from_millis(delay)).await;
         let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
-        let listener = app.listen_any("cap-picker-benchmark-ready", move |event| {
+        let listener = app.listen_any("scoopy-picker-benchmark-ready", move |event| {
             let _ = sender.send(event.payload().to_owned());
         });
         // Six alternating Display/Window cycles by default; the overlay
         // soak (see CAP-CHANGES in vendor/tauri-nspanel) runs hundreds.
-        let sample_count = std::env::var("CAP_PICKER_BENCHMARK_SAMPLES")
+        let sample_count = std::env::var("SCOOPY_PICKER_BENCHMARK_SAMPLES")
             .ok()
             .and_then(|count| count.parse::<usize>().ok())
             .filter(|count| *count > 0)
@@ -73,12 +73,12 @@ pub fn run(app: tauri::AppHandle) {
         }
 
         // Optional Escape phase: open the Display picker and confirm it is
-        // dismissed through the Escape path. `CAP_PICKER_BENCHMARK_ESCAPE=direct`
+        // dismissed through the Escape path. `SCOOPY_PICKER_BENCHMARK_ESCAPE=direct`
         // calls the same dismissal the global-shortcut handler runs;
-        // `CAP_PICKER_BENCHMARK_ESCAPE=wait:<ms>` instead holds the picker open
+        // `SCOOPY_PICKER_BENCHMARK_ESCAPE=wait:<ms>` instead holds the picker open
         // for that long while an external driver sends a real Escape keypress,
         // and records whether the picker session ended on its own.
-        if let Ok(mode) = std::env::var("CAP_PICKER_BENCHMARK_ESCAPE") {
+        if let Ok(mode) = std::env::var("SCOOPY_PICKER_BENCHMARK_ESCAPE") {
             let hold_ms = mode
                 .strip_prefix("wait:")
                 .and_then(|value| value.parse::<u64>().ok());
@@ -151,7 +151,7 @@ pub fn run(app: tauri::AppHandle) {
         // (the paths that free a converted window for real), so an ownership
         // bug in the vendored tauri-nspanel surfaces here instead of in a
         // user's recording session. Results land next to the picker output.
-        let camera_cycles = std::env::var("CAP_PICKER_BENCHMARK_CAMERA_CYCLES")
+        let camera_cycles = std::env::var("SCOOPY_PICKER_BENCHMARK_CAMERA_CYCLES")
             .ok()
             .and_then(|count| count.parse::<usize>().ok())
             .unwrap_or(0);
@@ -163,7 +163,7 @@ pub fn run(app: tauri::AppHandle) {
                 let close_ms = started.elapsed().as_secs_f64() * 1000.0;
                 tokio::time::sleep(Duration::from_millis(400)).await;
                 let started = Instant::now();
-                let shown = (crate::windows::ShowCapWindow::Camera { centered: true })
+                let shown = (crate::windows::ShowScoopyWindow::Camera { centered: true })
                     .show(&app)
                     .await
                     .is_ok();

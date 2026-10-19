@@ -20,10 +20,10 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use cap_enc_ffmpeg::remux::{
+use scoopy_enc_ffmpeg::remux::{
     get_media_duration, get_video_fps, probe_video_pts_ladder, rescale_video_timestamps,
 };
-use cap_project::{ProjectConfiguration, RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
+use scoopy_project::{ProjectConfiguration, RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
 use tracing::{info, warn};
 
 /// Runs every track repair for a studio recording, display first so the
@@ -761,14 +761,14 @@ mod tests {
         );
     }
 
-    /// Manual harness for healing a real .cap bundle:
-    /// `CAP_HEAL_PROJECT_PATH=/path/to/recording.cap cargo test -p cap-recording \
+    /// Manual harness for healing a real .scoopy bundle:
+    /// `SCOOPY_HEAL_PROJECT_PATH=/path/to/recording.scoopy cargo test -p scoopy-recording \
     ///   --lib track_heal::tests::heal_project_from_env -- --ignored --nocapture`
     #[test]
     #[ignore]
     fn heal_project_from_env() {
         let path =
-            std::env::var("CAP_HEAL_PROJECT_PATH").expect("CAP_HEAL_PROJECT_PATH must be set");
+            std::env::var("SCOOPY_HEAL_PROJECT_PATH").expect("SCOOPY_HEAL_PROJECT_PATH must be set");
         let healed = heal_stretched_tracks(Path::new(&path)).unwrap();
         println!("healed: {healed}");
     }
@@ -966,7 +966,7 @@ mod tests {
             "2026-07-06T18:19:14.754110Z  INFO recording: start\n\
              not a timestamped line\n\
              2026-07-06T18:19:58.715980Z  INFO snapshot\n\
-             2026-07-06T18:20:47.563260Z  INFO cap_desktop_lib::recording: done\n",
+             2026-07-06T18:20:47.563260Z  INFO scoopy_desktop_lib::recording: done\n",
         )
         .unwrap();
         let span = recording_log_wall_span_secs(dir.path()).unwrap();
@@ -1037,7 +1037,7 @@ mod tests {
 
     #[test]
     fn config_rescale_scales_timeline_and_overlays_exactly() {
-        use cap_project::{
+        use scoopy_project::{
             ProjectConfiguration, TimelineConfiguration, TimelineSegment, ZoomMode, ZoomSegment,
         };
 
@@ -1094,7 +1094,7 @@ mod tests {
 
     #[test]
     fn config_rescale_scales_camera3d_segments_exactly() {
-        use cap_project::{
+        use scoopy_project::{
             Camera3DKeyframe, Camera3DSegment, Camera3DTracks, ProjectConfiguration,
             TimelineConfiguration, TimelineSegment,
         };
@@ -1172,7 +1172,7 @@ mod tests {
 
     #[test]
     fn config_rescale_leaves_overlays_alone_with_unhealed_clips() {
-        use cap_project::{
+        use scoopy_project::{
             ProjectConfiguration, TimelineConfiguration, TimelineSegment, ZoomMode, ZoomSegment,
         };
 

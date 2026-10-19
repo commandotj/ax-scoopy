@@ -5,7 +5,7 @@ import {
 	RecordingSpoolBackpressureError,
 	type RecordingSpoolSessionRecord,
 	recoverOrphanedRecordingSpools,
-} from "@cap/recorder-core/recording-spool";
+} from "@scoopy/recorder-core/recording-spool";
 import { describe, expect, it } from "vitest";
 
 class MemoryRecordingSpoolBackend implements RecordingSpoolBackend {

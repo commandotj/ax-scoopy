@@ -133,7 +133,7 @@ export default function CameraSelect(props: {
 				class={cx(DEVICE_ROW_CLASS, "KSelect")}
 				aria-haspopup="menu"
 			>
-				<IconCapCamera class={DEVICE_ROW_ICON_CLASS} />
+				<IconScoopyCamera class={DEVICE_ROW_ICON_CLASS} />
 				<p
 					class={cx(DEVICE_ROW_LABEL_CLASS, notConnected() && "text-gray-10")}
 					title={notConnected() ? "Not connected" : undefined}
@@ -307,7 +307,7 @@ export function CameraSelectBase(props: {
 				}}
 				class={props.class}
 			>
-				<IconCapCamera class={props.iconClass} />
+				<IconScoopyCamera class={props.iconClass} />
 				<p class="flex-1 text-sm text-left truncate">
 					{props.value?.display_name ?? NO_CAMERA}
 				</p>

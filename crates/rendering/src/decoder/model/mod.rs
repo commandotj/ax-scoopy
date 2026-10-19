@@ -2,7 +2,7 @@
 //!
 //! The real decoders (AVAssetReader pool on macOS, FFmpeg everywhere) are
 //! spawned through `spawn_decoder` on scripted media
-//! (`cap_video_decode::scripted`): sample lists with exact presentation times
+//! (`scoopy_video_decode::scripted`): sample lists with exact presentation times
 //! and sync flags. Seeded request sequences (export and playback order, double
 //! requests at 60 fps over 30 fps grids, timelines with cuts, speed changes
 //! and backward jumps, transitions, random seeks, keyframe seeks, scrubs,
@@ -35,19 +35,19 @@
 //! `expectations.toml`.
 //!
 //! Environment:
-//! - `CAP_DECODER_MODEL_SCALE`: multiplies every family's seed count.
-//! - `CAP_DECODER_MODEL_FILTER`: only run cases whose name contains this.
-//! - `CAP_DECODER_MODEL_CASE` + `CAP_DECODER_MODEL_SEED_INDEX`: replay one
+//! - `SCOOPY_DECODER_MODEL_SCALE`: multiplies every family's seed count.
+//! - `SCOOPY_DECODER_MODEL_FILTER`: only run cases whose name contains this.
+//! - `SCOOPY_DECODER_MODEL_CASE` + `SCOOPY_DECODER_MODEL_SEED_INDEX`: replay one
 //!   sequence and print every request.
-//! - `CAP_DECODER_MODEL_SHRINK`: `none`, `new` (default, unexpected failures
+//! - `SCOOPY_DECODER_MODEL_SHRINK`: `none`, `new` (default, unexpected failures
 //!   only) or `all`.
-//! - `CAP_DECODER_MODEL_THREADS`: worker threads (at most 3 for
+//! - `SCOOPY_DECODER_MODEL_THREADS`: worker threads (at most 3 for
 //!   AVAssetReader, 4 for FFmpeg).
-//! - `CAP_DECODER_MODEL_REPORT=<prefix>`: also write the report to
-//!   `<prefix>.<decoder>.txt`; `CAP_DECODER_MODEL_SEEDS_OUT=<prefix>` writes
+//! - `SCOOPY_DECODER_MODEL_REPORT=<prefix>`: also write the report to
+//!   `<prefix>.<decoder>.txt`; `SCOOPY_DECODER_MODEL_SEEDS_OUT=<prefix>` writes
 //!   every seed's outcome to `<prefix>.<decoder>.tsv`.
-//! - `CAP_VERIFY_REPORT_DIR=<dir>`: write one JSON record per case for the
-//!   CI summary and for `cap-verify-expect bless` (see
+//! - `SCOOPY_VERIFY_REPORT_DIR=<dir>`: write one JSON record per case for the
+//!   CI summary and for `scoopy-verify-expect bless` (see
 //!   `crates/verify-expect`), which rewrites `expectations.toml` to match.
 //!
 //! Wall-clock inputs of the decoders (the AVAssetReader idle timeout of
@@ -67,7 +67,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use cap_video_decode::scripted::{self, Script};
+use scoopy_video_decode::scripted::{self, Script};
 
 use generate::{PatternKind, Rng, SourceKind};
 
@@ -671,12 +671,12 @@ const EXPECTATIONS: &str = "crates/rendering/src/decoder/model/expectations.toml
 fn write_records(
     decoder: Decoder,
     results: &[FamilyResult],
-    ran: &cap_verify_expect::Ran,
-    verdict: &cap_verify_expect::Verdict,
+    ran: &scoopy_verify_expect::Ran,
+    verdict: &scoopy_verify_expect::Verdict,
     platform: &str,
 ) {
-    use cap_verify_expect::{Outcome, Record};
-    if cap_verify_expect::report_dir().is_none() {
+    use scoopy_verify_expect::{Outcome, Record};
+    if scoopy_verify_expect::report_dir().is_none() {
         return;
     }
     let records: Vec<(Record, serde_json::Value)> = results
@@ -697,12 +697,12 @@ fn write_records(
                     )
                 });
             }
-            let new: Vec<&cap_verify_expect::Unexpected> = verdict
+            let new: Vec<&scoopy_verify_expect::Unexpected> = verdict
                 .unexpected
                 .iter()
                 .filter(|found| found.case == result.name)
                 .collect();
-            let fixed: Vec<&cap_verify_expect::Fixed> = verdict
+            let fixed: Vec<&scoopy_verify_expect::Fixed> = verdict
                 .fixed
                 .iter()
                 .filter(|fixed| fixed.case == result.name)
@@ -722,7 +722,7 @@ fn write_records(
                     format!(
                         "{} on seeds {}: {}",
                         found.class,
-                        cap_verify_expect::format_seeds(&found.seeds),
+                        scoopy_verify_expect::format_seeds(&found.seeds),
                         problems.get(&found.class).map_or("", String::as_str)
                     )
                 })
@@ -757,11 +757,11 @@ fn write_records(
             };
             let repro = match replay_seed {
                 Some(seed) => format!(
-                    "CAP_DECODER_MODEL_CASE={} CAP_DECODER_MODEL_SEED_INDEX={seed} cargo test -p cap-rendering --lib decoder::model::{test} -- --nocapture",
+                    "SCOOPY_DECODER_MODEL_CASE={} SCOOPY_DECODER_MODEL_SEED_INDEX={seed} cargo test -p scoopy-rendering --lib decoder::model::{test} -- --nocapture",
                     result.name
                 ),
                 None => format!(
-                    "CAP_DECODER_MODEL_FILTER={} cargo test -p cap-rendering --lib decoder::model::{test} -- --nocapture",
+                    "SCOOPY_DECODER_MODEL_FILTER={} cargo test -p scoopy-rendering --lib decoder::model::{test} -- --nocapture",
                     result.name
                 ),
             };
@@ -770,7 +770,7 @@ fn write_records(
                 expectations: EXPECTATIONS.into(),
                 case: result.name.clone(),
                 platform: platform.into(),
-                tier: std::env::var("CAP_VERIFY_TIER").unwrap_or_else(|_| "fast".into()),
+                tier: std::env::var("SCOOPY_VERIFY_TIER").unwrap_or_else(|_| "fast".into()),
                 outcome,
                 failures,
                 seeds_ran: ran.get(&result.name).cloned().flatten(),
@@ -786,21 +786,21 @@ fn write_records(
             (record, serde_json::Value::Null)
         })
         .collect();
-    cap_verify_expect::write_records(&records);
+    scoopy_verify_expect::write_records(&records);
 }
 
 fn run_suite(decoder: Decoder) {
-    let xfails = cap_verify_expect::parse(include_str!("expectations.toml"))
+    let xfails = scoopy_verify_expect::parse(include_str!("expectations.toml"))
         .unwrap_or_else(|e| panic!("{EXPECTATIONS}: {e}"));
-    let filter = std::env::var("CAP_DECODER_MODEL_FILTER").ok();
-    let scale: f64 = std::env::var("CAP_DECODER_MODEL_SCALE")
+    let filter = std::env::var("SCOOPY_DECODER_MODEL_FILTER").ok();
+    let scale: f64 = std::env::var("SCOOPY_DECODER_MODEL_SCALE")
         .ok()
         .and_then(|value| value.parse().ok())
         .unwrap_or(1.0);
 
     if let (Ok(name), Some(seed_index)) = (
-        std::env::var("CAP_DECODER_MODEL_CASE"),
-        env_usize("CAP_DECODER_MODEL_SEED_INDEX"),
+        std::env::var("SCOOPY_DECODER_MODEL_CASE"),
+        env_usize("SCOOPY_DECODER_MODEL_SEED_INDEX"),
     ) {
         let Some(family) = FAMILIES
             .iter()
@@ -832,7 +832,7 @@ fn run_suite(decoder: Decoder) {
                 .as_ref()
                 .is_none_or(|filter| case_name(decoder, family).contains(filter.as_str()))
         })
-        .filter(|family| cap_verify_expect::case_selected(&case_name(decoder, family)))
+        .filter(|family| scoopy_verify_expect::case_selected(&case_name(decoder, family)))
         .collect();
     let jobs: Vec<(usize, u64)> = families
         .iter()
@@ -866,7 +866,7 @@ fn run_suite(decoder: Decoder) {
         Decoder::Avf => 3,
         Decoder::Ffmpeg => 4,
     };
-    let threads = env_usize("CAP_DECODER_MODEL_THREADS")
+    let threads = env_usize("SCOOPY_DECODER_MODEL_THREADS")
         .unwrap_or_else(|| {
             std::thread::available_parallelism()
                 .map(usize::from)
@@ -913,7 +913,7 @@ fn run_suite(decoder: Decoder) {
             .sort_by_key(|(case, failure)| (failure.class, case.seed_index));
     }
 
-    if let Ok(path) = std::env::var("CAP_DECODER_MODEL_SEEDS_OUT") {
+    if let Ok(path) = std::env::var("SCOOPY_DECODER_MODEL_SEEDS_OUT") {
         let mut lines = String::new();
         for result in &mut results {
             result.outcomes.sort_by_key(|(seed_index, _)| *seed_index);
@@ -938,14 +938,14 @@ fn run_suite(decoder: Decoder) {
         let _ = std::fs::write(format!("{path}.{}.tsv", decoder.name()), lines);
     }
 
-    let ran: cap_verify_expect::Ran = results
+    let ran: scoopy_verify_expect::Ran = results
         .iter()
         .map(|result| {
             let seeds = result.outcomes.iter().map(|(seed, _)| *seed).collect();
             (result.name.clone(), Some(seeds))
         })
         .collect();
-    let mut observed = cap_verify_expect::Observed::new();
+    let mut observed = scoopy_verify_expect::Observed::new();
     for result in &results {
         for (case, failure) in &result.failures {
             observed
@@ -954,8 +954,8 @@ fn run_suite(decoder: Decoder) {
                 .insert(case.seed_index);
         }
     }
-    let platform = cap_verify_expect::platform();
-    let verdict = cap_verify_expect::judge(&xfails, platform, &ran, &observed);
+    let platform = scoopy_verify_expect::platform();
+    let verdict = scoopy_verify_expect::judge(&xfails, platform, &ran, &observed);
     let unexpected: BTreeSet<(String, String, u64)> = verdict
         .unexpected
         .iter()
@@ -1021,7 +1021,7 @@ fn run_suite(decoder: Decoder) {
         );
     }
 
-    let shrink_mode = std::env::var("CAP_DECODER_MODEL_SHRINK").unwrap_or_else(|_| "new".into());
+    let shrink_mode = std::env::var("SCOOPY_DECODER_MODEL_SHRINK").unwrap_or_else(|_| "new".into());
     let runtime = runtime();
     for result in &results {
         let mut shown: BTreeMap<FailureClass, bool> = BTreeMap::new();
@@ -1051,7 +1051,7 @@ fn run_suite(decoder: Decoder) {
             );
             let _ = writeln!(
                 report,
-                "  replay: CAP_DECODER_MODEL_CASE={} CAP_DECODER_MODEL_SEED_INDEX={}",
+                "  replay: SCOOPY_DECODER_MODEL_CASE={} SCOOPY_DECODER_MODEL_SEED_INDEX={}",
                 result.name, case.seed_index
             );
             let wants_shrink = match shrink_mode.as_str() {
@@ -1089,14 +1089,14 @@ fn run_suite(decoder: Decoder) {
             "\nUNEXPECTED FAILURE {} {} on seed indices {}",
             found.case,
             found.class,
-            cap_verify_expect::format_seeds(&found.seeds)
+            scoopy_verify_expect::format_seeds(&found.seeds)
         );
     }
     for fixed in &verdict.fixed {
         let _ = writeln!(report, "\nUNEXPECTED PASS {}", fixed.message(EXPECTATIONS));
     }
     eprintln!("{report}");
-    if let Ok(path) = std::env::var("CAP_DECODER_MODEL_REPORT") {
+    if let Ok(path) = std::env::var("SCOOPY_DECODER_MODEL_REPORT") {
         let _ = std::fs::write(format!("{path}.{}.txt", decoder.name()), report.as_bytes());
     }
     assert!(

@@ -1,4 +1,4 @@
-//! Audio latency correction module for Cap.
+//! Audio latency correction module for Scoopy.
 //!
 //! This module provides comprehensive audio latency detection and correction to maintain
 //! proper audio-video synchronization. It handles measuring hardware buffer delays and
@@ -7,7 +7,7 @@
 //! # Quick Start
 //!
 //! ```rust,no_run
-//! use cap_audio::{LatencyCorrector, LatencyCorrectionConfig, default_output_latency_hint};
+//! use scoopy_audio::{LatencyCorrector, LatencyCorrectionConfig, default_output_latency_hint};
 //!
 //! // Get initial latency hint from hardware
 //! let hint = default_output_latency_hint(48000, 512);

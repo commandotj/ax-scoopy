@@ -29,7 +29,7 @@ use std::hash::{Hash as _, Hasher as _};
 use std::rc::Rc;
 use std::sync::Arc;
 
-use cap_project::{Annotation, AnnotationType, AspectRatio, Crop, MaskType};
+use scoopy_project::{Annotation, AnnotationType, AspectRatio, Crop, MaskType};
 use gpui::{
     AnyElement, App, AppContext as _, Bounds, Context, Corners, CursorStyle, Entity, FontWeight,
     Hsla, InteractiveElement as _, IntoElement, MouseButton, MouseDownEvent, MouseMoveEvent,
@@ -3988,7 +3988,7 @@ pub(crate) fn masked_region_image(
 
     let region = mask_region(mask, rect, (frame_width, frame_height))?;
     let level = mask.mask_level.unwrap_or(MASK_FALLBACK_LEVEL).max(1.);
-    let processed = cap_gpui_kernels::screenshot::mask_filter(
+    let processed = scoopy_gpui_kernels::screenshot::mask_filter(
         rgba,
         frame_width,
         frame_height,

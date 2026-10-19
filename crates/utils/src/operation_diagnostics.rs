@@ -78,7 +78,7 @@ pub fn install_sink(app: AppInfo, sink: impl Fn(&[u8]) + Send + Sync + 'static) 
     let _ = SESSION.set(unix_ms());
     let _ = EMISSION_EPOCH.set(Instant::now());
     let _ = PARENT.set(
-        std::env::var("CAP_DIAGNOSTIC_PARENT")
+        std::env::var("SCOOPY_DIAGNOSTIC_PARENT")
             .ok()
             .filter(|value| value.len() <= 160)
             .and_then(|value| serde_json::from_str(&value).ok()),
@@ -615,8 +615,8 @@ mod tests {
                 "operation_diagnostics::tests::diagnostic_child",
                 "--nocapture",
             ])
-            .env("CAP_DIAGNOSTIC_TEST_DIRECTORY", dir.path())
-            .env("CAP_DIAGNOSTIC_TEST_MODE", "crash")
+            .env("SCOOPY_DIAGNOSTIC_TEST_DIRECTORY", dir.path())
+            .env("SCOOPY_DIAGNOSTIC_TEST_MODE", "crash")
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .spawn()
@@ -624,7 +624,7 @@ mod tests {
         let mut child = ChildGuard(child);
         let started = Instant::now();
         loop {
-            let bundle = crate::log_upload::collect(dir.path(), "cap-test.log");
+            let bundle = crate::log_upload::collect(dir.path(), "scoopy-test.log");
             if bundle.text.contains("waiting_for_encoder") {
                 break;
             }
@@ -636,11 +636,11 @@ mod tests {
         }
         child.0.kill().unwrap();
         child.0.wait().unwrap();
-        let bundle = crate::log_upload::collect(dir.path(), "cap-test.log");
+        let bundle = crate::log_upload::collect(dir.path(), "scoopy-test.log");
         let records: Vec<serde_json::Value> = bundle
             .text
             .lines()
-            .filter_map(|line| line.strip_prefix("CAP_DIAGNOSTIC "))
+            .filter_map(|line| line.strip_prefix("SCOOPY_DIAGNOSTIC "))
             .map(|line| serde_json::from_str(line).unwrap())
             .collect();
         assert!(records.len() >= 2);
@@ -683,10 +683,10 @@ mod tests {
                 "operation_diagnostics::tests::diagnostic_child",
                 "--nocapture",
             ])
-            .env("CAP_DIAGNOSTIC_TEST_DIRECTORY", dir.path())
-            .env("CAP_DIAGNOSTIC_TEST_MODE", "complete")
+            .env("SCOOPY_DIAGNOSTIC_TEST_DIRECTORY", dir.path())
+            .env("SCOOPY_DIAGNOSTIC_TEST_MODE", "complete")
             .env(
-                "CAP_DIAGNOSTIC_PARENT",
+                "SCOOPY_DIAGNOSTIC_PARENT",
                 serde_json::to_string(&parent).unwrap(),
             )
             .output()
@@ -696,11 +696,11 @@ mod tests {
             "{}",
             String::from_utf8_lossy(&output.stderr)
         );
-        let bundle = crate::log_upload::collect(dir.path(), "cap-test.log");
+        let bundle = crate::log_upload::collect(dir.path(), "scoopy-test.log");
         let records: Vec<serde_json::Value> = bundle
             .text
             .lines()
-            .filter_map(|line| line.strip_prefix("CAP_DIAGNOSTIC "))
+            .filter_map(|line| line.strip_prefix("SCOOPY_DIAGNOSTIC "))
             .map(|line| serde_json::from_str(line).unwrap())
             .collect();
         assert!(
@@ -718,13 +718,13 @@ mod tests {
     #[test]
     #[ignore]
     fn diagnostic_child() {
-        let Some(directory) = std::env::var_os("CAP_DIAGNOSTIC_TEST_DIRECTORY") else {
+        let Some(directory) = std::env::var_os("SCOOPY_DIAGNOSTIC_TEST_DIRECTORY") else {
             return;
         };
         let writer = crate::diagnostic_writer::DiagnosticWriter::new(
             std::io::sink(),
             Path::new(&directory),
-            "cap-test.log",
+            "scoopy-test.log",
         );
         let (writer, guard) = tracing_appender::non_blocking(writer);
         install_sink(
@@ -748,7 +748,7 @@ mod tests {
         );
         operation.stage("waiting_for_encoder");
         checkpoint_active();
-        if std::env::var("CAP_DIAGNOSTIC_TEST_MODE").as_deref() == Ok("crash") {
+        if std::env::var("SCOOPY_DIAGNOSTIC_TEST_MODE").as_deref() == Ok("crash") {
             loop {
                 std::thread::sleep(std::time::Duration::from_secs(1));
             }
@@ -905,7 +905,7 @@ mod tests {
         let writer = crate::diagnostic_writer::DiagnosticWriter::new(
             std::io::sink(),
             dir.path(),
-            "cap-benchmark.log",
+            "scoopy-benchmark.log",
         );
         let (writer, guard) = tracing_appender::non_blocking(writer);
         let errors = writer.error_counter();

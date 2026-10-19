@@ -1,8 +1,8 @@
-//! `cap-verify-stimulus <spec json> <log path>`: see `cap_verify::stimulus`.
+//! `scoopy-verify-stimulus <spec json> <log path>`: see `scoopy_verify::stimulus`.
 
 #[cfg(not(target_os = "macos"))]
 fn main() {
-    eprintln!("cap-verify-stimulus only runs on macOS");
+    eprintln!("scoopy-verify-stimulus only runs on macOS");
     std::process::exit(2);
 }
 
@@ -29,7 +29,7 @@ mod app {
         time::{Duration, Instant},
     };
 
-    use cap_verify::{
+    use scoopy_verify::{
         audio_code::{self, AudioSource, MarkerPlacement},
         sched,
         stimulus::{StimulusEvent, StimulusSpec, host_add_secs, host_now, host_secs},
@@ -143,7 +143,7 @@ mod app {
         Ok(())
     }
 
-    use cap_verify::stimulus::{SENTINEL_FILE, SENTINEL_PERIOD_SECS};
+    use scoopy_verify::stimulus::{SENTINEL_FILE, SENTINEL_PERIOD_SECS};
 
     /// A real-time thread that only wakes every `SENTINEL_PERIOD_SECS` and
     /// records each wake (host ticks), for the whole life of the stimulus.
@@ -329,7 +329,7 @@ mod app {
     /// The pictures a user records come from foreground apps; the stimulus
     /// asks for the same treatment (user-interactive QoS) and a time
     /// constraint matching its frame period, so it keeps its schedule
-    /// (`cap_verify::sched`, shared with the synthetic camera and
+    /// (`scoopy_verify::sched`, shared with the synthetic camera and
     /// microphone). Returns the kernel status of each request (0 = applied).
     fn raise_priority(fps: f64) -> (i32, i32) {
         let realtime = sched::request_realtime(1.0 / fps, 0.010);
@@ -464,7 +464,7 @@ mod app {
                 return;
             }
             let mut attrs = Window::default_attributes()
-                .with_title("Cap Verify Stimulus")
+                .with_title("Scoopy Verify Stimulus")
                 .with_window_level(WindowLevel::AlwaysOnTop);
             attrs = match self.spec.window {
                 None => attrs
@@ -697,7 +697,7 @@ mod app {
         use cpal::host::coreaudio::StreamInstantExt;
 
         let host = cpal::default_host();
-        let device = match std::env::var("CAP_VERIFY_AUDIO_OUTPUT") {
+        let device = match std::env::var("SCOOPY_VERIFY_AUDIO_OUTPUT") {
             Ok(name) if !name.is_empty() => host
                 .output_devices()
                 .map_err(|e| format!("output devices: {e}"))?

@@ -59,7 +59,7 @@ pub struct AudioMeta {
 
 /// Overlap-trim accounting captured by the recorder's audio gap tracker, persisted so the
 /// editor can compensate for stale-startup audio drift from typed data instead of scraping
-/// the recording log. See `cap-editor`'s `audio_timing_repair_offset`.
+/// the recording log. See `scoopy-editor`'s `audio_timing_repair_offset`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
 pub struct AudioGapSummary {
     /// Total audio trimmed from overlapping frames over the whole recording, in milliseconds.
@@ -405,7 +405,7 @@ pub enum StudioRecordingMeta {
 impl StudioRecordingMeta {
     /// Notch captured with this recording. Every segment shares one display, so
     /// the first segment speaks for all of them. `None` for recordings made
-    /// before Cap started capturing this, and for every non-macOS recording.
+    /// before Scoopy started capturing this, and for every non-macOS recording.
     pub fn display_notch(&self) -> Option<DisplayNotch> {
         match self {
             StudioRecordingMeta::SingleSegment { .. } => None,
@@ -598,7 +598,7 @@ pub struct CursorMeta {
     pub image_path: RelativePathBuf,
     pub hotspot: XY<f64>,
     #[serde(default)]
-    pub shape: Option<cap_cursor_info::CursorShape>,
+    pub shape: Option<scoopy_cursor_info::CursorShape>,
 }
 
 impl MultipleSegments {
@@ -611,11 +611,11 @@ impl MultipleSegments {
             Cursors::Correct(map) => map
                 .iter()
                 .filter_map(|(id, cursor)| match cursor.shape.as_ref() {
-                    Some(cap_cursor_info::CursorShape::MacOS(
-                        cap_cursor_info::CursorShapeMacOS::Arrow,
+                    Some(scoopy_cursor_info::CursorShape::MacOS(
+                        scoopy_cursor_info::CursorShapeMacOS::Arrow,
                     ))
-                    | Some(cap_cursor_info::CursorShape::Windows(
-                        cap_cursor_info::CursorShapeWindows::Arrow,
+                    | Some(scoopy_cursor_info::CursorShape::Windows(
+                        scoopy_cursor_info::CursorShapeWindows::Arrow,
                     )) => Some(id.clone()),
                     _ => None,
                 })
@@ -789,7 +789,7 @@ mod metadata_save_tests {
     use super::*;
     use std::io::Read;
 
-    const LEGACY_METADATA: &str = r#"{"platform":"MacOS","pretty_name":"Cap 0.5.9 recording","sharing":null,"segments":[{"display":{"path":"content/segments/segment-0/display.mp4","fps":30,"start_time":0.0}}],"cursors":{},"status":{"status":"NeedsRemux"}}"#;
+    const LEGACY_METADATA: &str = r#"{"platform":"MacOS","pretty_name":"Scoopy 0.5.9 recording","sharing":null,"segments":[{"display":{"path":"content/segments/segment-0/display.mp4","fps":30,"start_time":0.0}}],"cursors":{},"status":{"status":"NeedsRemux"}}"#;
 
     fn recording(project: &Path) -> RecordingMeta {
         let mut meta: RecordingMeta = serde_json::from_str(LEGACY_METADATA).unwrap();
@@ -920,7 +920,7 @@ mod metadata_save_tests {
                 RecordingMeta::load_for_project(project.path())
                     .unwrap()
                     .pretty_name,
-                "Cap 0.5.9 recording"
+                "Scoopy 0.5.9 recording"
             );
             assert_no_temporary_metadata(project.path());
         }
@@ -1019,7 +1019,7 @@ mod test {
     fn single_segment() {
         test_meta_deserialize(
             r#"{
-						  "pretty_name": "Cap 2024-11-15 at 16.35.36",
+						  "pretty_name": "Scoopy 2024-11-15 at 16.35.36",
 						  "sharing": null,
 						  "display": {
 						    "path": "content/display.mp4"
@@ -1038,7 +1038,7 @@ mod test {
 
         test_meta_deserialize(
             r#"{
-	          "pretty_name": "Cap 2024-11-26 at 22.16.36",
+	          "pretty_name": "Scoopy 2024-11-26 at 22.16.36",
 	          "sharing": null,
 	          "display": {
 	            "path": "content/display.mp4"
@@ -1059,7 +1059,7 @@ mod test {
     fn multi_segment() {
         test_meta_deserialize(
             r#"{
-              "pretty_name": "Cap 2024-11-26 at 22.29.30",
+              "pretty_name": "Scoopy 2024-11-26 at 22.29.30",
               "sharing": null,
               "segments": [
                 {
@@ -1085,7 +1085,7 @@ mod test {
 
         test_meta_deserialize(
             r#"{
-	          "pretty_name": "Cap 2024-11-26 at 22.32.26",
+	          "pretty_name": "Scoopy 2024-11-26 at 22.32.26",
 	          "sharing": null,
 	          "segments": [
 	            {
@@ -1207,7 +1207,7 @@ mod display_notch_tests {
     fn multiple_segments(display_notch: &str) -> String {
         format!(
             r#"{{
-              "pretty_name": "Cap",
+              "pretty_name": "Scoopy",
               "segments": [
                 {{
                   "display": {{ "path": "content/segments/segment-0/display.mp4", "fps": 30 }}
@@ -1269,7 +1269,7 @@ mod display_notch_tests {
     fn legacy_single_segment_has_no_notch() {
         let meta: RecordingMeta = serde_json::from_str(
             r#"{
-              "pretty_name": "Cap",
+              "pretty_name": "Scoopy",
               "display": { "path": "content/display.mp4" },
               "segments": [{ "start": 0.0, "end": 1.0 }]
             }"#,
@@ -1318,7 +1318,7 @@ mod ordinary_media_access_tests {
 
     fn legacy_optional_failure() -> (StudioRecordingMeta, serde_json::Value) {
         let recording: RecordingMeta = serde_json::from_str(
-            r#"{"platform":"MacOS","pretty_name":"Cap recording","sharing":null,"segments":[{"display":{"path":"content/segments/segment-0/display.mp4","fps":30,"start_time":0.0}}],"cursors":{},"status":{"status":"Complete"}}"#,
+            r#"{"platform":"MacOS","pretty_name":"Scoopy recording","sharing":null,"segments":[{"display":{"path":"content/segments/segment-0/display.mp4","fps":30,"start_time":0.0}}],"cursors":{},"status":{"status":"Complete"}}"#,
         )
         .unwrap();
         let diagnostics = serde_json::json!({

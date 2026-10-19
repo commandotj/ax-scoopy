@@ -400,7 +400,7 @@ async applyMacosLiquidGlassBackground(enabled: boolean, radius: number) : Promis
 async globalMessageDialog(message: string) : Promise<void> {
     await TAURI_INVOKE("global_message_dialog", { message });
 },
-async showWindow(window: ShowCapWindow) : Promise<null> {
+async showWindow(window: ShowScoopyWindow) : Promise<null> {
     return await TAURI_INVOKE("show_window", { window });
 },
 async writeClipboardString(text: string) : Promise<null> {
@@ -688,7 +688,7 @@ export type AudioConfiguration = { mute: boolean; improve: boolean; isolation: V
 /**
  * Overlap-trim accounting captured by the recorder's audio gap tracker, persisted so the
  * editor can compensate for stale-startup audio drift from typed data instead of scraping
- * the recording log. See `cap-editor`'s `audio_timing_repair_offset`.
+ * the recording log. See `scoopy-editor`'s `audio_timing_repair_offset`.
  */
 export type AudioGapSummary = {
 /**
@@ -908,7 +908,7 @@ export type CaptureWindowWithThumbnail = { id: WindowId; owner_name: string; nam
 export type CliInstallStatus = { installDir: string; shimPath: string; targetPath: string; installed: boolean; onPath: boolean; conflict: string | null; pathEntry: string; shellCommand: string;
 /**
  * Whether the install dir is persisted to the user's shell PATH config (profile/registry),
- * so `cap` will be available in a new terminal even though it is not on the current PATH.
+ * so `scoopy` will be available in a new terminal even though it is not on the current PATH.
  */
 pathConfigured: boolean }
 export type ClickSpringConfig = { tension: number; mass: number; friction: number }
@@ -1104,7 +1104,7 @@ previousRecordingsPaths?: string[];
  */
 cameraBlurDisabledByCrash?: string | null; updateChannel?: UpdateChannel;
 /**
- * Run the experimental gpui-native app (`cap-gpui`) *instead of* this one:
+ * Run the experimental gpui-native app (`scoopy-gpui`) *instead of* this one:
  * while enabled, startup hands off to it and exits, and the native app's
  * own Experimental page hands back. See `gpui_app.rs`.
  */
@@ -1273,7 +1273,7 @@ export type SerializedScreenshotEditorInstance = { framesSocketUrl: string; path
 export type SetCaptureAreaPending = boolean
 export type ShadowConfiguration = { size: number; opacity: number; blur: number }
 export type SharingMeta = { id: string; link: string; content_hash?: string | null }
-export type ShowCapWindow = { Main: { init_target_mode: RecordingTargetMode | null } } | { Settings: { page: string | null } } | { Editor: { project_path: string } } | "RecordingsOverlay" | { WindowCaptureOccluder: { screen_id: DisplayId } } | { TargetSelectOverlay: { display_id: DisplayId; target_mode: RecordingTargetMode | null } } | { CaptureArea: { screen_id: DisplayId } } | { Camera: { centered: boolean } } | { InProgressRecording: { countdown: number | null; capture_target?: ScreenCaptureTarget | null } } | "Upgrade" | "ModeSelect" | { ScreenshotEditor: { path: string } } | "Onboarding"
+export type ShowScoopyWindow = { Main: { init_target_mode: RecordingTargetMode | null } } | { Settings: { page: string | null } } | { Editor: { project_path: string } } | "RecordingsOverlay" | { WindowCaptureOccluder: { screen_id: DisplayId } } | { TargetSelectOverlay: { display_id: DisplayId; target_mode: RecordingTargetMode | null } } | { CaptureArea: { screen_id: DisplayId } } | { Camera: { centered: boolean } } | { InProgressRecording: { countdown: number | null; capture_target?: ScreenCaptureTarget | null } } | "Upgrade" | "ModeSelect" | { ScreenshotEditor: { path: string } } | "Onboarding"
 export type SingleSegment = { display: VideoMeta; camera?: VideoMeta | null; audio?: AudioMeta | null; cursor?: string | null }
 export type Snapshot = { generation: number; phase: Phase | null; mode: RecordingMode | null; shortcut: string | null; error: string | null }
 export type SplitLayout = { screenZoom: number; screenPosition: XY<number>; cameraZoom: number; cameraPosition: XY<number> }

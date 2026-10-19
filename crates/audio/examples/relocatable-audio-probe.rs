@@ -1,5 +1,5 @@
-use cap_audio::{AudioData, AudioStream, ChunkRead};
-use cap_enc_ffmpeg::RelocatableSource;
+use scoopy_audio::{AudioData, AudioStream, ChunkRead};
+use scoopy_enc_ffmpeg::RelocatableSource;
 use std::{
     error::Error,
     fs, io,

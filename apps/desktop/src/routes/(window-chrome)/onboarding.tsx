@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { makePersisted } from "@solid-primitives/storage";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask, message as showMessage } from "@tauri-apps/plugin-dialog";
@@ -26,19 +26,19 @@ import {
 	type OSPermission,
 	type OSPermissionStatus,
 } from "~/utils/tauri";
-import IconCapCaretDown from "~icons/cap/caret-down";
-import IconCapCursorMacos from "~icons/cap/cursor-macos";
-import IconCapCursorWindows from "~icons/cap/cursor-windows";
-import IconCapFilmCut from "~icons/cap/film-cut";
-import IconCapInstant from "~icons/cap/instant";
-import IconCapMicrophone from "~icons/cap/microphone";
-import IconCapMoreVertical from "~icons/cap/more-vertical";
-import IconCapPauseCircle from "~icons/cap/pause-circle";
-import IconCapRestart from "~icons/cap/restart";
-import IconCapScreenshot from "~icons/cap/screenshot";
-import IconCapSettings from "~icons/cap/settings";
-import IconCapStopCircle from "~icons/cap/stop-circle";
-import IconCapTrash from "~icons/cap/trash";
+import IconScoopyCaretDown from "~icons/scoopy/caret-down";
+import IconScoopyCursorMacos from "~icons/scoopy/cursor-macos";
+import IconScoopyCursorWindows from "~icons/scoopy/cursor-windows";
+import IconScoopyFilmCut from "~icons/scoopy/film-cut";
+import IconScoopyInstant from "~icons/scoopy/instant";
+import IconScoopyMicrophone from "~icons/scoopy/microphone";
+import IconScoopyMoreVertical from "~icons/scoopy/more-vertical";
+import IconScoopyPauseCircle from "~icons/scoopy/pause-circle";
+import IconScoopyRestart from "~icons/scoopy/restart";
+import IconScoopyScreenshot from "~icons/scoopy/screenshot";
+import IconScoopySettings from "~icons/scoopy/settings";
+import IconScoopyStopCircle from "~icons/scoopy/stop-circle";
+import IconScoopyTrash from "~icons/scoopy/trash";
 import IconLucideArrowLeft from "~icons/lucide/arrow-left";
 import IconLucideArrowRight from "~icons/lucide/arrow-right";
 import IconLucideCheck from "~icons/lucide/check";
@@ -62,7 +62,7 @@ interface ModeDetail {
 	title: string;
 	tagline: string;
 	description: string;
-	icon: typeof IconCapInstant;
+	icon: typeof IconScoopyInstant;
 	features: string[];
 }
 
@@ -73,7 +73,7 @@ const modes: ModeDetail[] = [
 		tagline: "Record & share in seconds",
 		description:
 			"Your recording uploads as you capture. Stop recording and instantly get a shareable link — no waiting.",
-		icon: IconCapInstant,
+		icon: IconScoopyInstant,
 		features: [
 			"Instant shareable link",
 			"Background uploading",
@@ -87,7 +87,7 @@ const modes: ModeDetail[] = [
 		tagline: "Professional editing tools",
 		description:
 			"Record in full quality locally, then use the built-in editor to add backgrounds, padding, cursor effects, and more.",
-		icon: IconCapFilmCut,
+		icon: IconScoopyFilmCut,
 		features: [
 			"Full quality local recording",
 			"Built-in editor & effects",
@@ -101,7 +101,7 @@ const modes: ModeDetail[] = [
 		tagline: "Capture & beautify instantly",
 		description:
 			"Take screenshots with a single hotkey, add annotations and beautiful backgrounds, then share or copy instantly.",
-		icon: IconCapScreenshot,
+		icon: IconScoopyScreenshot,
 		features: [
 			"Instant hotkey capture",
 			"Annotation & drawing tools",
@@ -984,7 +984,7 @@ function ShortcutsStep(props: { active: boolean }) {
 				)}
 			>
 				<div class="flex items-center justify-center size-12 rounded-2xl bg-white dark:bg-gray-3 border border-gray-4">
-					<IconCapSettings class="size-5 text-gray-11" />
+					<IconScoopySettings class="size-5 text-gray-11" />
 				</div>
 				<h2 class="text-2xl font-bold text-gray-12 tracking-tight">
 					Make Scoopy yours
@@ -1075,7 +1075,7 @@ function FaqStep(props: { active: boolean }) {
 						out our{" "}
 						<button
 							type="button"
-							onClick={() => shell.open("https://cap.so/pricing?ref=desktop")}
+							onClick={() => shell.open("https://example.com/pricing?ref=desktop")}
 							class="text-blue-10 hover:text-blue-11 underline underline-offset-2"
 						>
 							pricing plans
@@ -1115,7 +1115,7 @@ function FaqStep(props: { active: boolean }) {
 
 			<button
 				type="button"
-				onClick={() => shell.open("https://cap.so/pricing?ref=desktop")}
+				onClick={() => shell.open("https://example.com/pricing?ref=desktop")}
 				class={cx(
 					"flex items-center gap-1.5 text-[13px] text-blue-10 hover:text-blue-11 transition-all duration-500 delay-200",
 					visible() ? "opacity-100" : "opacity-0",
@@ -1235,9 +1235,9 @@ function StartRecordingClickMock(props: {
 					<div class="flex min-w-0 flex-1 items-center py-1 pl-4 pointer-events-none">
 						<Show
 							when={props.mode === "studio"}
-							fallback={<IconCapInstant class="size-4 shrink-0" />}
+							fallback={<IconScoopyInstant class="size-4 shrink-0" />}
 						>
-							<IconCapFilmCut class="size-4 shrink-0" />
+							<IconScoopyFilmCut class="size-4 shrink-0" />
 						</Show>
 						<div class="mr-2 ml-3 flex min-w-0 flex-col">
 							<span class="text-[0.95rem] font-medium text-nowrap text-white">
@@ -1249,7 +1249,7 @@ function StartRecordingClickMock(props: {
 						</div>
 					</div>
 					<div class="flex shrink-0 items-center border-l border-white/20 bg-white/5 py-1.5 pl-2.5 pr-3">
-						<IconCapCaretDown class="pointer-events-none" />
+						<IconScoopyCaretDown class="pointer-events-none" />
 					</div>
 				</div>
 				<div
@@ -1271,9 +1271,9 @@ function StartRecordingClickMock(props: {
 					>
 						<Show
 							when={ostype() === "windows"}
-							fallback={<IconCapCursorMacos class="h-full w-full" />}
+							fallback={<IconScoopyCursorMacos class="h-full w-full" />}
 						>
-							<IconCapCursorWindows class="h-full w-full" />
+							<IconScoopyCursorWindows class="h-full w-full" />
 						</Show>
 					</div>
 				</div>
@@ -1308,7 +1308,7 @@ function RecordingBar(props: {
 								type="button"
 								class="flex shrink-0 flex-row items-center gap-1 rounded-lg px-2 py-1 text-red-300 transition-colors duration-100 hover:bg-red-500/8 active:bg-red-500/12"
 							>
-								<IconCapStopCircle class="size-5 shrink-0" />
+								<IconScoopyStopCircle class="size-5 shrink-0" />
 								<span class="text-[0.875rem] font-medium tabular-nums">
 									{props.time}
 								</span>
@@ -1321,7 +1321,7 @@ function RecordingBar(props: {
 							)}
 						>
 							<div class="relative flex h-8 w-8 shrink-0 items-center justify-center">
-								<IconCapMicrophone class="size-5 text-gray-12" />
+								<IconScoopyMicrophone class="size-5 text-gray-12" />
 								<div class="absolute bottom-1 left-1 right-1 h-0.5 overflow-hidden rounded-full bg-gray-10">
 									<div
 										class="absolute inset-0 bg-blue-9"
@@ -1330,16 +1330,16 @@ function RecordingBar(props: {
 								</div>
 							</div>
 							<div class={actionIconWrap} aria-hidden="true">
-								<IconCapPauseCircle class="size-5" />
+								<IconScoopyPauseCircle class="size-5" />
 							</div>
 							<div class={actionIconWrap} aria-hidden="true">
-								<IconCapRestart class="size-5" />
+								<IconScoopyRestart class="size-5" />
 							</div>
 							<div class={actionIconWrap} aria-hidden="true">
-								<IconCapTrash class="size-5" />
+								<IconScoopyTrash class="size-5" />
 							</div>
 							<div class={actionIconWrap} aria-hidden="true">
-								<IconCapSettings class="size-5" />
+								<IconScoopySettings class="size-5" />
 							</div>
 						</div>
 					</div>
@@ -1351,7 +1351,7 @@ function RecordingBar(props: {
 					)}
 					aria-hidden="true"
 				>
-					<IconCapMoreVertical class="pointer-events-none size-5" />
+					<IconScoopyMoreVertical class="pointer-events-none size-5" />
 				</div>
 			</div>
 		</div>
@@ -1912,7 +1912,7 @@ function StartupOverlay(props: {
 			>
 				<div class="text-center">
 					<div onClick={handleLogoClick} class="inline-block">
-						<IconCapLogo
+						<IconScoopyLogo
 							class={cx(
 								"w-20 h-24 mx-auto drop-shadow-[0_0_100px_rgba(0,0,0,0.2)]",
 								isLogoAnimating() && "startup-logo-bounce",
@@ -2228,9 +2228,9 @@ function ScreenshotMockup(props: { active: boolean }) {
 							>
 								<Show
 									when={ostype() === "windows"}
-									fallback={<IconCapCursorMacos class="h-full w-full" />}
+									fallback={<IconScoopyCursorMacos class="h-full w-full" />}
 								>
-									<IconCapCursorWindows class="h-full w-full" />
+									<IconScoopyCursorWindows class="h-full w-full" />
 								</Show>
 							</div>
 						</Show>

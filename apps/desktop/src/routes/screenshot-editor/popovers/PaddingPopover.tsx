@@ -1,6 +1,6 @@
 import { Popover } from "@kobalte/core/popover";
 import { batch } from "solid-js";
-import IconCapPadding from "~icons/cap/padding";
+import IconScoopyPadding from "~icons/scoopy/padding";
 import { useScreenshotEditorContext } from "../context";
 import { EditorButton, Slider } from "../ui";
 
@@ -58,7 +58,7 @@ export function PaddingPopover() {
 				onClick={() =>
 					setActivePopover(activePopover() === "padding" ? null : "padding")
 				}
-				leftIcon={<IconCapPadding class="size-4" />}
+				leftIcon={<IconScoopyPadding class="size-4" />}
 				tooltipText="Padding"
 				kbd={["P"]}
 			/>

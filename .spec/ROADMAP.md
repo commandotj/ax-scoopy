@@ -9,5 +9,5 @@
 | 0005 | [Remove mobile, chrome-extension, status apps](rfc/completed/0005-remove-other-remote-clients.md) | Implemented |
 | 0006 | [Replace app icon](rfc/completed/0006-replace-app-icon.md) | Implemented |
 | 0007 | [Remove CLI remote auth](rfc/completed/0007-remove-cli-remote.md) | Implemented |
-| 0008 | [Rename Cap to Scoopy](rfc/completed/0008-rename-cap-to-scoopy.md) | Implemented |
+| 0008 | [Rename Scoopy to Scoopy](rfc/completed/0008-rename-scoopy-to-scoopy.md) | Implemented |
 | 0009 | [Remove remote packages](rfc/completed/0009-remove-remote-packages.md) | Implemented |

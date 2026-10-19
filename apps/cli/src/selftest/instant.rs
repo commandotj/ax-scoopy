@@ -3,16 +3,16 @@
 //! Instant recordings mux display and system audio into a single
 //! `content/output.mp4` through a different encoder/muxer path than studio
 //! recordings, so a machine can pass the studio leg and still ship broken
-//! instant links. This mirrors what `cap record --mode instant` does (see
+//! instant links. This mirrors what `scoopy record --mode instant` does (see
 //! `record.rs`): the same builder defaults, the same finalize, the same meta
 //! write, so the leg exercises the shipped path rather than a private one.
 
 use std::path::{Path, PathBuf};
 
-use cap_project::{
+use scoopy_project::{
     InstantRecordingMeta, Platform, ProjectConfiguration, RecordingMeta, RecordingMetaInner,
 };
-use cap_recording::{
+use scoopy_recording::{
     RecordingDefaults, instant_recording, recovery::RecoveryManager,
     screen_capture::ScreenCaptureTarget,
 };
@@ -48,7 +48,7 @@ pub async fn start_recording(
                  Grant Scoopy screen recording access in System Settings and retry."
             )
         })
-        .map(cap_recording::SendableShareableContent::from)?;
+        .map(scoopy_recording::SendableShareableContent::from)?;
 
     builder
         .build(
@@ -60,7 +60,7 @@ pub async fn start_recording(
 }
 
 /// Mirrors `record.rs`'s instant finalize: mux the fragments into
-/// `content/output.mp4`, then persist the meta so the `.cap` is a real
+/// `content/output.mp4`, then persist the meta so the `.scoopy` is a real
 /// recording rather than a directory of fragments.
 pub async fn finalize(
     recording: &mut instant_recording::CompletedRecording,

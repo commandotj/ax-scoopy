@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Summarises engine verification records (JSON lines written to
-CAP_VERIFY_REPORT_DIR by every suite) as GitHub job-summary markdown or
+SCOOPY_VERIFY_REPORT_DIR by every suite) as GitHub job-summary markdown or
 plain text.
 
   summary.py [--title T] [--text] [--junit FILE]... [--flaky FILE] DIR...
@@ -66,7 +66,7 @@ def crash_excerpt(msg, limit):
     lines = msg.splitlines()
     for i, line in enumerate(lines):
         if "timed out" in line:
-            return [line for line in lines if "[cap-verify]" in line or "timed out" in line][-limit:]
+            return [line for line in lines if "[scoopy-verify]" in line or "timed out" in line][-limit:]
         if "panicked at" in line or "error:" in line.lower():
             excerpt = []
             for follow in lines[i:i + 12]:

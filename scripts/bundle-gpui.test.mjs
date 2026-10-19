@@ -27,27 +27,27 @@ test("targets map to their packaging platform and main binary", () => {
 	assert.equal(targetPlatform("x86_64-pc-windows-msvc"), "win32");
 	assert.equal(targetPlatform("x86_64-unknown-linux-gnu"), "linux");
 	assert.equal(targetPlatform("wasm32-unknown-unknown"), null);
-	assert.equal(mainBinaryName("x86_64-pc-windows-msvc"), "Cap.exe");
-	assert.equal(mainBinaryName("aarch64-apple-darwin"), "Cap");
+	assert.equal(mainBinaryName("x86_64-pc-windows-msvc"), "Scoopy.exe");
+	assert.equal(mainBinaryName("aarch64-apple-darwin"), "Scoopy");
 	assert.equal(
 		gpuiBinaryPath("x86_64-pc-windows-msvc"),
 		path.join(
 			gpuiDirectory,
-			"target/x86_64-pc-windows-msvc/release/cap-gpui.exe",
+			"target/x86_64-pc-windows-msvc/release/scoopy-gpui.exe",
 		),
 	);
 });
 
 test("the GPUI app keeps the identity every existing install updates into", () => {
-	assert.equal(gpuiConfig.productName, "Cap");
-	assert.equal(gpuiConfig.mainBinaryName, "Cap");
-	assert.equal(gpuiConfig.identifier, "so.cap.desktop");
+	assert.equal(gpuiConfig.productName, "Scoopy");
+	assert.equal(gpuiConfig.mainBinaryName, "Scoopy");
+	assert.equal(gpuiConfig.identifier, "me.systembug.scoopy");
 	assert.equal(
 		gpuiConfig.plugins.updater.pubkey,
 		tauriProduction.plugins.updater.pubkey,
 	);
 	assert.deepEqual(gpuiConfig.plugins.updater.endpoints, [
-		"https://cdn.crabnebula.app/update/cap/cap/{{target}}/{{current_version}}",
+		"https://cdn.crabnebula.app/update/scoopy/scoopy/{{target}}/{{current_version}}",
 	]);
 	const installer = readFileSync(
 		new URL("../apps/desktop-gpui/src/installer.rs", import.meta.url),
@@ -107,7 +107,7 @@ test("the GPUI bundle ships one CLI sidecar instead of two identical copies", ()
 	const names = gpuiConfig.bundle.externalBin.map((binary) =>
 		path.basename(binary),
 	);
-	assert.deepEqual(names, ["cap-muxer", "cap-cli"]);
+	assert.deepEqual(names, ["scoopy-muxer", "scoopy-cli"]);
 	assert.equal(gpuiConfig.bundle.windows.webviewInstallMode.type, "skip");
 	assert.ok(
 		!Object.values(gpuiConfig.bundle.resources).some((destination) =>

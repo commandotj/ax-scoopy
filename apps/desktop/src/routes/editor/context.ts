@@ -1418,7 +1418,7 @@ export const [EditorContextProvider, useBaseEditorContext] =
 
 							segments.splice(index + 1, 0, {
 								...segment,
-								id: `cap-split-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+								id: `scoopy-split-${Date.now()}-${Math.random().toString(36).slice(2)}`,
 								start: segment.start + time,
 								end: segment.end,
 							});

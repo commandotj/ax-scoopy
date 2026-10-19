@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { useNavigate } from "@solidjs/router";
 import { getCurrentWindow, UserAttentionType } from "@tauri-apps/api/window";
 import {
@@ -81,7 +81,7 @@ export default function () {
 				</div>
 			</Show>
 			<Show when={!updateError() && update.loading}>
-				<IconCapLogo class="size-4 animate-spin text-(--text-primary)" />
+				<IconScoopyLogo class="size-4 animate-spin text-(--text-primary)" />
 			</Show>
 			<Show
 				when={!updateError() && update()}
@@ -163,7 +163,7 @@ export default function () {
 						<div>
 							<Switch
 								fallback={
-									<IconCapLogo class="animate-spin size-4 text-(--text-primary)" />
+									<IconScoopyLogo class="animate-spin size-4 text-(--text-primary)" />
 								}
 							>
 								<Match when={updateStatus()?.type === "done"}>

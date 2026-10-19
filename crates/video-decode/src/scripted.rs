@@ -177,7 +177,7 @@ pub fn register(script: Script) -> Registration {
     static NEXT: AtomicU64 = AtomicU64::new(0);
     script.validate();
     let path = PathBuf::from(format!(
-        "/nonexistent/cap-scripted-media/{}-{}.mp4",
+        "/nonexistent/scoopy-scripted-media/{}-{}.mp4",
         std::process::id(),
         NEXT.fetch_add(1, Ordering::Relaxed)
     ));

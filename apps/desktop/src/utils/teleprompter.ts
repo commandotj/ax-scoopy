@@ -53,7 +53,7 @@ export async function openTeleprompter() {
 		TELEPROMPTER_WINDOW_LABEL,
 		getTeleprompterWindowOptions(
 			platform,
-			window.__CAP__?.windowsWebview2BrowserArgs,
+			window.__SCOOPY__?.windowsWebview2BrowserArgs,
 		),
 	);
 	creatingWindow = teleprompterWindow;

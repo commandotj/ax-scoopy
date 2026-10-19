@@ -58,7 +58,7 @@ impl SegmentationModel {
         let (result_tx, results) = mpsc::channel::<InferenceJob>();
 
         let worker = thread::Builder::new()
-            .name("cap-segmentation".into())
+            .name("scoopy-segmentation".into())
             .stack_size(INFERENCE_THREAD_STACK_SIZE)
             .spawn(move || {
                 let mut session = match create_session() {
@@ -309,7 +309,7 @@ fn onnx_runtime_candidates(executable: Option<&Path>) -> Vec<PathBuf> {
 
         if let Some(contents_dir) = exe_dir.parent() {
             #[cfg(target_os = "linux")]
-            candidates.push(contents_dir.join("lib/cap").join(ORT_LIBRARY_NAME));
+            candidates.push(contents_dir.join("lib/scoopy").join(ORT_LIBRARY_NAME));
 
             candidates.push(
                 contents_dir
@@ -385,10 +385,10 @@ mod tests {
     #[test]
     fn runtime_candidates_include_installed_and_relocated_linux_packages() {
         for (executable, library) in [
-            ("/usr/bin/cap", "/usr/lib/cap/libonnxruntime.so"),
+            ("/usr/bin/scoopy", "/usr/lib/scoopy/libonnxruntime.so"),
             (
-                "/tmp/.mount_Cap/usr/bin/cap",
-                "/tmp/.mount_Cap/usr/lib/cap/libonnxruntime.so",
+                "/tmp/.mount_Cap/usr/bin/scoopy",
+                "/tmp/.mount_Cap/usr/lib/scoopy/libonnxruntime.so",
             ),
         ] {
             let candidates = super::onnx_runtime_candidates(Some(std::path::Path::new(executable)));
@@ -421,7 +421,7 @@ mod tests {
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     #[test]
     fn runtime_load_failures_remain_retryable() {
-        const CHILD_ENV: &str = "CAP_CAMERA_EFFECTS_LOADER_TEST_CHILD";
+        const CHILD_ENV: &str = "SCOOPY_CAMERA_EFFECTS_LOADER_TEST_CHILD";
         if let Some(path) = std::env::var_os(CHILD_ENV) {
             assert!(crate::initialize_onnx_runtime().is_err());
             std::fs::write(&path, b"invalid ONNX Runtime library").unwrap();
@@ -434,7 +434,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         let directory =
-            std::env::temp_dir().join(format!("cap-onnx-loader-{}-{unique}", std::process::id()));
+            std::env::temp_dir().join(format!("scoopy-onnx-loader-{}-{unique}", std::process::id()));
         std::fs::create_dir(&directory).unwrap();
         let path = directory.join(super::ORT_LIBRARY_NAME);
         let mut child = std::process::Command::new(std::env::current_exe().unwrap())

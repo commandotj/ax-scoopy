@@ -1,4 +1,4 @@
-//! Real-capture stimulus: a helper process (`cap-verify-stimulus`) that shows
+//! Real-capture stimulus: a helper process (`scoopy-verify-stimulus`) that shows
 //! a window rendering the screen marker of a monotonically increasing frame
 //! index at a fixed rate and plays system-audio markers through the default
 //! output, logging the host time of every presented frame and every marker.
@@ -8,7 +8,7 @@
 //! `1 / fps` (holding the picture inside `holds`), prints `done` after the
 //! last frame and keeps the last frame on screen until `quit` (or EOF).
 //! Every event is a JSON line in the log file; host times are mach absolute
-//! ticks, the clock Cap stamps captured media with on macOS.
+//! ticks, the clock Scoopy stamps captured media with on macOS.
 
 use std::path::Path;
 

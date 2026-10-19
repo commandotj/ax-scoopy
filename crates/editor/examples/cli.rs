@@ -1,5 +1,5 @@
-use cap_editor::EditorInstance;
-use cap_project::XY;
+use scoopy_editor::EditorInstance;
+use scoopy_project::XY;
 use std::path::PathBuf;
 
 #[tokio::main]

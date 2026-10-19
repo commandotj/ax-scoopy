@@ -1,7 +1,7 @@
 #![cfg(windows)]
 #![allow(non_snake_case)]
 
-use cap_mediafoundation_utils::*;
+use scoopy_mediafoundation_utils::*;
 use parking_lot::Mutex;
 use std::{
     ffi::OsString,
@@ -77,7 +77,7 @@ impl DeviceSourcesIterator {
 
 // MFEnumDeviceSources hands over one IMFActivate reference per device plus the
 // CoTaskMemAlloc'd array itself; without this Drop every enumeration leaked
-// both for the life of the process (CapSoftware/Cap#2132).
+// both for the life of the process.
 impl Drop for DeviceSourcesIterator {
     fn drop(&mut self) {
         unsafe {
@@ -121,7 +121,7 @@ impl Iterator for DeviceSourcesIterator {
 /// which costs real OS resources that are only reclaimed by `Shutdown`. Plain
 /// enumeration (name/id/model) must never pay that price, so activation is
 /// deferred until formats or capture genuinely need it
-/// (CapSoftware/Cap#2132).
+///.
 #[derive(Clone)]
 pub struct Device {
     activate: IMFActivate,

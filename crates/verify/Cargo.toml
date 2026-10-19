@@ -1,5 +1,5 @@
 [package]
-name = "cap-verify"
+name = "scoopy-verify"
 version = "0.1.0"
 edition = "2024"
 publish = false
@@ -8,10 +8,10 @@ publish = false
 workspace = true
 
 [dependencies]
-cap-media-info = { path = "../media-info" }
-cap-project = { path = "../project" }
-cap-recording = { path = "../recording" }
-cap-timestamp = { path = "../timestamp" }
+scoopy-media-info = { path = "../media-info" }
+scoopy-project = { path = "../project" }
+scoopy-recording = { path = "../recording" }
+scoopy-timestamp = { path = "../timestamp" }
 
 anyhow = { workspace = true }
 ffmpeg = { workspace = true }
@@ -22,19 +22,19 @@ rustfft = "6.4.1"
 serde = { workspace = true }
 serde_json = "1"
 tokio = { workspace = true }
-cap-verify-expect = { path = "../verify-expect" }
+scoopy-verify-expect = { path = "../verify-expect" }
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-cap-enc-avfoundation = { path = "../enc-avfoundation" }
+scoopy-enc-avfoundation = { path = "../enc-avfoundation" }
 cidre = { workspace = true }
 
 [dev-dependencies]
-cap-recording = { path = "../recording", features = ["test-utils"] }
-cap-editor = { path = "../editor", features = ["test-hooks"] }
-cap-audio = { path = "../audio" }
-cap-export = { path = "../export" }
-cap-rendering = { path = "../rendering" }
+scoopy-recording = { path = "../recording", features = ["test-utils"] }
+scoopy-editor = { path = "../editor", features = ["test-hooks"] }
+scoopy-audio = { path = "../audio" }
+scoopy-export = { path = "../export" }
+scoopy-rendering = { path = "../rendering" }
 tempfile = "3"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 

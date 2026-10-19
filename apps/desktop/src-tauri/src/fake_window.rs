@@ -1,4 +1,4 @@
-use cap_recording::sources::screen_capture::ScreenCaptureTarget;
+use scoopy_recording::sources::screen_capture::ScreenCaptureTarget;
 use scap_targets::{Display, DisplayId, Window as ScapWindow, bounds::LogicalBounds};
 use std::{
     collections::HashMap,

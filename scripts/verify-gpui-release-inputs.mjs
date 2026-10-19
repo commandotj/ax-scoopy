@@ -33,7 +33,7 @@ if (!configName) {
 	if (
 		!Array.isArray(externalBin) ||
 		(!externalBin.includes("binaries/scoopy") &&
-			!externalBin.includes("binaries/cap-gpui"))
+			!externalBin.includes("binaries/scoopy-gpui"))
 	) {
 		throw new Error(
 			`The effective ${process.platform} release config does not bundle Scoopy GPUI.`,

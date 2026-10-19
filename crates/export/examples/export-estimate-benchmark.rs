@@ -7,8 +7,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use cap_editor::EditorInstance;
-use cap_export::{
+use scoopy_editor::EditorInstance;
+use scoopy_export::{
     ExporterBase, estimates::estimate_export, make_cursor_only_project, settings::ExportSettings,
 };
 use clap::Parser;
@@ -45,11 +45,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ExportSettings::Gif(settings) => (settings.resolution_base, 0.3),
         ExportSettings::Mov(settings) => (settings.resolution_base, 0.3),
     };
-    let preview = cap_export::preview::render_preview_with_editor(
+    let preview = scoopy_export::preview::render_preview_with_editor(
         &editor,
         project.clone(),
         0.0,
-        cap_export::preview::ExportPreviewSettings {
+        scoopy_export::preview::ExportPreviewSettings {
             fps: settings.fps(),
             resolution_base,
             compression_bpp,

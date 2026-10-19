@@ -4,7 +4,7 @@ use std::{
     time::Instant,
 };
 
-use cap_audio::{AudioData, AudioStream, ChunkRead};
+use scoopy_audio::{AudioData, AudioStream, ChunkRead};
 use sha2::{Digest, Sha256};
 use tokio::sync::watch;
 
@@ -13,7 +13,7 @@ fn main() -> anyhow::Result<()> {
         .nth(1)
         .map(PathBuf::from)
         .ok_or_else(|| anyhow::anyhow!("Pass an audio path"))?;
-    if std::env::var_os("CAP_BENCH_PROGRESSIVE_AUDIO").is_some() {
+    if std::env::var_os("SCOOPY_BENCH_PROGRESSIVE_AUDIO").is_some() {
         return progressive_audio(path);
     }
     background_audio(path)
@@ -69,7 +69,7 @@ fn background_audio(path: PathBuf) -> anyhow::Result<()> {
 fn background_audio_report(path: PathBuf, full: &AudioData, full_ms: f64) -> anyhow::Result<()> {
     let full_hash = format!(
         "{:x}",
-        Sha256::digest(unsafe { cap_audio::cast_f32_slice_to_bytes(full.samples()) })
+        Sha256::digest(unsafe { scoopy_audio::cast_f32_slice_to_bytes(full.samples()) })
     );
     let mix = mix_benchmark(full);
     let channels = usize::from(full.channels());
@@ -77,7 +77,7 @@ fn background_audio_report(path: PathBuf, full: &AudioData, full_ms: f64) -> any
     let window_frames = AudioData::SAMPLE_RATE as usize * 2;
     let mut windows = Vec::new();
     let mut matches_reference = true;
-    let streaming = if std::env::var_os("CAP_BENCH_STREAM_AUDIO").is_some() {
+    let streaming = if std::env::var_os("SCOOPY_BENCH_STREAM_AUDIO").is_some() {
         let started = Instant::now();
         let mut stream = AudioStream::open(&path, Arc::new(AtomicBool::new(false)))?;
         let open_ms = started.elapsed().as_secs_f64() * 1000.0;
@@ -110,7 +110,7 @@ fn background_audio_report(path: PathBuf, full: &AudioData, full_ms: f64) -> any
                             .all(|(actual, expected)| { actual.to_bits() == expected.to_bits() }),
                         "Streaming samples differ at source sample {next_sample}"
                     );
-                    let bytes = unsafe { cap_audio::cast_f32_slice_to_bytes(&chunk.samples) };
+                    let bytes = unsafe { scoopy_audio::cast_f32_slice_to_bytes(&chunk.samples) };
                     maximum_chunk_bytes = maximum_chunk_bytes.max(bytes.len());
                     streamed_hash.update(bytes);
                     next_sample = end;
@@ -142,7 +142,7 @@ fn background_audio_report(path: PathBuf, full: &AudioData, full_ms: f64) -> any
         sample_frames / 2,
         sample_frames.saturating_sub(window_frames),
     ] {
-        if std::env::var_os("CAP_BENCH_FULL_AUDIO_ONLY").is_some() {
+        if std::env::var_os("SCOOPY_BENCH_FULL_AUDIO_ONLY").is_some() {
             break;
         }
         let end = start.saturating_add(window_frames).min(sample_frames);
@@ -194,14 +194,14 @@ fn background_audio_report(path: PathBuf, full: &AudioData, full_ms: f64) -> any
 }
 
 fn progressive_audio(path: PathBuf) -> anyhow::Result<()> {
-    use cap_audio::AudioSampleSource;
+    use scoopy_audio::AudioSampleSource;
 
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?
         .block_on(async move {
             let started = Instant::now();
-            let loader = cap_audio::ProgressiveAudio::spawn(path.clone(), "benchmark".into());
+            let loader = scoopy_audio::ProgressiveAudio::spawn(path.clone(), "benchmark".into());
             let window = loader
                 .window(0..12_000)
                 .await
@@ -223,7 +223,7 @@ fn progressive_audio(path: PathBuf) -> anyhow::Result<()> {
             let mut decoded_bytes = 0;
             for samples in audio.sample_slices() {
                 decoded_bytes += std::mem::size_of_val(samples);
-                hash.update(unsafe { cap_audio::cast_f32_slice_to_bytes(samples) });
+                hash.update(unsafe { scoopy_audio::cast_f32_slice_to_bytes(samples) });
             }
             println!(
                 "{}",
@@ -255,19 +255,19 @@ fn methodology() -> serde_json::Value {
         "runtimeSetupIncluded": false,
         "hashingIncluded": false,
         "mixingIncluded": false,
-        "renderer": "current-cap-audio",
+        "renderer": "current-scoopy-audio",
         "mixTiming": "after-full-pcm-hash-before-stream-or-range-diagnostics",
     })
 }
 
-fn mix_benchmark(audio: &impl cap_audio::AudioSampleSource) -> Option<serde_json::Value> {
-    if std::env::var_os("CAP_BENCH_MIX_AUDIO").is_none() || audio.sample_count() < 48_000 {
+fn mix_benchmark(audio: &impl scoopy_audio::AudioSampleSource) -> Option<serde_json::Value> {
+    if std::env::var_os("SCOOPY_BENCH_MIX_AUDIO").is_none() || audio.sample_count() < 48_000 {
         return None;
     }
-    let tracks = [cap_audio::AudioRendererTrack {
+    let tracks = [scoopy_audio::AudioRendererTrack {
         data: audio,
         gain: -4.0,
-        stereo_mode: cap_audio::StereoMode::Stereo,
+        stereo_mode: scoopy_audio::StereoMode::Stereo,
         offset: 0,
     }];
     let mut output = vec![0.0_f32; 48_000 * 2 * 3];
@@ -279,7 +279,7 @@ fn mix_benchmark(audio: &impl cap_audio::AudioSampleSource) -> Option<serde_json
         {
             for offset in (0..48_000).step_by(1_024) {
                 let count = 1_024.min(48_000 - offset);
-                let written = cap_audio::render_audio(
+                let written = scoopy_audio::render_audio(
                     &tracks,
                     start + offset,
                     count,
@@ -297,6 +297,6 @@ fn mix_benchmark(audio: &impl cap_audio::AudioSampleSource) -> Option<serde_json
         "renderedSeconds": 60,
         "repetitions": 20,
         "outputBarrier": "after-each-repetition",
-        "sha256": format!("{:x}", Sha256::digest(unsafe { cap_audio::cast_f32_slice_to_bytes(&output) })),
+        "sha256": format!("{:x}", Sha256::digest(unsafe { scoopy_audio::cast_f32_slice_to_bytes(&output) })),
     }))
 }

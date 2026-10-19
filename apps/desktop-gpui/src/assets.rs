@@ -33,7 +33,7 @@ const FONTS: &[(&str, &[u8])] = assets!("fonts":
     "Geist-Bold.ttf",
 );
 
-/// Mostly Cap's own icon set, lifted from `packages/ui-solid/icons`. gpui
+/// Mostly Scoopy's own icon set, lifted from `packages/ui-solid/icons`. gpui
 /// rasterises an SVG and keeps only its alpha, tinting the result with the
 /// element's text colour, so these must be single-colour glyphs -- a full-colour
 /// illustration would come out as a filled silhouette.
@@ -71,7 +71,7 @@ const ICONS: &[(&str, &[u8])] = assets!("icons":
     "folder.svg",
     "gauge.svg",
     "gear.svg",
-    // The config sidebar's field glyphs. Four are Cap's own
+    // The config sidebar's field glyphs. Four are Scoopy's own
     // (`packages/ui-solid/icons/{padding,corners,shadow,bg-blur}.svg`); the
     // rest of the background section's are Lucide, drawn here from the same
     // 24x24 originals `~icons/lucide/*` resolves to -- laptop (MacBook notch),
@@ -105,7 +105,7 @@ const ICONS: &[(&str, &[u8])] = assets!("icons":
     "next.svg",
     // The timeline's track glyphs. `trackIcons` (`TL/index.tsx:70-80`) and
     // `getSceneIcon` (`TL/SceneTrack.tsx:80-96`) are Lucide, and the app has
-    // no Cap equivalent for most of them, so these nine are the Lucide 24x24
+    // no Scoopy equivalent for most of them, so these nine are the Lucide 24x24
     // originals: type, box-select (an alias of square-dashed since Lucide
     // 0.5xx), music, video, rotate-3d, clock, monitor, columns-2, panel-right.
     "box-select.svg",
@@ -173,7 +173,7 @@ const ICONS: &[(&str, &[u8])] = assets!("icons":
     "zap.svg",
     "zoom-in.svg",
     "zoom-out.svg",
-    // The settings Recordings page. `link` is Cap's own
+    // The settings Recordings page. `link` is Scoopy's own
     // (`packages/ui-solid/icons/link.svg`, which is Lucide's glyph); `import`
     // and `edit` are the Lucide 24x24 originals `~icons/lucide/*` resolves to;
     // `record-fill` and `warning-bold` are Phosphor's 256x256 originals, which
@@ -188,8 +188,8 @@ const ICONS: &[(&str, &[u8])] = assets!("icons":
     // `CaptionControlsMacOS.tsx` inlines, shown while the group is hovered.
     "traffic-close.svg",
     // The remaining settings pages (`settings_pages.rs`). `circle-check` is
-    // Cap's own (`packages/ui-solid/icons/circle-check.svg`, hotkeys.tsx's
-    // IconCapCircleCheck); the rest are the Lucide 24x24 originals the pages'
+    // Scoopy's own (`packages/ui-solid/icons/circle-check.svg`, hotkeys.tsx's
+    // IconScoopyCircleCheck); the rest are the Lucide 24x24 originals the pages'
     // `~icons/lucide/*` imports resolve to, except `google-drive`, which is
     // integrations/index.tsx's inline multi-colour logo flattened to one fill
     // (gpui's `svg()` keeps only the alpha).

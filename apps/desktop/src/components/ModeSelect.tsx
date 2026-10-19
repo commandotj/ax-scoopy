@@ -66,19 +66,19 @@ const ModeSelect = (props: { onClose?: () => void; standalone?: boolean }) => {
 			mode: "instant" as const,
 			title: "Instant",
 			description: "Share instantly with a link. Uploads as you record.",
-			icon: IconCapInstant,
+			icon: IconScoopyInstant,
 		},
 		{
 			mode: "studio" as const,
 			title: "Studio",
 			description: "Highest quality local recording for editing later.",
-			icon: IconCapFilmCut,
+			icon: IconScoopyFilmCut,
 		},
 		{
 			mode: "screenshot" as const,
 			title: "Screenshot",
 			description: "Capture and annotate screenshots instantly.",
-			icon: IconCapScreenshot,
+			icon: IconScoopyScreenshot,
 		},
 	];
 
@@ -98,7 +98,7 @@ const ModeSelect = (props: { onClose?: () => void; standalone?: boolean }) => {
 					onClick={() => props.onClose?.()}
 					class="absolute -top-2.5 -right-2.5 p-2 rounded-full border duration-200 bg-gray-2 border-gray-3 hover:bg-gray-3 transition-colors"
 				>
-					<IconCapX class="invert-1 size-2 dark:invert" />
+					<IconScoopyX class="invert-1 size-2 dark:invert" />
 				</div>
 			</Show>
 

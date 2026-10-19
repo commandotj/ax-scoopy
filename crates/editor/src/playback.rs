@@ -1,12 +1,12 @@
-use cap_project::{
+use scoopy_project::{
     ClipOffsets, ClipTransitionType, ProjectConfiguration, TimelineFrameMapping, XY,
 };
-use cap_rendering::{
+use scoopy_rendering::{
     DecodedFrame, DecodedSegmentFrames, PrecomputedCursorTimeline, ProjectUniforms,
     RecordingSegmentDecoders, RenderVideoConstants, ZoomTransformTimeline,
     spring_mass_damper::SpringMassDamperSimulationConfig,
 };
-use cap_utils::operation_diagnostics::{Field, Operation};
+use scoopy_utils::operation_diagnostics::{Field, Operation};
 use futures::stream::{FuturesUnordered, StreamExt};
 use lru::LruCache;
 use std::{
@@ -50,7 +50,7 @@ const MAX_FRAME_CACHE_BYTES: usize = 64 * 1024 * 1024;
 const RAMP_UP_FRAME_COUNT: u32 = 15;
 
 fn clip_audio_changed(previous: &ProjectConfiguration, next: &ProjectConfiguration) -> bool {
-    let settings = |segment: &cap_project::TimelineSegment| {
+    let settings = |segment: &scoopy_project::TimelineSegment| {
         (
             segment.recording_clip,
             segment.start,
@@ -2020,7 +2020,7 @@ impl Playback {
         };
 
         std::thread::Builder::new()
-            .name("cap-playback".into())
+            .name("scoopy-playback".into())
             .spawn(playback_body)
             .expect("failed to spawn playback thread");
 
@@ -2087,7 +2087,7 @@ mod tests {
         assert!(clip_audio_changed(&project, &next));
         next.timeline.as_mut().unwrap().segments[0].volume = None;
         next.timeline.as_mut().unwrap().segments[0].speed_audio_mode =
-            Some(cap_project::ClipSpeedAudioMode::Mute);
+            Some(scoopy_project::ClipSpeedAudioMode::Mute);
         assert!(clip_audio_changed(&project, &next));
         next.timeline.as_mut().unwrap().segments.clear();
         assert!(clip_audio_changed(&project, &next));

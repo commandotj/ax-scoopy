@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use cap_enc_ffmpeg::remux::get_media_duration;
+use scoopy_enc_ffmpeg::remux::get_media_duration;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri::{AppHandle, Manager, path::BaseDirectory};

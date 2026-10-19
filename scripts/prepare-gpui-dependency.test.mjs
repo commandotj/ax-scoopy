@@ -19,7 +19,7 @@ const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const patchDirectory = "apps/desktop-gpui/patches";
 
 test("GPUI patches remain applicable after a Windows-style Git checkout", (t) => {
-	const fixture = mkdtempSync(path.join(tmpdir(), "cap-gpui-patch-checkout-"));
+	const fixture = mkdtempSync(path.join(tmpdir(), "scoopy-gpui-patch-checkout-"));
 	t.after(() => rmSync(fixture, { recursive: true, force: true }));
 	const emptyConfig = path.join(fixture, "empty.gitconfig");
 	writeFileSync(emptyConfig, "");
@@ -79,7 +79,7 @@ test("GPUI patches remain applicable after a Windows-style Git checkout", (t) =>
 });
 
 test("dependency verification handles overlapping patches without changing the checkout", async (t) => {
-	const fixture = mkdtempSync(path.join(tmpdir(), "cap-gpui-patch-stack-"));
+	const fixture = mkdtempSync(path.join(tmpdir(), "scoopy-gpui-patch-stack-"));
 	t.after(() => rmSync(fixture, { recursive: true, force: true }));
 	const emptyConfig = path.join(fixture, "empty.gitconfig");
 	writeFileSync(emptyConfig, "");
@@ -107,8 +107,8 @@ test("dependency verification handles overlapping patches without changing the c
 		return result.stdout;
 	};
 	const upstream = path.join(fixture, "upstream");
-	const cap = path.join(fixture, "Cap checkout");
-	const zed = path.join(fixture, "zed-cap");
+	const cap = path.join(fixture, "Scoopy checkout");
+	const zed = path.join(fixture, "zed-scoopy");
 	mkdirSync(upstream);
 	mkdirSync(path.join(cap, "scripts"), { recursive: true });
 	mkdirSync(path.join(cap, patchDirectory), { recursive: true });
@@ -195,7 +195,7 @@ test("dependency verification handles overlapping patches without changing the c
 			const before = fingerprint();
 			const result = run(cap, "bash", [script]);
 			assert.equal(result.status, 1);
-			assert.match(result.stderr, /does not contain Cap's pinned GPUI patch/);
+			assert.match(result.stderr, /does not contain Scoopy's pinned GPUI patch/);
 			assert.deepEqual(fingerprint(), before);
 			assert.equal(existsSync(path.join(zed, "temporary.rs")), true);
 		},
@@ -250,7 +250,7 @@ test("dependency verification handles overlapping patches without changing the c
 			const before = fingerprint();
 			const result = run(cap, "bash", [script]);
 			assert.equal(result.status, 1);
-			assert.match(result.stderr, /does not contain Cap's pinned GPUI patch/);
+			assert.match(result.stderr, /does not contain Scoopy's pinned GPUI patch/);
 			assert.deepEqual(fingerprint(), before);
 			assert.equal(
 				readFileSync(path.join(zed, "windows.rs"), "utf8"),

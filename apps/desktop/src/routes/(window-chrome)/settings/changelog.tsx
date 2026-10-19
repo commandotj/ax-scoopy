@@ -24,7 +24,7 @@ export default function Page() {
 	});
 
 	return (
-		<div class="cap-settings-page flex flex-col h-full custom-scroll">
+		<div class="scoopy-settings-page flex flex-col h-full custom-scroll">
 			<SettingsPageContent class="max-w-none">
 				<Show when={!changelog.isLoading} fallback={<AbsoluteInsetLoader />}>
 					<div class="flex flex-col gap-6 text-sm font-normal">

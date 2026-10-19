@@ -4,7 +4,7 @@ use crate::{OutputFormat, write_json};
 
 const GUIDE_SCHEMA_VERSION: u32 = 4;
 
-/// Machine-readable capability + schema manifest. `cap guide --json` is the single document an agent
+/// Machine-readable capability + schema manifest. `scoopy guide --json` is the single document an agent
 /// can fetch to learn the output convention, env vars, exit codes, and the per-command output shape
 /// without reverse-engineering each command by running it. `schemaVersion` versions this contract.
 #[derive(Serialize)]
@@ -109,13 +109,13 @@ fn build() -> Guide {
         },
         env: vec![
             EnvVar {
-                name: "CAP_NO_MODIFY_PATH",
+                name: "SCOOPY_NO_MODIFY_PATH",
                 required: false,
                 used_by: "desktop install-cli",
                 description: "Set to skip editing shell profiles / user PATH during install.",
             },
             EnvVar {
-                name: "CAP_DESKTOP_FORCE_INSTALL",
+                name: "SCOOPY_DESKTOP_FORCE_INSTALL",
                 required: false,
                 used_by: "install-cli.sh, install-cli.ps1",
                 description: "Force the installer scripts to replace Scoopy Desktop before linking the CLI.",
@@ -151,7 +151,7 @@ fn build() -> Guide {
             CommandDoc {
                 requires_duration: false,
                 notes: Some(
-                    "The `started` then `stopped` sequence applies to the foreground run. With `--detach` the stream emits only `started` (or `error`) and returns immediately with recordingId+pid; the `stopped` event is delivered by `cap record stop`.",
+                    "The `started` then `stopped` sequence applies to the foreground run. With `--detach` the stream emits only `started` (or `error`) and returns immediately with recordingId+pid; the `stopped` event is delivered by `scoopy record stop`.",
                 ),
                 ..cmd(
                     "record start",
@@ -180,7 +180,7 @@ fn build() -> Guide {
                 ),
                 ..cmd(
                     "export",
-                    "Render a .cap project to a video file.",
+                    "Render a .scoopy project to a video file.",
                     OutputMode::Ndjson,
                     &["Progress", "Completed", "Error"],
                 )
@@ -199,7 +199,7 @@ fn build() -> Guide {
             ),
             cmd(
                 "recordings list",
-                "List .cap recordings in the desktop library (or --dir).",
+                "List .scoopy recordings in the desktop library (or --dir).",
                 OutputMode::SingleJson,
                 &[],
             ),
@@ -229,7 +229,7 @@ fn build() -> Guide {
             ),
             cmd(
                 "desktop status|install-cli|uninstall-cli",
-                "Inspect or manage the `cap` shim on PATH.",
+                "Inspect or manage the `scoopy` shim on PATH.",
                 OutputMode::SingleJson,
                 &[],
             ),
@@ -243,7 +243,7 @@ fn build() -> Guide {
         notes: vec![
             "Wrapper JSON keys are camelCase. Shapes shared with the desktop (RecordingMeta, \
              ProjectConfiguration, export NDJSON) preserve their original field casing.",
-            "`cap completions <shell>` prints a shell completion script.",
+            "`scoopy completions <shell>` prints a shell completion script.",
             "Recording without --duration requires either --detach or an interactive terminal.",
             "The CLI is local-only: it records, edits and exports on this machine and never contacts a Scoopy server.",
         ],
@@ -274,7 +274,7 @@ pub fn run(format: OutputFormat) -> Result<(), String> {
             for command in &guide.commands {
                 println!("  {} — {}", command.command, command.summary);
             }
-            println!("\nRun `cap guide --json` for the full machine-readable manifest.");
+            println!("\nRun `scoopy guide --json` for the full machine-readable manifest.");
             Ok(())
         }
     }

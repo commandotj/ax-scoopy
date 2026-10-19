@@ -42,7 +42,7 @@ describe("resolveDesktopBenchmarkBrowser", () => {
 		expect(
 			resolveDesktopBenchmarkBrowser({
 				platform: "linux",
-				environment: { CAP_DESKTOP_BENCHMARK_BROWSER: browser },
+				environment: { SCOOPY_DESKTOP_BENCHMARK_BROWSER: browser },
 				fileExists: (candidate) => candidate === browser,
 			}),
 		).toBe(browser);
@@ -52,7 +52,7 @@ describe("resolveDesktopBenchmarkBrowser", () => {
 		expect(() =>
 			resolveDesktopBenchmarkBrowser({
 				platform: "linux",
-				environment: { CAP_DESKTOP_BENCHMARK_BROWSER: "/missing/browser" },
+				environment: { SCOOPY_DESKTOP_BENCHMARK_BROWSER: "/missing/browser" },
 				fileExists: () => false,
 			}),
 		).toThrow("Benchmark browser does not exist: /missing/browser");
@@ -65,6 +65,6 @@ describe("resolveDesktopBenchmarkBrowser", () => {
 				environment: {},
 				fileExists: () => false,
 			}),
-		).toThrow("set CAP_DESKTOP_BENCHMARK_BROWSER");
+		).toThrow("set SCOOPY_DESKTOP_BENCHMARK_BROWSER");
 	});
 });

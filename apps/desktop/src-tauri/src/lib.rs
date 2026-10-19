@@ -69,12 +69,12 @@ mod windows;
 use audio::AppSounds;
 use auth::{AuthStore, Plan};
 use camera::{CameraPreviewManager, CameraPreviewSender, CameraPreviewState};
-use cap_editor::{EditorInstance, EditorState};
-use cap_project::{
+use scoopy_editor::{EditorInstance, EditorState};
+use scoopy_project::{
     InstantRecordingMeta, ProjectConfiguration, RecordingMeta, RecordingMetaInner, SharingMeta,
     StudioRecordingMeta, StudioRecordingStatus, UploadMeta, VideoUploadInfo, XY, ZoomSegment,
 };
-use cap_recording::{
+use scoopy_recording::{
     RecordingMode,
     feeds::{
         self,
@@ -83,7 +83,7 @@ use cap_recording::{
     },
     sources::screen_capture::ScreenCaptureTarget,
 };
-use cap_rendering::ProjectRecordingsMeta;
+use scoopy_rendering::ProjectRecordingsMeta;
 use clipboard_rs::Clipboard;
 #[cfg(not(target_os = "linux"))]
 use clipboard_rs::ClipboardContext;
@@ -143,7 +143,7 @@ use web_api::ManagerExt as WebManagerExt;
 #[cfg(target_os = "macos")]
 use windows::hide_overlay;
 use windows::{
-    CapWindowId, EditorRecordingTarget, EditorWindowIds, ScreenshotEditorWindowIds, ShowCapWindow,
+    ScoopyWindowId, EditorRecordingTarget, EditorWindowIds, ScreenshotEditorWindowIds, ShowScoopyWindow,
     set_window_transparent, show_overlay,
 };
 
@@ -184,7 +184,7 @@ struct FinalizationAttempt {
     result: watch::Sender<FinalizationResult>,
     preparing_generation: Option<u64>,
     preparing_presentation:
-        watch::Sender<Option<Result<Arc<cap_project::ProjectConfiguration>, String>>>,
+        watch::Sender<Option<Result<Arc<scoopy_project::ProjectConfiguration>, String>>>,
     preparing: watch::Sender<preparing_finalization::PreparingFinalizationState>,
 }
 
@@ -1475,7 +1475,7 @@ pub struct App {
     #[deprecated = "can be removed when native camera preview is ready"]
     camera_ws_port: u16,
     #[deprecated = "can be removed when native camera preview is ready"]
-    camera_ws_sender: flume::Sender<cap_recording::FFmpegVideoFrame>,
+    camera_ws_sender: flume::Sender<scoopy_recording::FFmpegVideoFrame>,
     #[cfg(target_os = "linux")]
     pub camera_processing: linux_instant_camera::ProcessingFactory,
     camera_preview: CameraPreviewManager,
@@ -1566,14 +1566,14 @@ fn emit_camera_preview_clear(app_handle: &AppHandle) {
 
 async fn add_camera_preview_ws_sender(
     camera_feed: &ActorRef<CameraFeed>,
-    sender: flume::Sender<cap_recording::FFmpegVideoFrame>,
+    sender: flume::Sender<scoopy_recording::FFmpegVideoFrame>,
 ) {
     add_camera_preview_sender(camera_feed, sender, "WebSocket").await;
 }
 
 async fn add_camera_preview_sender(
     camera_feed: &ActorRef<CameraFeed>,
-    sender: flume::Sender<cap_recording::FFmpegVideoFrame>,
+    sender: flume::Sender<scoopy_recording::FFmpegVideoFrame>,
     label: &str,
 ) {
     let result = camera_feed.ask(feeds::camera::AddSender(sender)).await;
@@ -1584,7 +1584,7 @@ async fn add_camera_preview_sender(
 
 async fn remove_camera_preview_sender(
     camera_feed: &ActorRef<CameraFeed>,
-    sender: flume::Sender<cap_recording::FFmpegVideoFrame>,
+    sender: flume::Sender<scoopy_recording::FFmpegVideoFrame>,
     label: &str,
 ) {
     let result = camera_feed.ask(feeds::camera::RemoveSender(sender)).await;
@@ -1595,7 +1595,7 @@ async fn remove_camera_preview_sender(
 
 async fn sync_camera_preview_sender(
     camera_feed: &ActorRef<CameraFeed>,
-    camera_ws_sender: flume::Sender<cap_recording::FFmpegVideoFrame>,
+    camera_ws_sender: flume::Sender<scoopy_recording::FFmpegVideoFrame>,
     camera_preview_sender: Option<CameraPreviewSender>,
     use_ws_preview: bool,
 ) {
@@ -1663,7 +1663,7 @@ impl App {
         self.was_camera_only_recording = false;
         self.close_occluder_windows();
         crate::windows::apply_content_protection(&self.handle, false);
-        if let Some(camera) = CapWindowId::Camera.get(&self.handle) {
+        if let Some(camera) = ScoopyWindowId::Camera.get(&self.handle) {
             let _ = camera.set_content_protected(false);
         }
         CurrentRecordingChanged.emit(&self.handle).ok();
@@ -2358,8 +2358,8 @@ async fn upload_logs(app_handle: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 #[specta::specta]
-fn get_system_diagnostics() -> cap_recording::diagnostics::SystemDiagnostics {
-    cap_recording::diagnostics::collect_diagnostics()
+fn get_system_diagnostics() -> scoopy_recording::diagnostics::SystemDiagnostics {
+    scoopy_recording::diagnostics::collect_diagnostics()
 }
 
 #[tauri::command]
@@ -2458,7 +2458,7 @@ async fn apply_camera_input(
     }
 
     let skip_camera_window = skip_camera_window.unwrap_or(false);
-    let camera_window_is_visible = CapWindowId::Camera
+    let camera_window_is_visible = ScoopyWindowId::Camera
         .get(app_handle)
         .and_then(|window| window.is_visible().ok())
         .unwrap_or(false);
@@ -2546,7 +2546,7 @@ async fn apply_camera_input(
                 let _ = tokio::time::timeout(Duration::from_millis(500), rx).await;
             }
 
-            if !skip_camera_window && let Some(window) = CapWindowId::Camera.get(app_handle) {
+            if !skip_camera_window && let Some(window) = ScoopyWindowId::Camera.get(app_handle) {
                 let _ = window.hide();
             }
         }
@@ -2734,9 +2734,9 @@ async fn show_requested_camera_window(app: &AppHandle, revision: u64) -> Result<
     if !requested.camera_is_current(revision) {
         return Err("Camera selection was superseded by a newer request".into());
     }
-    let result = ShowCapWindow::Camera { centered: false }.show(app).await;
+    let result = ShowScoopyWindow::Camera { centered: false }.show(app).await;
     if !requested.camera_is_current(revision) {
-        if let Some(window) = CapWindowId::Camera.get(app) {
+        if let Some(window) = ScoopyWindowId::Camera.get(app) {
             let _ = window.hide();
         }
         return Err("Camera selection was superseded by a newer request".into());
@@ -2857,7 +2857,7 @@ async fn set_native_camera_preview_enabled(
         settings.enable_native_camera_preview = enabled;
     })?;
 
-    let window = CapWindowId::Camera.get(&app_handle);
+    let window = ScoopyWindowId::Camera.get(&app_handle);
 
     if enabled {
         let Some(window) = window else {
@@ -3050,7 +3050,7 @@ fn spawn_device_watchers(app_handle: AppHandle) {
 
 #[derive(Serialize, Type, tauri_specta::Event, Debug, Clone)]
 pub struct DevicesUpdated {
-    cameras: Vec<cap_camera::CameraInfo>,
+    cameras: Vec<scoopy_camera::CameraInfo>,
     microphones: Vec<String>,
     permissions: permissions::OSPermissionsCheck,
 }
@@ -3060,7 +3060,7 @@ pub struct DevicesUpdated {
 async fn get_devices_snapshot() -> DevicesUpdated {
     let permissions = permissions::do_permissions_check(false);
     let cameras = if permissions.camera.permitted() {
-        cap_camera::list_cameras().collect()
+        scoopy_camera::list_cameras().collect()
     } else {
         Vec::new()
     };
@@ -3108,7 +3108,7 @@ fn spawn_devices_snapshot_emitter(app_handle: AppHandle) {
                 || app_is_exiting(&app_handle),
                 permissions.camera.permitted(),
                 permissions.microphone.permitted(),
-                || cap_camera::list_cameras().collect::<Vec<_>>(),
+                || scoopy_camera::list_cameras().collect::<Vec<_>>(),
                 MicrophoneFeed::list_names,
             ) else {
                 break;
@@ -3295,7 +3295,7 @@ async fn cleanup_camera_window(app: AppHandle, session_id: u64) {
             label.starts_with("target-select-overlay-") && window.is_visible().unwrap_or(false)
         });
 
-        let main_window_visible = CapWindowId::Main
+        let main_window_visible = ScoopyWindowId::Main
             .get(&app)
             .and_then(|w| w.is_visible().ok())
             .unwrap_or(false);
@@ -3363,7 +3363,7 @@ async fn cleanup_camera_after_overlay_close(app: AppHandle, captured_session_id:
             return;
         }
 
-        let has_camera_window = CapWindowId::Camera.get(&app).is_some();
+        let has_camera_window = ScoopyWindowId::Camera.get(&app).is_some();
         if has_camera_window {
             return;
         }
@@ -3693,7 +3693,7 @@ async fn flush_editor_titles_for_exit(
     let labels: HashSet<_> = app
         .webview_windows()
         .into_keys()
-        .filter(|label| matches!(CapWindowId::from_str(label), Ok(CapWindowId::Editor { .. })))
+        .filter(|label| matches!(ScoopyWindowId::from_str(label), Ok(ScoopyWindowId::Editor { .. })))
         .collect();
     if labels.is_empty() {
         return Ok(None);
@@ -3722,7 +3722,7 @@ async fn flush_editor_titles_for_exit(
         .await?;
         if app.webview_windows().keys().any(|label| {
             !labels.contains(label)
-                && matches!(CapWindowId::from_str(label), Ok(CapWindowId::Editor { .. }))
+                && matches!(ScoopyWindowId::from_str(label), Ok(ScoopyWindowId::Editor { .. }))
         }) {
             return Err("Another editor opened while preparing to quit. Try Quit again.".into());
         }
@@ -3952,7 +3952,7 @@ fn spawn_camera_watcher(app_handle: AppHandle) {
 }
 
 pub(crate) fn is_camera_available(id: &DeviceOrModelID) -> bool {
-    let cameras: Vec<_> = cap_camera::list_cameras().collect();
+    let cameras: Vec<_> = scoopy_camera::list_cameras().collect();
     debug!(
         "is_camera_available: looking for {:?} in {} cameras",
         id,
@@ -4660,7 +4660,7 @@ async fn open_file_path(_app: AppHandle, path: PathBuf) -> Result<(), String> {
 
 /// The opener's Linux backend makes blocking zbus calls, which panic inside an async task.
 pub(crate) async fn reveal_in_dir(app: AppHandle, path: PathBuf) -> Result<(), String> {
-    cap_utils::run_on_dedicated_thread("reveal-item-in-dir", move || {
+    scoopy_utils::run_on_dedicated_thread("reveal-item-in-dir", move || {
         app.opener().reveal_item_in_dir(path)
     })
     .await
@@ -4699,8 +4699,8 @@ pub(crate) struct FrameLayoutEvent {
     output_height: u32,
 }
 
-impl From<cap_editor::FrameLayout> for FrameLayoutEvent {
-    fn from(layout: cap_editor::FrameLayout) -> Self {
+impl From<scoopy_editor::FrameLayout> for FrameLayoutEvent {
+    fn from(layout: scoopy_editor::FrameLayout) -> Self {
         Self {
             display: layout.display,
             camera: layout.camera,
@@ -4795,15 +4795,15 @@ struct SerializedEditorInstance {
     /// Notch geometry the overlay uses when the project sets no manual
     /// placement: this recording's own measurements where the recorder took
     /// them, else a stock MacBook notch for the editor to start from.
-    notch_base: cap_project::DisplayNotch,
+    notch_base: scoopy_project::DisplayNotch,
 }
 
 #[tauri::command]
 #[specta::specta]
 #[instrument(skip(window))]
 async fn create_editor_instance(window: Window) -> Result<SerializedEditorInstance, String> {
-    let CapWindowId::Editor { id } =
-        CapWindowId::from_str(window.label()).map_err(|e| e.to_string())?
+    let ScoopyWindowId::Editor { id } =
+        ScoopyWindowId::from_str(window.label()).map_err(|e| e.to_string())?
     else {
         return Err("Invalid window".to_string());
     };
@@ -4838,7 +4838,7 @@ async fn create_editor_instance(window: Window) -> Result<SerializedEditorInstan
             .render_constants
             .meta
             .display_notch()
-            .unwrap_or(cap_project::DEFAULT_MACBOOK_NOTCH),
+            .unwrap_or(scoopy_project::DEFAULT_MACBOOK_NOTCH),
     })
 }
 
@@ -4846,8 +4846,8 @@ async fn create_editor_instance(window: Window) -> Result<SerializedEditorInstan
 #[specta::specta]
 #[instrument(skip(window))]
 async fn get_editor_project_path(window: Window) -> Result<PathBuf, String> {
-    let CapWindowId::Editor { id } =
-        CapWindowId::from_str(window.label()).map_err(|e| e.to_string())?
+    let ScoopyWindowId::Editor { id } =
+        ScoopyWindowId::from_str(window.label()).map_err(|e| e.to_string())?
     else {
         return Err("Invalid window".to_string());
     };
@@ -4992,7 +4992,7 @@ fn close_recordings_overlay_window(app: AppHandle) {
         app.run_on_main_thread(move || {
             use tauri_nspanel::ManagerExt;
             if let Ok(panel) =
-                app_for_close.get_webview_panel(&CapWindowId::RecordingsOverlay.label())
+                app_for_close.get_webview_panel(&ScoopyWindowId::RecordingsOverlay.label())
             {
                 panel.released_when_closed(false);
                 panel.close();
@@ -5002,7 +5002,7 @@ fn close_recordings_overlay_window(app: AppHandle) {
     }
 
     if !cfg!(target_os = "macos")
-        && let Some(window) = CapWindowId::RecordingsOverlay.get(&app)
+        && let Some(window) = ScoopyWindowId::RecordingsOverlay.get(&app)
     {
         let _ = window.close();
     }
@@ -5018,7 +5018,7 @@ fn focus_captures_panel(_app: AppHandle) {
         _app.run_on_main_thread(move || {
             use tauri_nspanel::ManagerExt;
             if let Ok(panel) =
-                app_for_focus.get_webview_panel(&CapWindowId::RecordingsOverlay.label())
+                app_for_focus.get_webview_panel(&ScoopyWindowId::RecordingsOverlay.label())
             {
                 panel.make_key_window();
             }
@@ -5116,12 +5116,12 @@ async fn generate_keyboard_segments(
     linger_duration_ms: f64,
     show_modifiers: bool,
     show_special_keys: bool,
-) -> Result<Vec<cap_project::KeyboardTrackSegment>, String> {
+) -> Result<Vec<scoopy_project::KeyboardTrackSegment>, String> {
     let project = editor_instance.project_config.1.borrow().clone();
     let Some(timeline) = project.timeline else {
         return Ok(Vec::new());
     };
-    let settings = cap_project::KeyboardSettings {
+    let settings = scoopy_project::KeyboardSettings {
         grouping_threshold_ms,
         linger_duration: (linger_duration_ms / 1000.0) as f32,
         show_modifiers,
@@ -5130,7 +5130,7 @@ async fn generate_keyboard_segments(
     };
     let meta = editor_instance.meta().clone();
     tokio::task::spawn_blocking(move || {
-        cap_project::generate_project_keyboard_segments(&meta, &timeline, &settings)
+        scoopy_project::generate_project_keyboard_segments(&meta, &timeline, &settings)
     })
     .await
     .map_err(|error| format!("Keyboard generation failed: {error}"))?
@@ -5154,7 +5154,7 @@ async fn list_audio_devices() -> Result<Vec<String>, ()> {
 #[specta::specta]
 #[instrument]
 async fn list_system_fonts() -> Vec<String> {
-    tokio::task::spawn_blocking(cap_rendering::system_font_families)
+    tokio::task::spawn_blocking(scoopy_rendering::system_font_families)
         .await
         .unwrap_or_default()
 }
@@ -5328,7 +5328,7 @@ async fn upload_exported_video(
 
 fn screenshot_project_path_from_path(path: &std::path::Path) -> Option<PathBuf> {
     path.ancestors()
-        .find(|ancestor| ancestor.extension().and_then(|s| s.to_str()) == Some("cap"))
+        .find(|ancestor| ancestor.extension().and_then(|s| s.to_str()) == Some("scoopy"))
         .map(std::path::Path::to_path_buf)
 }
 
@@ -5536,7 +5536,7 @@ async fn save_file_dialog_inner(
     info!(file_name, file_type, "Save file dialog requested");
 
     let file_name = file_name
-        .strip_suffix(".cap")
+        .strip_suffix(".scoopy")
         .unwrap_or(&file_name)
         .to_string();
 
@@ -5785,8 +5785,8 @@ fn list_recordings_inner(
 
 fn acquire_recording_delete_lock(
     path: &std::path::Path,
-) -> Result<cap_recording::upload_resume::UploadLock, String> {
-    cap_recording::upload_resume::UploadLock::acquire(path).map_err(|error| error.to_string())
+) -> Result<scoopy_recording::upload_resume::UploadLock, String> {
+    scoopy_recording::upload_resume::UploadLock::acquire(path).map_err(|error| error.to_string())
 }
 
 fn recording_delete_target(
@@ -5892,7 +5892,7 @@ fn list_screenshots_inner(
         .filter_map(|entry| {
             let entry = entry.ok()?;
             let path = entry.path();
-            if path.is_dir() && path.extension().and_then(|s| s.to_str()) == Some("cap") {
+            if path.is_dir() && path.extension().and_then(|s| s.to_str()) == Some("scoopy") {
                 let png_path = std::fs::read_dir(&path)
                     .ok()?
                     .filter_map(|e| e.ok())
@@ -6047,7 +6047,7 @@ async fn clear_presets(app: AppHandle) -> Result<(), String> {
 #[specta::specta]
 #[instrument(skip(app))]
 async fn is_camera_window_open(app: AppHandle) -> bool {
-    CapWindowId::Camera
+    ScoopyWindowId::Camera
         .get(&app)
         .map(|w| w.is_visible().unwrap_or(false))
         .unwrap_or(false)
@@ -6073,8 +6073,8 @@ async fn get_display_frame_for_cropping(
     editor_instance: WindowEditorInstance,
     fps: u32,
 ) -> Result<Vec<u8>, String> {
-    use cap_project::ClipOffsets;
-    use cap_rendering::{PixelFormat, cpu_yuv};
+    use scoopy_project::ClipOffsets;
+    use scoopy_rendering::{PixelFormat, cpu_yuv};
     use image::{ImageEncoder, codecs::jpeg::JpegEncoder};
     use std::io::Cursor;
     use std::time::Instant;
@@ -6199,7 +6199,7 @@ async fn get_display_frame_for_cropping(
     let total_elapsed_ms = total_started_at.elapsed().as_secs_f64() * 1000.0;
 
     debug!(
-        target: "cap_crop_profile",
+        target: "scoopy_crop_profile",
         frame_number = frame_number,
         time_secs = time_secs,
         segment_time = segment_time,
@@ -6292,7 +6292,7 @@ async fn editor_delete_project(
 
 async fn open_pricing_page(app: &AppHandle) -> Result<(), String> {
     app.shell()
-        .open("https://cap.so/pricing?ref=desktop", None)
+        .open("https://example.com/pricing?ref=desktop", None)
         .map_err(|e| e.to_string())
 }
 
@@ -6300,12 +6300,12 @@ async fn open_pricing_page(app: &AppHandle) -> Result<(), String> {
 #[tauri::command]
 #[specta::specta]
 #[instrument(skip(app))]
-async fn show_window(app: AppHandle, window: ShowCapWindow) -> Result<(), String> {
-    if matches!(window, ShowCapWindow::Upgrade) {
+async fn show_window(app: AppHandle, window: ShowScoopyWindow) -> Result<(), String> {
+    if matches!(window, ShowScoopyWindow::Upgrade) {
         return open_pricing_page(&app).await;
     }
 
-    if matches!(window, ShowCapWindow::Camera { .. }) {
+    if matches!(window, ShowScoopyWindow::Camera { .. }) {
         let operation_lock = app.state::<CameraWindowOperationLock>();
         let _operation_guard = operation_lock.lock().await;
         window.show(&app).await.map_err(|e| e.to_string())?;
@@ -6320,14 +6320,14 @@ async fn show_window(app: AppHandle, window: ShowCapWindow) -> Result<(), String
 #[specta::specta]
 #[instrument]
 fn list_fails() -> Result<BTreeMap<String, bool>, ()> {
-    Ok(cap_fail::get_state())
+    Ok(scoopy_fail::get_state())
 }
 
 #[tauri::command(async)]
 #[specta::specta]
 #[instrument]
 fn set_fail(name: String, value: bool) {
-    cap_fail::set_fail(&name, value)
+    scoopy_fail::set_fail(&name, value)
 }
 
 async fn check_notification_permissions(app: AppHandle) {
@@ -6364,10 +6364,10 @@ async fn check_notification_permissions(app: AppHandle) {
 }
 
 // fn configure_logging(folder: &PathBuf) -> tracing_appender::non_blocking::WorkerGuard {
-//     let file_appender = tracing_appender::rolling::daily(folder, "cap-logs.log");
+//     let file_appender = tracing_appender::rolling::daily(folder, "scoopy-logs.log");
 //     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
-//     let filter = || tracing_subscriber::filter::EnvFilter::builder().parse_lossy("cap-*=TRACE");
+//     let filter = || tracing_subscriber::filter::EnvFilter::builder().parse_lossy("scoopy-*=TRACE");
 
 //     tracing_subscriber::registry()
 //         .with(
@@ -6601,7 +6601,7 @@ pub async fn open_target_picker(
         Ok(session) => session,
         Err(error) => {
             warn!(%error, "Failed to open target picker");
-            let _ = ShowCapWindow::Main {
+            let _ = ShowScoopyWindow::Main {
                 init_target_mode: None,
             }
             .show(app)
@@ -6657,10 +6657,10 @@ fn configure_windows_graphics_recovery(
     previous_termination: Option<crash_sentinel::UnexpectedTermination>,
 ) {
     if should_engage_graphics_recovery(previous_termination) {
-        cap_rendering::set_force_software_wgpu_adapter(true);
+        scoopy_rendering::set_force_software_wgpu_adapter(true);
         crash_sentinel::mark_graphics_recovery();
         warn!(
-            "Previous Cap session terminated during GPU initialisation; using Windows software graphics recovery mode for this launch"
+            "Previous Scoopy session terminated during GPU initialisation; using Windows software graphics recovery mode for this launch"
         );
     } else if previous_termination.is_some() {
         info!(
@@ -6723,11 +6723,11 @@ fn configure_camera_blur_recovery(
     }
 
     if next.is_some() {
-        cap_camera_effects::set_blur_disabled(true);
+        scoopy_camera_effects::set_blur_disabled(true);
         crash_sentinel::mark_blur_recovery();
         if stored.is_none() {
             error!(
-                "Previous Cap session died with camera background blur active; disabling blur until the next app update"
+                "Previous Scoopy session died with camera background blur active; disabling blur until the next app update"
             );
         } else {
             warn!("Camera background blur remains disabled by crash recovery for this launch");
@@ -6742,14 +6742,14 @@ fn configure_camera_blur_recovery(
 
 #[tauri::command]
 #[specta::specta]
-fn animated_gradient_catalog() -> cap_project::AnimatedGradientCatalog {
-    cap_project::animated_gradient_catalog()
+fn animated_gradient_catalog() -> scoopy_project::AnimatedGradientCatalog {
+    scoopy_project::animated_gradient_catalog()
 }
 
 #[tauri::command]
 #[specta::specta]
-fn random_animated_gradient() -> cap_project::AnimatedGradientConfig {
-    cap_project::AnimatedGradientConfig::random()
+fn random_animated_gradient() -> scoopy_project::AnimatedGradientConfig {
+    scoopy_project::AnimatedGradientConfig::random()
 }
 
 #[cfg(any(debug_assertions, test))]
@@ -6998,27 +6998,27 @@ fn specta_builder() -> tauri_specta::Builder {
         ])
         .error_handling(tauri_specta::ErrorHandlingMode::Throw)
         .typ::<ProjectConfiguration>()
-        .typ::<cap_project::AnimatedGradientLibrary>()
+        .typ::<scoopy_project::AnimatedGradientLibrary>()
         .typ::<AuthStore>()
         .typ::<presets::PresetsStore>()
         .typ::<hotkeys::HotkeysStore>()
         .typ::<general_settings::GeneralSettingsStore>()
         .typ::<recording_settings::RecordingSettingsStore>()
-        .typ::<cap_flags::Flags>()
+        .typ::<scoopy_flags::Flags>()
         .typ::<crate::window_exclusion::WindowExclusion>()
-        .typ::<cap_automation::AutomationsStore>()
-        .typ::<cap_automation::AutomationRule>()
-        .typ::<cap_automation::Trigger>()
-        .typ::<cap_automation::Condition>()
-        .typ::<cap_automation::Action>()
-        .typ::<cap_automation::ExportProfile>()
-        .typ::<cap_automation::MatchMode>()
-        .typ::<cap_automation::CaptureTargetKind>()
-        .typ::<cap_automation::AutomationRecordingMode>()
-        .typ::<cap_automation::ClipboardSource>()
-        .typ::<cap_automation::ExportFormat>()
-        .typ::<cap_automation::AutomationExportCompression>()
-        .typ::<cap_automation::ExportDestination>()
+        .typ::<scoopy_automation::AutomationsStore>()
+        .typ::<scoopy_automation::AutomationRule>()
+        .typ::<scoopy_automation::Trigger>()
+        .typ::<scoopy_automation::Condition>()
+        .typ::<scoopy_automation::Action>()
+        .typ::<scoopy_automation::ExportProfile>()
+        .typ::<scoopy_automation::MatchMode>()
+        .typ::<scoopy_automation::CaptureTargetKind>()
+        .typ::<scoopy_automation::AutomationRecordingMode>()
+        .typ::<scoopy_automation::ClipboardSource>()
+        .typ::<scoopy_automation::ExportFormat>()
+        .typ::<scoopy_automation::AutomationExportCompression>()
+        .typ::<scoopy_automation::ExportDestination>()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -7032,7 +7032,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
     // Keep the sentinel's blur marker in sync with live BlurProcessor instances
     // (camera preview and editor render alike), so a native blur crash is
     // attributable on the next launch.
-    cap_camera_effects::set_blur_session_observer(|active| {
+    scoopy_camera_effects::set_blur_session_observer(|active| {
         if active {
             crash_sentinel::enter_blur_session();
         } else {
@@ -7168,16 +7168,16 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                     flags
                 })
                 .with_denylist(&[
-                    CapWindowId::Onboarding.label().as_str(),
-                    CapWindowId::Main.label().as_str(),
-                    CapWindowId::Settings.label().as_str(),
+                    ScoopyWindowId::Onboarding.label().as_str(),
+                    ScoopyWindowId::Main.label().as_str(),
+                    ScoopyWindowId::Settings.label().as_str(),
                     "window-capture-occluder",
                     "target-select-overlay",
-                    CapWindowId::CaptureArea.label().as_str(),
-                    CapWindowId::Camera.label().as_str(),
-                    CapWindowId::RecordingsOverlay.label().as_str(),
-                    CapWindowId::RecordingControls.label().as_str(),
-                    CapWindowId::Upgrade.label().as_str(),
+                    ScoopyWindowId::CaptureArea.label().as_str(),
+                    ScoopyWindowId::Camera.label().as_str(),
+                    ScoopyWindowId::RecordingsOverlay.label().as_str(),
+                    ScoopyWindowId::RecordingControls.label().as_str(),
+                    ScoopyWindowId::Upgrade.label().as_str(),
                     "editor",
                     "screenshot-editor",
                 ])
@@ -7249,9 +7249,9 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                         if let Some(pid) = reopen_pid
                         {
                             match tokio::task::spawn_blocking(move || gpui_app::request_gpui_reopen(pid)).await {
-                                Ok(Ok(())) => info!(pid, "Queued a request to reopen Cap GPUI"),
-                                Ok(Err(error)) => warn!(pid, %error, "Could not confirm Cap GPUI reopening; the existing instance remains unchanged"),
-                                Err(error) => warn!(pid, %error, "Cap GPUI reopen forwarding did not finish"),
+                                Ok(Ok(())) => info!(pid, "Queued a request to reopen Scoopy GPUI"),
+                                Ok(Err(error)) => warn!(pid, %error, "Could not confirm Scoopy GPUI reopening; the existing instance remains unchanged"),
+                                Err(error) => warn!(pid, %error, "Scoopy GPUI reopen forwarding did not finish"),
                             }
                         }
                         app.exit(0);
@@ -7331,7 +7331,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                                     return;
                                 }
 
-                                if let Some(win) = CapWindowId::Camera.get(&app) {
+                                if let Some(win) = ScoopyWindowId::Camera.get(&app) {
                                     win.hide().ok();
                                 }
                             }
@@ -7366,7 +7366,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                 } else {
                     (
                         option_env!("VITE_SERVER_URL")
-                            .unwrap_or("https://cap.so")
+                            .unwrap_or("https://example.com")
                             .to_string(),
                         true,
                     )
@@ -7454,7 +7454,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                     #[cfg(debug_assertions)]
                     picker_benchmark::run(app.clone());
                     gpu_context::prewarm_gpu();
-                    tokio::task::spawn_blocking(cap_rendering::prewarm_fonts);
+                    tokio::task::spawn_blocking(scoopy_rendering::prewarm_fonts);
                     tokio::spawn(screenshot_editor::prewarm_screenshot_renderer());
 
                     #[cfg(target_os = "macos")]
@@ -7488,9 +7488,9 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                 let app = app.clone();
                 async move {
                     let startup_window = if should_show_onboarding(&app) {
-                        ShowCapWindow::Onboarding
+                        ShowScoopyWindow::Onboarding
                     } else {
-                        ShowCapWindow::Main {
+                        ShowScoopyWindow::Main {
                             init_target_mode: None,
                         }
                     };
@@ -7536,7 +7536,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                 if let Some(target_mode) = event.target_mode {
                     open_target_picker(&app, target_mode).await;
                 } else {
-                    let _ = ShowCapWindow::Main {
+                    let _ = ShowScoopyWindow::Main {
                         init_target_mode: None,
                     }
                     .show(&app)
@@ -7545,7 +7545,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
             });
 
             RequestOpenSettings::listen_any_spawn(&app, async |payload, app| {
-                let _ = ShowCapWindow::Settings {
+                let _ = ShowScoopyWindow::Settings {
                     page: Some(payload.page),
                 }
                 .show(&app)
@@ -7606,11 +7606,11 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
 
                 match event {
                     WindowEvent::CloseRequested { api, .. } => {
-                        let window_id = CapWindowId::from_str(label).ok();
+                        let window_id = ScoopyWindowId::from_str(label).ok();
                         if !matches!(
                             window_id,
-                            Some(CapWindowId::Editor { .. })
-                                | Some(CapWindowId::ScreenshotEditor { .. })
+                            Some(ScoopyWindowId::Editor { .. })
+                                | Some(ScoopyWindowId::ScreenshotEditor { .. })
                         ) && export::export_session_active()
                         {
                             api.prevent_close();
@@ -7623,7 +7623,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
 
                         if let Some(window_id) = window_id {
                             match window_id {
-                                CapWindowId::Camera => {
+                                ScoopyWindowId::Camera => {
                                     if app
                                         .try_state::<CameraWindowCloseGate>()
                                         .is_some_and(|close_gate| close_gate.allow_close())
@@ -7643,7 +7643,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                                         cleanup_camera_window(app, session_id).await;
                                     });
                                 }
-                                CapWindowId::Main => {
+                                ScoopyWindowId::Main => {
                                     api.prevent_close();
                                     dismiss_main_window(app);
                                 }
@@ -7653,7 +7653,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                 }
                 WindowEvent::Destroyed => {
                     fake_window::cancel_fake_window_listener(app, label);
-                    let window_id = CapWindowId::from_str(label).ok();
+                    let window_id = ScoopyWindowId::from_str(label).ok();
                     if let Some(window_id) = &window_id {
                         retire_project_window(window, window_id);
                     }
@@ -7668,16 +7668,16 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                         return;
                     }
                     if let Some(window_id) = window_id {
-                        if matches!(window_id, CapWindowId::Camera) {
+                        if matches!(window_id, ScoopyWindowId::Camera) {
                             tracing::warn!("Camera window Destroyed event received!");
                         }
                         match window_id {
-                            CapWindowId::Main => {
+                            ScoopyWindowId::Main => {
                                 let app = app.clone();
 
                                 close_target_select_overlays(&app);
 
-                                if let Some(camera) = CapWindowId::Camera.get(&app) {
+                                if let Some(camera) = ScoopyWindowId::Camera.get(&app) {
                                     let _ = camera.hide();
                                 }
 
@@ -7721,11 +7721,11 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                                     }
                                 });
                             }
-                            CapWindowId::Editor { .. } | CapWindowId::ScreenshotEditor { .. } => {
+                            ScoopyWindowId::Editor { .. } | ScoopyWindowId::ScreenshotEditor { .. } => {
                                 editor_recording::abort_if_editor_gone(app);
                                 restore_main_windows_if_no_editors(app);
                             }
-                            CapWindowId::Settings => {
+                            ScoopyWindowId::Settings => {
                                 restore_main_and_target_select_windows(app);
 
                                 restore_camera_window(app);
@@ -7738,13 +7738,13 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                                 #[cfg(target_os = "macos")]
                                 return;
                             }
-                            CapWindowId::Upgrade | CapWindowId::ModeSelect => {
+                            ScoopyWindowId::Upgrade | ScoopyWindowId::ModeSelect => {
                                 restore_main_and_target_select_windows(app);
                                 restore_camera_window(app);
                                 #[cfg(target_os = "macos")]
                                 return;
                             }
-                            CapWindowId::TargetSelectOverlay { display_id } => {
+                            ScoopyWindowId::TargetSelectOverlay { display_id } => {
                                 if let Some(focus_manager) =
                                     app.try_state::<target_select_overlay::WindowFocusManager>()
                                 {
@@ -7759,7 +7759,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                                     session_id,
                                 ));
                             }
-                            CapWindowId::Camera => {
+                            ScoopyWindowId::Camera => {
                                 tracing::info!(
                                     "Camera window Destroyed event - resetting panel state"
                                 );
@@ -7791,12 +7791,12 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                 }
                 #[cfg(target_os = "macos")]
                 WindowEvent::Focused(focused) => {
-                    let window_id = CapWindowId::from_str(label);
+                    let window_id = ScoopyWindowId::from_str(label);
 
-                    if matches!(window_id, Ok(CapWindowId::Upgrade)) {
+                    if matches!(window_id, Ok(ScoopyWindowId::Upgrade)) {
                         for (label, window) in app.webview_windows() {
-                            if let Ok(id) = CapWindowId::from_str(&label)
-                                && matches!(id, CapWindowId::TargetSelectOverlay { .. })
+                            if let Ok(id) = ScoopyWindowId::from_str(&label)
+                                && matches!(id, ScoopyWindowId::TargetSelectOverlay { .. })
                             {
                                 hide_overlay(&window);
                             }
@@ -7811,9 +7811,9 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                     }
                 }
                 WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) => {
-                    let window_id = CapWindowId::from_str(label).ok();
+                    let window_id = ScoopyWindowId::from_str(label).ok();
                     for path in paths {
-                        let result = if matches!(window_id, Some(CapWindowId::Main)) {
+                        let result = if matches!(window_id, Some(ScoopyWindowId::Main)) {
                             open_importable_from_path(path, app.clone())
                         } else {
                             open_project_from_path(path, app.clone())
@@ -7825,10 +7825,10 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                     }
                 }
                 WindowEvent::Moved(position) => {
-                    let window_id = CapWindowId::from_str(label);
+                    let window_id = ScoopyWindowId::from_str(label);
 
                     #[cfg(target_os = "macos")]
-                    if matches!(&window_id, Ok(CapWindowId::Main))
+                    if matches!(&window_id, Ok(ScoopyWindowId::Main))
                         && let Some(constrained_position) =
                             platform::constrain_main_window_to_visible_top(window, *position)
                     {
@@ -7875,7 +7875,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                         let moved_display = display_for_position(logical_pos.x, logical_pos.y);
 
                         match window_id {
-                            CapWindowId::Main => {
+                            ScoopyWindowId::Main => {
                                 let display_id =
                                     moved_display.as_ref().map(|display| display.id());
                                 window_position_persistence::queue_main_position(
@@ -7887,7 +7887,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: Option<PathB
                                     },
                                 );
                             }
-                            CapWindowId::Camera => {
+                            ScoopyWindowId::Camera => {
                                 if app
                                     .try_state::<CameraWindowPositionGuard>()
                                     .is_some_and(|guard| guard.should_ignore())
@@ -7980,7 +7980,7 @@ fn handle_single_instance(app: &AppHandle, args: Vec<String>) {
 
     let action_urls = args
         .iter()
-        .filter(|arg| arg.starts_with("scoopy-desktop://") || arg.starts_with("cap-desktop://"))
+        .filter(|arg| arg.starts_with("scoopy-desktop://") || arg.starts_with("scoopy-desktop://"))
         .filter_map(|arg| tauri::Url::parse(arg).ok())
         .collect::<Vec<_>>();
     if !action_urls.is_empty() {
@@ -7988,14 +7988,14 @@ fn handle_single_instance(app: &AppHandle, args: Vec<String>) {
         return;
     }
 
-    let Some(cap_file) = args
+    let Some(scoopy_file) = args
         .iter()
-        .find(|arg| arg.ends_with(".scoopy") || arg.ends_with(".cap"))
+        .find(|arg| arg.ends_with(".scoopy") || arg.ends_with(".scoopy"))
         .map(PathBuf::from)
     else {
         let app = app.clone();
         tauri::async_runtime::spawn(async move {
-            if let Err(error) = (ShowCapWindow::Main {
+            if let Err(error) = (ShowScoopyWindow::Main {
                 init_target_mode: None,
             })
             .show(&app)
@@ -8007,7 +8007,7 @@ fn handle_single_instance(app: &AppHandle, args: Vec<String>) {
         return;
     };
 
-    let _ = open_project_from_path(&cap_file, app.clone());
+    let _ = open_project_from_path(&scoopy_file, app.clone());
 }
 
 pub(crate) fn panic_payload_message(payload: &(dyn std::any::Any + Send)) -> String {
@@ -8247,7 +8247,7 @@ fn dispatch_macos_startup_urls(app: &AppHandle, dispatch: StartupOpenDispatch) {
                     if let Some(pid) = forwarded {
                         forwarded_pid = Some(pid);
                     } else {
-                        warn!("Could not forward the requested project batch to Cap GPUI");
+                        warn!("Could not forward the requested project batch to Scoopy GPUI");
                     }
                     let next = app.try_state::<StartupOpenGate>().and_then(|gate| {
                         gate.0
@@ -8270,7 +8270,7 @@ fn dispatch_macos_startup_urls(app: &AppHandle, dispatch: StartupOpenDispatch) {
                         gpui_app::activate_instance(pid);
                     })
                 {
-                    warn!(%error, "Could not activate Cap GPUI after forwarding a project");
+                    warn!(%error, "Could not activate Scoopy GPUI after forwarding a project");
                 }
                 if app
                     .try_state::<gpui_app::StartupRedirectState>()
@@ -8281,7 +8281,7 @@ fn dispatch_macos_startup_urls(app: &AppHandle, dispatch: StartupOpenDispatch) {
             });
         } else {
             cancel_macos_startup_opens(app);
-            warn!("Cap GPUI handoff already finished before the project could be forwarded");
+            warn!("Scoopy GPUI handoff already finished before the project could be forwarded");
         }
         return;
     }
@@ -8324,7 +8324,7 @@ fn handle_run_event(_handle: &AppHandle, event: tauri::RunEvent) {
             let should_focus_onboarding = should_show_onboarding(_handle);
 
             if should_focus_onboarding
-                && let Some(onboarding) = CapWindowId::Onboarding.get(_handle)
+                && let Some(onboarding) = ScoopyWindowId::Onboarding.get(_handle)
             {
                 onboarding.show().ok();
                 onboarding.set_focus().ok();
@@ -8357,7 +8357,7 @@ fn handle_run_event(_handle: &AppHandle, event: tauri::RunEvent) {
             } else {
                 let handle = _handle.clone();
                 spawn_on_runtime(async move {
-                    let _ = ShowCapWindow::Main {
+                    let _ = ShowScoopyWindow::Main {
                         init_target_mode: None,
                     }
                     .show(&handle)
@@ -8462,10 +8462,10 @@ where
     }
 }
 
-fn retire_project_window(window: &Window, window_id: &CapWindowId) {
+fn retire_project_window(window: &Window, window_id: &ScoopyWindowId) {
     let app = window.app_handle();
     match window_id {
-        CapWindowId::Editor { id } => {
+        ScoopyWindowId::Editor { id } => {
             app.state::<editor_preparing::PreparingConsumers>()
                 .cancel_window(*id, None);
             let window_ids = EditorWindowIds::get(app);
@@ -8481,7 +8481,7 @@ fn retire_project_window(window: &Window, window_id: &CapWindowId) {
             });
             spawn_on_runtime(EditorInstances::remove(window.clone()));
         }
-        CapWindowId::ScreenshotEditor { id } => {
+        ScoopyWindowId::ScreenshotEditor { id } => {
             let window_ids = ScreenshotEditorWindowIds::get(app);
             match window_ids.ids.lock() {
                 Ok(mut ids) => ids.retain(|(_, current_id)| current_id != id),
@@ -8503,20 +8503,20 @@ fn retire_project_window(window: &Window, window_id: &CapWindowId) {
 fn has_open_editor_window(app: &AppHandle) -> bool {
     app.webview_windows()
         .keys()
-        .any(|label| matches!(CapWindowId::from_str(label), Ok(CapWindowId::Editor { .. })))
+        .any(|label| matches!(ScoopyWindowId::from_str(label), Ok(ScoopyWindowId::Editor { .. })))
 }
 
 fn restore_main_windows_if_no_editors(app: &AppHandle) {
     let has_other_editors = app.webview_windows().keys().any(|label| {
         matches!(
-            CapWindowId::from_str(label),
-            Ok(CapWindowId::Editor { .. } | CapWindowId::ScreenshotEditor { .. })
+            ScoopyWindowId::from_str(label),
+            Ok(ScoopyWindowId::Editor { .. } | ScoopyWindowId::ScreenshotEditor { .. })
         )
     });
 
     if !has_other_editors {
-        if CapWindowId::Settings.get(app).is_none() {
-            if let Some(main) = CapWindowId::Main.get(app) {
+        if ScoopyWindowId::Settings.get(app).is_none() {
+            if let Some(main) = ScoopyWindowId::Main.get(app) {
                 let generation = clean_capture::generation(app);
                 let _ = clean_capture::reveal_now(&main, generation);
             }
@@ -8536,16 +8536,16 @@ fn restore_main_and_target_select_windows(app: &AppHandle) {
         .unwrap_or_default();
 
     for (label, window) in app.webview_windows() {
-        if let Ok(id) = CapWindowId::from_str(&label) {
+        if let Ok(id) = ScoopyWindowId::from_str(&label) {
             match id {
-                CapWindowId::TargetSelectOverlay { .. } => {
+                ScoopyWindowId::TargetSelectOverlay { .. } => {
                     if window.is_visible().unwrap_or(false)
                         || target_select_overlays_hidden_for_restore.contains(label.as_str())
                     {
                         show_overlay(&window);
                     }
                 }
-                CapWindowId::Main => {
+                ScoopyWindowId::Main => {
                     let generation = clean_capture::generation(app);
                     let _ = clean_capture::reveal_now(&window, generation);
                     restore_main_window_inputs(app);
@@ -8606,7 +8606,7 @@ fn reopen_main_window(app: &AppHandle) {
                 .await
                 .is_ok()
             {
-                let _ = ShowCapWindow::Main {
+                let _ = ShowScoopyWindow::Main {
                     init_target_mode: None,
                 }
                 .show(&app)
@@ -8615,14 +8615,14 @@ fn reopen_main_window(app: &AppHandle) {
         }));
         return;
     }
-    if let Some(main) = CapWindowId::Main.get(app) {
+    if let Some(main) = ScoopyWindowId::Main.get(app) {
         let _ = main.show();
         let _ = main.set_focus();
         restore_main_window_inputs(app);
     } else {
         let handle = app.clone();
         tokio::spawn(async move {
-            let _ = ShowCapWindow::Main {
+            let _ = ShowScoopyWindow::Main {
                 init_target_mode: None,
             }
             .show(&handle)
@@ -8648,7 +8648,7 @@ fn load_instant_resume_candidate(path: &std::path::Path) -> Result<Option<Record
 fn load_upload_resume_candidate(
     path: &std::path::Path,
     mark_crashed: bool,
-) -> Result<Option<(RecordingMeta, cap_recording::upload_resume::UploadLock)>, String> {
+) -> Result<Option<(RecordingMeta, scoopy_recording::upload_resume::UploadLock)>, String> {
     load_upload_resume_candidate_at(path, mark_crashed, SystemTime::now())
 }
 
@@ -8656,7 +8656,7 @@ fn load_upload_resume_candidate_at(
     path: &std::path::Path,
     mark_crashed: bool,
     now: SystemTime,
-) -> Result<Option<(RecordingMeta, cap_recording::upload_resume::UploadLock)>, String> {
+) -> Result<Option<(RecordingMeta, scoopy_recording::upload_resume::UploadLock)>, String> {
     if !mark_crashed && !upload::recovery_age::eligible(path, now) {
         return Ok(None);
     }
@@ -8715,7 +8715,7 @@ async fn resume_uploads(app: AppHandle, mark_crashed: bool) -> Result<(), String
                     return paths;
                 }
                 let path = entry.path();
-                if path.extension().and_then(|value| value.to_str()) == Some("cap")
+                if path.extension().and_then(|value| value.to_str()) == Some("scoopy")
                     && (mark_crashed || upload::recovery_age::eligible(&path, SystemTime::now()))
                 {
                     paths.push(path);
@@ -8783,7 +8783,7 @@ async fn resume_uploads(app: AppHandle, mark_crashed: bool) -> Result<(), String
 async fn create_editor_instance_impl(
     app: &AppHandle,
     path: PathBuf,
-    frame_cb: cap_editor::EditorFrameCallback,
+    frame_cb: scoopy_editor::EditorFrameCallback,
 ) -> Result<(Arc<EditorInstance>, tauri::EventId), String> {
     let app = app.clone();
 
@@ -8794,7 +8794,7 @@ async fn create_editor_instance_impl(
     let shared_device =
         gpu_context::get_shared_gpu()
             .await
-            .map(|shared| cap_rendering::SharedWgpuDevice {
+            .map(|shared| scoopy_rendering::SharedWgpuDevice {
                 instance: (*shared.instance).clone(),
                 adapter: (*shared.adapter).clone(),
                 device: (*shared.device).clone(),
@@ -8803,7 +8803,7 @@ async fn create_editor_instance_impl(
             });
 
     #[cfg(debug_assertions)]
-    let frame_cb: cap_editor::EditorFrameCallback =
+    let frame_cb: scoopy_editor::EditorFrameCallback =
         if stop_editor_benchmark::frame_capture_requested() {
             let capture_path = path.clone();
             let mut frame_cb = frame_cb;
@@ -8832,7 +8832,7 @@ async fn create_editor_instance_impl(
             },
             frame_cb,
             shared_device,
-            cap_editor::EditorFrameFormat::Rgba,
+            scoopy_editor::EditorFrameFormat::Rgba,
             audio_output,
             startup,
         )
@@ -9022,7 +9022,7 @@ async fn wait_for_recording_ready_inner(app: &AppHandle, path: &Path) -> Result<
         // unhealed files if this fails.
         let path = path.to_path_buf();
         match tokio::task::spawn_blocking(move || {
-            cap_recording::track_heal::heal_stretched_tracks(&path)
+            scoopy_recording::track_heal::heal_stretched_tracks(&path)
         })
         .await
         {
@@ -9042,7 +9042,7 @@ fn recordings_path(app: &AppHandle) -> PathBuf {
 }
 
 // fn recording_path(app: &AppHandle, recording_id: &str) -> PathBuf {
-//     recordings_path(app).join(format!("{recording_id}.cap"))
+//     recordings_path(app).join(format!("{recording_id}.scoopy"))
 // }
 
 fn screenshots_path(app: &AppHandle) -> PathBuf {
@@ -9052,7 +9052,7 @@ fn screenshots_path(app: &AppHandle) -> PathBuf {
 }
 
 // fn screenshot_path(app: &AppHandle, screenshot_id: &str) -> PathBuf {
-//     screenshots_path(app).join(format!("{screenshot_id}.cap"))
+//     screenshots_path(app).join(format!("{screenshot_id}.scoopy"))
 // }
 
 #[tauri::command]
@@ -9145,7 +9145,7 @@ pub(crate) fn dismiss_main_window(app: &AppHandle) {
         .unwrap_or(true);
 
     if !is_recording {
-        if let Some(camera_window) = CapWindowId::Camera.get(app) {
+        if let Some(camera_window) = ScoopyWindowId::Camera.get(app) {
             let _ = camera_window.hide();
         }
 
@@ -9187,10 +9187,10 @@ pub(crate) fn dismiss_main_window(app: &AppHandle) {
 }
 
 pub(crate) fn hide_main_window(app: &AppHandle) {
-    if let Some(main_window) = CapWindowId::Main.get(app)
+    if let Some(main_window) = ScoopyWindowId::Main.get(app)
         && main_window.hide().is_ok()
     {
-        let _ = main_window.emit_to(CapWindowId::Main.label(), "main-window-hidden", ());
+        let _ = main_window.emit_to(ScoopyWindowId::Main.label(), "main-window-hidden", ());
     }
 }
 
@@ -9200,7 +9200,7 @@ fn open_importable_from_path(path: &Path, app: AppHandle) -> Result<(), String> 
         tokio::spawn(async move {
             match import::start_video_import(app.clone(), source_path).await {
                 Ok(project_path) => {
-                    if let Err(err) = (ShowCapWindow::Editor { project_path }).show(&app).await {
+                    if let Err(err) = (ShowScoopyWindow::Editor { project_path }).show(&app).await {
                         error!("Failed to show imported video editor: {err}");
                         show_import_error_dialog(
                             &app,
@@ -9225,7 +9225,7 @@ fn open_importable_from_path(path: &Path, app: AppHandle) -> Result<(), String> 
         tokio::spawn(async move {
             match import::start_image_import(app.clone(), source_path).await {
                 Ok(path) => {
-                    if let Err(err) = (ShowCapWindow::ScreenshotEditor { path }).show(&app).await {
+                    if let Err(err) = (ShowScoopyWindow::ScreenshotEditor { path }).show(&app).await {
                         error!("Failed to show imported image editor: {err}");
                         show_import_error_dialog(
                             &app,
@@ -9288,7 +9288,7 @@ fn open_project_from_path(path: &Path, app: AppHandle) -> Result<(), String> {
 
             let project_path = path.to_path_buf();
             tokio::spawn(async move {
-                if let Err(error) = (ShowCapWindow::Editor { project_path }).show(&app).await {
+                if let Err(error) = (ShowScoopyWindow::Editor { project_path }).show(&app).await {
                     warn!(%error, "Could not show the requested project editor");
                 }
             });
@@ -9313,7 +9313,7 @@ mod startup_project_open_tests {
     use super::{StartupOpenDestination, StartupOpenGate, StartupOpenGuard, StartupOpenQueue};
 
     fn project(name: &str) -> tauri::Url {
-        tauri::Url::parse(&format!("file:///recordings/{name}.cap")).unwrap()
+        tauri::Url::parse(&format!("file:///recordings/{name}.scoopy")).unwrap()
     }
 
     #[test]
@@ -10548,7 +10548,7 @@ mod screenshot_share_cache_tests {
     fn sharing(content_hash: Option<&str>) -> SharingMeta {
         SharingMeta {
             id: String::from("video-id"),
-            link: String::from("https://cap.so/s/video-id"),
+            link: String::from("https://example.com/s/video-id"),
             content_hash: content_hash.map(str::to_string),
         }
     }
@@ -10558,7 +10558,7 @@ mod screenshot_share_cache_tests {
         let link =
             screenshot_share_link_for_hash(Some(&sharing(Some("hash-a"))), "hash-a").unwrap();
 
-        assert_eq!(link, "https://cap.so/s/video-id");
+        assert_eq!(link, "https://example.com/s/video-id");
     }
 
     #[test]
@@ -10585,7 +10585,7 @@ mod recording_delete_path_tests {
         let temp = tempfile::tempdir().unwrap();
         let recordings = temp.path().join("recordings");
         let nested = recordings.join("nested");
-        let bundle = nested.join("keep-me.cap");
+        let bundle = nested.join("keep-me.scoopy");
         std::fs::create_dir_all(&bundle).unwrap();
         let dirs = [recordings, nested.clone()];
 
@@ -10606,8 +10606,8 @@ mod recording_delete_path_tests {
     fn delete_target_accepts_only_strict_children_of_a_recordings_root() {
         let temp = tempfile::tempdir().unwrap();
         let recordings = temp.path().join("recordings");
-        let bundle = recordings.join("delete-me.cap");
-        let outside = temp.path().join("outside.cap");
+        let bundle = recordings.join("delete-me.scoopy");
+        let outside = temp.path().join("outside.scoopy");
         std::fs::create_dir_all(&bundle).unwrap();
         std::fs::create_dir_all(&outside).unwrap();
 
@@ -10626,14 +10626,14 @@ mod recording_delete_path_tests {
         assert_eq!(
             recording_delete_target(
                 std::slice::from_ref(&recordings),
-                &recordings.join("..").join("outside.cap"),
+                &recordings.join("..").join("outside.scoopy"),
             ),
             Err("Invalid path".to_string())
         );
         assert_eq!(
             recording_delete_target(
                 std::slice::from_ref(&recordings),
-                &recordings.join("already-gone.cap"),
+                &recordings.join("already-gone.scoopy"),
             ),
             Ok(None)
         );
@@ -10645,7 +10645,7 @@ mod recording_delete_path_tests {
         let temp = tempfile::tempdir().unwrap();
         let recordings = temp.path().join("recordings");
         let victim = temp.path().join("victim");
-        let escape = recordings.join("escape.cap");
+        let escape = recordings.join("escape.scoopy");
         std::fs::create_dir_all(&recordings).unwrap();
         std::fs::create_dir_all(&victim).unwrap();
         std::fs::write(victim.join("keep.txt"), b"keep").unwrap();
@@ -10663,7 +10663,7 @@ mod recording_delete_path_tests {
     fn delete_target_accepts_a_canonical_windows_project_under_a_raw_root() {
         let temp = tempfile::tempdir().unwrap();
         let recordings = temp.path().join("recordings");
-        let bundle = recordings.join("delete-me.cap");
+        let bundle = recordings.join("delete-me.scoopy");
         std::fs::create_dir_all(&bundle).unwrap();
         let canonical_bundle = bundle.canonicalize().unwrap();
 
@@ -10724,7 +10724,7 @@ mod instant_resume_safety_tests {
     fn project(tag: &str, inner: InstantRecordingMeta) -> PathBuf {
         static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
         let path = std::env::temp_dir().join(format!(
-            "cap-instant-recovery-{tag}-{}-{}",
+            "scoopy-instant-recovery-{tag}-{}-{}",
             std::process::id(),
             NEXT.fetch_add(1, std::sync::atomic::Ordering::AcqRel)
         ));
@@ -10741,7 +10741,7 @@ mod instant_resume_safety_tests {
                 pre_created_video: VideoUploadInfo {
                     id: "synthetic".into(),
                     link: "https://example.invalid/s/synthetic".into(),
-                    config: cap_project::S3UploadMeta {
+                    config: scoopy_project::S3UploadMeta {
                         id: "synthetic".into(),
                     },
                 },
@@ -10824,7 +10824,7 @@ mod instant_resume_safety_tests {
             "owned",
             InstantRecordingMeta::InProgress { recording: true },
         );
-        let lock = cap_recording::upload_resume::UploadLock::acquire(&path).unwrap();
+        let lock = scoopy_recording::upload_resume::UploadLock::acquire(&path).unwrap();
         let before = std::fs::read(path.join("recording-meta.json")).unwrap();
         assert!(load_upload_resume_candidate(&path, true).unwrap().is_none());
         assert_eq!(
@@ -10861,7 +10861,7 @@ mod instant_resume_safety_tests {
                 sample_rate: None,
             },
         );
-        let ownership = cap_recording::upload_resume::UploadLock::acquire(&path).unwrap();
+        let ownership = scoopy_recording::upload_resume::UploadLock::acquire(&path).unwrap();
         let original = std::fs::read(path.join("recording-meta.json")).unwrap();
         assert!(acquire_recording_delete_lock(&path).is_err());
         assert_eq!(

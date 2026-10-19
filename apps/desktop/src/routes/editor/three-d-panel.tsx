@@ -144,7 +144,7 @@ export function ShotCountPills(props: {
 						onClick={() => {
 							if (count <= props.max) props.onPick(count);
 						}}
-						class="cap-shot-pill outline-hidden"
+						class="scoopy-shot-pill outline-hidden"
 					>
 						{count}
 					</button>
@@ -455,7 +455,7 @@ function DrillSection(
 				{props.name}
 				<span class="flex flex-row gap-1.5 items-center ml-auto text-[11px] font-normal text-ed-text-3">
 					{props.summary}
-					<IconCapChevronDown class="transition-transform duration-200 size-3.5 group-data-expanded:rotate-180" />
+					<IconScoopyChevronDown class="transition-transform duration-200 size-3.5 group-data-expanded:rotate-180" />
 				</span>
 			</KCollapsible.Trigger>
 			<KCollapsible.Content class="overflow-hidden opacity-0 transition-opacity animate-collapsible-up data-expanded:animate-collapsible-down data-expanded:opacity-100">
@@ -983,7 +983,7 @@ export function Camera3DShotPanel(props: {
 								</KSelect.Value>
 								<KSelect.Icon<ValidComponent>
 									as={(iconProps) => (
-										<IconCapChevronDown
+										<IconScoopyChevronDown
 											{...iconProps}
 											class="size-3.5 shrink-0 transform transition-transform data-expanded:rotate-180 text-ed-text-3"
 										/>

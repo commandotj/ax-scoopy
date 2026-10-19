@@ -36,23 +36,23 @@ export type UploadStatus =
 	  }
 	| {
 			status: "converting";
-			capId: string;
+			scoopyId: string;
 			progress: number;
 	  }
 	| {
 			status: "uploadingThumbnail";
-			capId: string;
+			scoopyId: string;
 			progress: number;
 	  }
 	| {
 			status: "uploadingVideo";
-			capId: string;
+			scoopyId: string;
 			progress: number;
 			thumbnailUrl: string | undefined;
 	  }
 	| {
 			status: "serverProcessing";
-			capId: string;
+			scoopyId: string;
 	  };
 
 export type VideoId = string & { readonly __brand: "VideoId" };

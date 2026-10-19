@@ -15,7 +15,7 @@ export const getExistingRecordingPickerOptions = (
 
 	return {
 		defaultPath,
-		filters: [{ name: "Scoopy Recording", extensions: ["cap"] }],
+		filters: [{ name: "Scoopy Recording", extensions: ["scoopy"] }],
 		multiple: false,
 	};
 };

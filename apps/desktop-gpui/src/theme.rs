@@ -109,7 +109,7 @@ pub fn bind_window<T: 'static>(window: &mut Window, cx: &mut Context<T>) {
 /// The custom properties themselves are set by the *visual system* blocks, not
 /// per material, so one token set serves both windows; what differs is which
 /// element each variable lands on, plus the two material-specific shell rules
-/// (`[..native-material="panel"] .cap-window-shell`). `shell` and `header`
+/// (`[..native-material="panel"] .scoopy-window-shell`). `shell` and `header`
 /// below are the panel's; `sidebar` / `content` / `card` are the settings
 /// window's surfaces. Material `"teleprompter"` adds no custom properties at
 /// all -- its whole block in `theme.css` is two `border-radius` rules (16, and
@@ -119,9 +119,9 @@ pub fn bind_window<T: 'static>(window: &mut Window, cx: &mut Context<T>) {
 pub struct MaterialTokens {
     pub kind: MaterialKind,
 
-    /// `.cap-window-shell`'s background, material "panel".
+    /// `.scoopy-window-shell`'s background, material "panel".
     pub shell: Rgba,
-    /// `.cap-window-header`'s background.
+    /// `.scoopy-window-header`'s background.
     pub header: Rgba,
     /// `--macos-settings-border`.
     pub border: Rgba,
@@ -145,26 +145,26 @@ pub struct MaterialTokens {
     pub sidebar: Rgba,
     /// `--macos-settings-content`, the settings window's right pane.
     pub content: Rgba,
-    /// `--macos-settings-card`, a `.cap-settings-card` / `.bg-gray-2` surface
+    /// `--macos-settings-card`, a `.scoopy-settings-card` / `.bg-gray-2` surface
     /// inside that pane.
     pub card: Rgba,
     /// `--macos-settings-window-radius`. The settings shell takes it as-is;
     /// the main window overrides it back to 16
-    /// (`[data-macos-native-material="panel"] .cap-window-shell
+    /// (`[data-macos-native-material="panel"] .scoopy-window-shell
     /// { border-radius: 16px }`), which is why `MAIN_WINDOW_MATERIAL_RADIUS`
     /// is a constant and this is not.
     pub window_radius: f32,
     /// `--macos-settings-sidebar-radius`. Transcribed for the record: the
     /// liquid-glass settings rule zeroes it again
     /// (`[..visual-system="liquid-glass"][..native-material="settings"]
-    /// .cap-settings-sidebar { border-radius: 0 }`), so the pane is square on
+    /// .scoopy-settings-sidebar { border-radius: 0 }`), so the pane is square on
     /// both paths and the window's own radius does the clipping.
     pub sidebar_radius: f32,
 }
 
 impl MaterialTokens {
     /// Only Liquid Glass remaps the body's gray fills: every
-    /// `.cap-window-body .bg-gray-N` rule in `theme.css` is gated on
+    /// `.scoopy-window-body .bg-gray-N` rule in `theme.css` is gated on
     /// `[data-macos-visual-system="liquid-glass"]`. Under vibrancy the body
     /// keeps its Radix grays and only the shell and header change.
     fn remaps_body(&self) -> bool {
@@ -177,13 +177,13 @@ impl MaterialTokens {
             Appearance::Light => Self {
                 kind: MaterialKind::LiquidGlass,
                 // `[data-macos-visual-system="liquid-glass"][data-macos-native-material="panel"]
-                //  .cap-window-shell { background: rgba(255, 255, 255, 0.55) }`
+                //  .scoopy-window-shell { background: rgba(255, 255, 255, 0.55) }`
                 // -- a wash *over* the live glass backdrop, not a replacement
                 // for it. The base glass rule strips the border and shadow:
-                // `.cap-window-shell { background: transparent; border: 0;
+                // `.scoopy-window-shell { background: transparent; border: 0;
                 //  box-shadow: none }`.
                 shell: rgba(0xffffff8c),
-                // `[data-macos-visual-system="liquid-glass"] .cap-window-header
+                // `[data-macos-visual-system="liquid-glass"] .scoopy-window-header
                 //  { background: transparent; border-bottom-color: transparent }`
                 header: rgba(0x00000000),
                 // `[data-macos-visual-system="liquid-glass"] {
@@ -223,7 +223,7 @@ impl MaterialTokens {
             Appearance::Dark => Self {
                 kind: MaterialKind::LiquidGlass,
                 // `.dark[data-macos-visual-system="liquid-glass"][data-macos-native-material="panel"]
-                //  .cap-window-shell { background: rgba(17, 17, 17, 0.88) }`
+                //  .scoopy-window-shell { background: rgba(17, 17, 17, 0.88) }`
                 shell: rgba(0x111111e0),
                 header: rgba(0x00000000),
                 // `:root.dark[data-macos-visual-system="liquid-glass"]`:
@@ -263,12 +263,12 @@ impl MaterialTokens {
         match appearance {
             Appearance::Light => Self {
                 kind: MaterialKind::Vibrancy,
-                // `[data-macos-native-material] .cap-window-shell { background:
+                // `[data-macos-native-material] .scoopy-window-shell { background:
                 //  var(--macos-settings-window); border: 1px solid
                 //  var(--macos-settings-border) }`, and `:root`'s
                 // `--macos-settings-window: rgba(244, 244, 243, 0.84)`.
                 shell: rgba(0xf4f4f3d6),
-                // `[data-macos-native-material] .cap-window-header { background:
+                // `[data-macos-native-material] .scoopy-window-header { background:
                 //  rgba(250, 250, 249, 0.72) }`. Its `backdrop-filter:
                 //  blur(28px) saturate(1.45)` has no equivalent in this gpui
                 // rev (same gap as the recording overlay's `backdrop-blur-xs`).
@@ -299,7 +299,7 @@ impl MaterialTokens {
                 kind: MaterialKind::Vibrancy,
                 // `:root.dark { --macos-settings-window: rgba(17, 17, 17, 0.94) }`
                 shell: rgba(0x111111f0),
-                // `:root.dark[data-macos-native-material] .cap-window-header
+                // `:root.dark[data-macos-native-material] .scoopy-window-header
                 //  { background: rgba(28, 28, 28, 0.88) }`
                 header: rgba(0x1c1c1ce0),
                 // `:root.dark { --macos-settings-border: rgba(255, 255, 255, 0.07) }`
@@ -386,7 +386,7 @@ pub struct Theme {
     /// Radix.
     pub red_11: Rgba,
 
-    /// The settings page's one non-gray, non-blue accent: the "recommended Cap
+    /// The settings page's one non-gray, non-blue accent: the "recommended Scoopy
     /// windows are not excluded" warning is `border-amber-6 bg-amber-3/30
     /// text-amber-11`. Stock Radix -- `theme.css` overrides no amber step.
     pub amber_3: Rgba,
@@ -829,7 +829,7 @@ impl Theme {
         .into()
     }
 
-    /// `.cap-window-shell`'s background: the material's tint when one is
+    /// `.scoopy-window-shell`'s background: the material's tint when one is
     /// installed, `bg-gray-1` otherwise.
     pub fn shell_bg(&self) -> Hsla {
         match self.material {
@@ -839,7 +839,7 @@ impl Theme {
     }
 
     /// The shell's `1px solid var(--macos-settings-border)`. Liquid Glass
-    /// draws none (`.cap-window-shell { border: 0 }`), and neither does the
+    /// draws none (`.scoopy-window-shell { border: 0 }`), and neither does the
     /// bare window.
     pub fn shell_border(&self) -> Option<Hsla> {
         self.material
@@ -847,7 +847,7 @@ impl Theme {
             .map(|material| material.border.into())
     }
 
-    /// `.cap-window-header`'s background.
+    /// `.scoopy-window-header`'s background.
     pub fn header_bg(&self) -> Hsla {
         match self.material {
             Some(material) => material.header.into(),
@@ -856,7 +856,7 @@ impl Theme {
     }
 
     /// The `divide-y divide-gray-5` hairline under the header. Liquid Glass
-    /// erases it: `.cap-window-shell > * + * { border-color: transparent }`.
+    /// erases it: `.scoopy-window-shell > * + * { border-color: transparent }`.
     pub fn header_border(&self) -> Hsla {
         match self.material {
             Some(material) if material.remaps_body() => gpui::transparent_black(),
@@ -865,7 +865,7 @@ impl Theme {
         }
     }
 
-    /// `.cap-window-body`'s inherited text colour.
+    /// `.scoopy-window-body`'s inherited text colour.
     pub fn body_text(&self) -> Hsla {
         match self.material {
             Some(material) if material.remaps_body() => material.text.into(),
@@ -873,7 +873,7 @@ impl Theme {
         }
     }
 
-    /// A `.bg-gray-N` fill inside `.cap-window-body`.
+    /// A `.bg-gray-N` fill inside `.scoopy-window-body`.
     ///
     /// ```text
     /// .bg-gray-2, .bg-gray-3 { background-color: var(--macos-settings-control-fill) }
@@ -897,7 +897,7 @@ impl Theme {
         }
     }
 
-    /// A `hover:bg-gray-N` fill inside `.cap-window-body`.
+    /// A `hover:bg-gray-N` fill inside `.scoopy-window-body`.
     ///
     /// ```text
     /// [class*="hover:bg-gray-4"]:hover, [class*="hover:bg-gray-5"]:hover
@@ -916,7 +916,7 @@ impl Theme {
         }
     }
 
-    /// A `border-gray-N` inside `.cap-window-body`.
+    /// A `border-gray-N` inside `.scoopy-window-body`.
     ///
     /// ```text
     /// .border-gray-4, .dark\:border-gray-5 { border-color: var(--macos-settings-border) }
@@ -950,16 +950,16 @@ impl Theme {
     // Tailwind classes the TSX carries when no material was installed, which
     // is what the window would paint on a non-mac.
 
-    /// `.cap-settings-shell`'s corner: `border-radius:
+    /// `.scoopy-settings-shell`'s corner: `border-radius:
     /// var(--macos-settings-window-radius)` with no per-material override
-    /// (unlike `.cap-window-shell`'s `16px` for "panel").
+    /// (unlike `.scoopy-window-shell`'s `16px` for "panel").
     pub fn settings_window_radius(&self) -> f32 {
         self.material
             .map(|material| material.window_radius)
             .unwrap_or(16.)
     }
 
-    /// `.cap-settings-sidebar { background: var(--macos-settings-sidebar) }`,
+    /// `.scoopy-settings-sidebar { background: var(--macos-settings-sidebar) }`,
     /// `bg-gray-2` without a material.
     pub fn settings_sidebar_bg(&self) -> Hsla {
         match self.material {
@@ -968,7 +968,7 @@ impl Theme {
         }
     }
 
-    /// `.cap-settings-content { background: var(--macos-settings-content) }`.
+    /// `.scoopy-settings-content { background: var(--macos-settings-content) }`.
     /// Bare, the pane has no background of its own and shows the shell's
     /// `bg-gray-1`.
     pub fn settings_content_bg(&self) -> Hsla {
@@ -978,7 +978,7 @@ impl Theme {
         }
     }
 
-    /// `.cap-settings-card, .cap-settings-content .bg-gray-2
+    /// `.scoopy-settings-card, .scoopy-settings-content .bg-gray-2
     /// { background-color: var(--macos-settings-card) }`.
     pub fn settings_card_bg(&self) -> Hsla {
         match self.material {
@@ -987,7 +987,7 @@ impl Theme {
         }
     }
 
-    /// `.cap-settings-content .bg-gray-3, .bg-gray-4, .bg-gray-5
+    /// `.scoopy-settings-content .bg-gray-3, .bg-gray-4, .bg-gray-5
     /// { background-color: var(--macos-settings-fill) }` -- selects, inline
     /// code chips, the summary boxes.
     pub fn settings_fill(&self) -> Hsla {
@@ -997,7 +997,7 @@ impl Theme {
         }
     }
 
-    /// `.cap-settings-nav-item:hover`, `.cap-settings-profile:hover`
+    /// `.scoopy-settings-nav-item:hover`, `.scoopy-settings-profile:hover`
     /// `{ background: var(--macos-settings-hover) }`; `hover:bg-gray-3` bare.
     pub fn settings_hover(&self) -> Hsla {
         match self.material {
@@ -1006,7 +1006,7 @@ impl Theme {
         }
     }
 
-    /// `.cap-settings-nav-item.bg-gray-5 { background:
+    /// `.scoopy-settings-nav-item.bg-gray-5 { background:
     /// var(--macos-settings-selection) }` -- the selected sidebar row.
     pub fn settings_selection(&self) -> Hsla {
         match self.material {
@@ -1025,7 +1025,7 @@ impl Theme {
     }
 
     /// The divider between the sidebar and the content pane:
-    /// `[..liquid-glass][..settings] .cap-settings-shell > * + *
+    /// `[..liquid-glass][..settings] .scoopy-settings-shell > * + *
     /// { border-color: var(--macos-settings-border) }`. Only the glass path
     /// remaps it; on the others the shell's own `divide-x divide-gray-3`
     /// stands.
@@ -1036,7 +1036,7 @@ impl Theme {
         }
     }
 
-    /// `.cap-settings-page { color: var(--macos-settings-text) }`; the page's
+    /// `.scoopy-settings-page { color: var(--macos-settings-text) }`; the page's
     /// `text-gray-12` bare.
     pub fn settings_text(&self) -> Hsla {
         match self.material {
@@ -1045,7 +1045,7 @@ impl Theme {
         }
     }
 
-    /// `.cap-settings-page .text-gray-10, .text-gray-11 { color:
+    /// `.scoopy-settings-page .text-gray-10, .text-gray-11 { color:
     /// var(--macos-settings-muted) }` -- every description line.
     pub fn settings_muted(&self) -> Hsla {
         match self.material {
@@ -1061,23 +1061,23 @@ impl Theme {
     // exactly two rules of its own:
     //
     // ```text
-    // [data-macos-native-material="teleprompter"] .cap-window-shell { border-radius: 16px }
+    // [data-macos-native-material="teleprompter"] .scoopy-window-shell { border-radius: 16px }
     // [..visual-system="liquid-glass"][..native-material="teleprompter"]
-    //   .cap-window-shell { border-radius: 22px }
+    //   .scoopy-window-shell { border-radius: 22px }
     // ```
     //
     // Everything else it paints comes from the shared blocks: the base
-    // `[data-macos-native-material] .cap-window-shell` wash + border under
-    // vibrancy, and `[..="liquid-glass"] .cap-window-shell { background:
+    // `[data-macos-native-material] .scoopy-window-shell` wash + border under
+    // vibrancy, and `[..="liquid-glass"] .scoopy-window-shell { background:
     // transparent; border: 0 }` under glass. The panel's `rgba(255,255,255,
     // 0.55)` tint is *not* inherited -- that rule is `[..="panel"]`-gated --
     // so under Liquid Glass this window is bare glass. The body remaps are
     // panel-gated too, so the footer and script keep their Radix grays.
 
-    /// `.cap-window-shell` under material `"teleprompter"`.
+    /// `.scoopy-window-shell` under material `"teleprompter"`.
     pub fn teleprompter_shell_bg(&self) -> Hsla {
         match self.material {
-            // `[data-macos-visual-system="liquid-glass"] .cap-window-shell
+            // `[data-macos-visual-system="liquid-glass"] .scoopy-window-shell
             //  { background: transparent }`, with no panel-style tint on top.
             Some(material) if material.remaps_body() => gpui::transparent_black(),
             // `background: var(--macos-settings-window)`, which is what
@@ -1196,7 +1196,7 @@ mod tests {
         }
     }
 
-    /// The `.cap-window-body` remaps are gated on
+    /// The `.scoopy-window-body` remaps are gated on
     /// `[data-macos-visual-system="liquid-glass"]`, so vibrancy must leave
     /// them alone and change only the shell and header.
     #[test]
@@ -1222,11 +1222,11 @@ mod tests {
             let theme = Theme::new(appearance).with_material(Some(MaterialKind::LiquidGlass));
             let material = theme.material.expect("material was just installed");
 
-            // `.cap-window-shell { border: 0; box-shadow: none }`, then the
+            // `.scoopy-window-shell { border: 0; box-shadow: none }`, then the
             // panel tint.
             assert_eq!(theme.shell_border(), None);
             assert_eq!(theme.shell_bg(), Hsla::from(material.shell));
-            // `.cap-window-header { background: transparent;
+            // `.scoopy-window-header { background: transparent;
             //  border-bottom-color: transparent }`
             assert_eq!(theme.header_bg().a, 0.);
             assert_eq!(theme.header_border(), gpui::transparent_black());

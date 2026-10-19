@@ -90,7 +90,7 @@ fn request(
     let response = if window.has_active_prompt() {
         None
     } else {
-        // Cap has no other custom prompt builder. Restore Default before returning;
+        // Scoopy has no other custom prompt builder. Restore Default before returning;
         // this App borrow must not await, reenter, or invoke another prompt.
         cx.set_prompt_builder(move |_, message, detail, actions, handle, window, cx| {
             let owner = window.window_handle().window_id();

@@ -6,12 +6,12 @@
 //! quoted next to the values they turn into, because `pl-3` and `gap-2.5` are
 //! considerably easier to check against the original than `12.` and `10.`.
 
-use cap_recording::sources::screen_capture::ScreenCaptureTarget;
 use gpui::{
     AppContext as _, Context, FontWeight, Hsla, InteractiveElement, IntoElement, ParentElement,
-    Render, SharedString, StatefulInteractiveElement, Styled, Window, div, img,
-    prelude::FluentBuilder, px, rgb, svg,
+    Render, SharedString, StatefulInteractiveElement, Styled, Window, div, img, point,
+    prelude::FluentBuilder, px, rgb, rgba, size, svg,
 };
+use scoopy_recording::sources::screen_capture::ScreenCaptureTarget;
 use std::{cell::Cell, rc::Rc};
 
 use crate::{
@@ -28,11 +28,14 @@ use crate::{
 };
 use gpui::{Entity, Task};
 
-/// `h-9` on `.cap-window-header`.
+/// `h-9` on `.scoopy-window-header`.
 const HEADER_HEIGHT: f32 = 36.;
 
 /// `h-[42px]` in deviceRowStyles.ts.
 const DEVICE_ROW_HEIGHT: f32 = 42.;
+
+pub const QUICK_BAR_HEIGHT: f32 = 52.;
+pub const EXPANDED_PANEL_HEIGHT: f32 = 420.;
 
 fn remembered_camera(id: &recording::DeviceOrModelID, cameras: &[CameraOption]) -> CameraOption {
     cameras
@@ -97,7 +100,7 @@ fn effective_recording_mode(preferred: Mode, editor_recording: bool) -> Mode {
 }
 
 impl Mode {
-    /// `cap_recording::RecordingMode`'s serialized spelling -- the value the
+    /// `scoopy_recording::RecordingMode`'s serialized spelling -- the value the
     /// store's `recording_settings.mode` holds, shared with the Tauri app.
     pub fn slug(self) -> &'static str {
         match self {
@@ -514,8 +517,8 @@ enum DeviceFormatTarget {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum DeviceFormat {
-    Camera(cap_recording::feeds::camera::CameraDeviceSettings),
-    Microphone(cap_recording::feeds::microphone::MicrophoneDeviceSettings),
+    Camera(scoopy_recording::feeds::camera::CameraDeviceSettings),
+    Microphone(scoopy_recording::feeds::microphone::MicrophoneDeviceSettings),
 }
 
 impl DeviceFormat {
@@ -1037,21 +1040,21 @@ impl MainWindow {
 
                 this.restore_recording_inputs(cx);
 
-                // `CAP_GPUI_AUTO_CAMERA=1`: select the first camera the way a
+                // `SCOOPY_GPUI_AUTO_CAMERA=1`: select the first camera the way a
                 // click would -- the automated check drives the preview window
                 // this way because synthetic clicks are dropped.
-                if std::env::var("CAP_GPUI_AUTO_CAMERA").is_ok_and(|v| v == "1")
+                if std::env::var("SCOOPY_GPUI_AUTO_CAMERA").is_ok_and(|v| v == "1")
                     && this.camera.is_none()
                     && let Some(first) = this.devices.cameras.first().cloned()
                 {
                     tracing::info!(camera = %first.label, "auto-selecting camera");
                     this.set_camera_selection(Some(first), cx);
                 }
-                if std::env::var("CAP_GPUI_AUTO_MIC").is_ok_and(|value| value == "1")
+                if std::env::var("SCOOPY_GPUI_AUTO_MIC").is_ok_and(|value| value == "1")
                     && this.microphone.is_none()
                 {
                     let selected =
-                        cap_recording::feeds::microphone::MicrophoneFeed::default_device()
+                        scoopy_recording::feeds::microphone::MicrophoneFeed::default_device()
                             .and_then(|(name, _, _)| {
                                 this.devices
                                     .microphones
@@ -1065,11 +1068,11 @@ impl MainWindow {
                         this.set_microphone_selection(Some(microphone), cx);
                     }
                 }
-                // `CAP_GPUI_AUTO_PANEL=display|window`: open that target
+                // `SCOOPY_GPUI_AUTO_PANEL=display|window`: open that target
                 // picker panel the way the chevron click does. Same reason as
-                // `CAP_GPUI_AUTO_CAMERA` above -- the chrome screenshots need
+                // `SCOOPY_GPUI_AUTO_CAMERA` above -- the chrome screenshots need
                 // the card grid on screen and synthetic clicks are dropped.
-                match std::env::var("CAP_GPUI_AUTO_PANEL").as_deref() {
+                match std::env::var("SCOOPY_GPUI_AUTO_PANEL").as_deref() {
                     Ok("display") => {
                         this.open_panel(Panel::Target(TargetType::Display), window, cx)
                     }
@@ -1766,14 +1769,14 @@ impl MainWindow {
         }
     }
 
-    /// Dev-only end-to-end driver (`CAP_GPUI_AUTO_RECORD=studio:5`): synthetic
+    /// Dev-only end-to-end driver (`SCOOPY_GPUI_AUTO_RECORD=studio:5`): synthetic
     /// clicks are dropped without Accessibility permission, so the automated
     /// check arms a target and drives start/stop through the same methods the
     /// buttons call.
     ///
-    /// `CAP_GPUI_AUTO_OVERLAY=display|window|area` routes the start through the
+    /// `SCOOPY_GPUI_AUTO_OVERLAY=display|window|area` routes the start through the
     /// target-select overlay instead of straight off this window --
-    /// `CAP_GPUI_AUTO_AREA=x,y,w,h` seeds the crop the drag would have drawn,
+    /// `SCOOPY_GPUI_AUTO_AREA=x,y,w,h` seeds the crop the drag would have drawn,
     /// and the window variant pins the first enumerated window the way picking
     /// one from the dropdown does.
     pub fn auto_record(
@@ -1789,14 +1792,14 @@ impl MainWindow {
         self.mode = mode;
         self.target = Some(overlay.unwrap_or(TargetType::Display));
         self.system_audio =
-            std::env::var("CAP_GPUI_AUTO_SYSTEM_AUDIO").is_ok_and(|value| value == "1");
+            std::env::var("SCOOPY_GPUI_AUTO_SYSTEM_AUDIO").is_ok_and(|value| value == "1");
         cx.notify();
 
-        // `CAP_GPUI_AUTO_PAUSE=1`: wiggle pause/resume in the middle third, so
+        // `SCOOPY_GPUI_AUTO_PAUSE=1`: wiggle pause/resume in the middle third, so
         // ffprobe duration < wall time proves the pause reached the engine.
-        let pause_wiggle = std::env::var("CAP_GPUI_AUTO_PAUSE").is_ok_and(|v| v == "1");
+        let pause_wiggle = std::env::var("SCOOPY_GPUI_AUTO_PAUSE").is_ok_and(|v| v == "1");
 
-        let skip_mic = std::env::var("CAP_GPUI_AUTO_NO_MIC").is_ok_and(|v| v == "1")
+        let skip_mic = std::env::var("SCOOPY_GPUI_AUTO_NO_MIC").is_ok_and(|v| v == "1")
             || mode == Mode::Screenshot;
         if skip_mic {
             self.set_microphone_selection(None, cx);
@@ -1818,7 +1821,7 @@ impl MainWindow {
                 let default_mic = cx
                     .background_executor()
                     .spawn(async {
-                        cap_recording::feeds::microphone::MicrophoneFeed::default_device()
+                        scoopy_recording::feeds::microphone::MicrophoneFeed::default_device()
                             .map(|(name, _, _)| name)
                     })
                     .await;
@@ -1873,7 +1876,7 @@ impl MainWindow {
                 if !found {
                     tracing::error!(
                         title = %wanted,
-                        "CAP_GPUI_AUTO_WINDOW: no matching window"
+                        "SCOOPY_GPUI_AUTO_WINDOW: no matching window"
                     );
                     return;
                 }
@@ -1980,7 +1983,7 @@ impl MainWindow {
         cx.notify();
     }
 
-    /// `CAP_GPUI_AUTO_OVERLAY` on its own (no `CAP_GPUI_AUTO_RECORD`): open the
+    /// `SCOOPY_GPUI_AUTO_OVERLAY` on its own (no `SCOOPY_GPUI_AUTO_RECORD`): open the
     /// overlays and leave them up, which is how the screenshots are taken.
     pub fn auto_open_overlay(
         &mut self,
@@ -2013,7 +2016,7 @@ impl MainWindow {
 
     /// Start with the target the UI state describes. The overlays own the real
     /// start affordance now; this is the harness path
-    /// (`CAP_GPUI_AUTO_RECORD` without `CAP_GPUI_AUTO_OVERLAY`).
+    /// (`SCOOPY_GPUI_AUTO_RECORD` without `SCOOPY_GPUI_AUTO_OVERLAY`).
     pub fn start_recording(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let Some(target) = self.armed_target() else {
             return;
@@ -2306,8 +2309,8 @@ impl MainWindow {
                     return;
                 }
             };
-            let can_start = storage.status() != cap_utils::disk_space::DiskSpaceStatus::Exhausted;
-            if storage.status() == cap_utils::disk_space::DiskSpaceStatus::Ok || acknowledged && can_start {
+            let can_start = storage.status() != scoopy_utils::disk_space::DiskSpaceStatus::Exhausted;
+            if storage.status() == scoopy_utils::disk_space::DiskSpaceStatus::Ok || acknowledged && can_start {
                 this.update(cx, |this, cx| {
                     if !this.recording_start_is_current(&permit, cx) {
                         this.finish_recording_start(&permit);
@@ -2545,12 +2548,15 @@ impl Render for MainWindow {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.sync_appearance(window, cx);
         let theme = self.theme;
-        let meter_active = self.panel.is_none()
-            && self.microphone.is_some()
-            && self.session.read(cx).phase == Phase::Idle;
+        let meter_active = self.microphone.is_some() && self.session.read(cx).phase == Phase::Idle;
         self.microphone_level.update(cx, |meter, cx| {
-            meter.configure(meter_active, theme.blue_9.into(), cx);
+            meter.configure(meter_active, rgb(0xfedb00).into(), cx);
         });
+
+        self.sync_window_size(window, cx);
+
+        let is_panel = self.panel.is_some();
+        let shell_radius = if is_panel { px(20.) } else { px(26.) };
 
         div()
             .size_full()
@@ -2558,28 +2564,41 @@ impl Render for MainWindow {
             .flex()
             .flex_col()
             .overflow_hidden()
-            // Windows keeps its native frame, so DWM supplies the outer corners.
-            .when(!cfg!(target_os = "windows"), |shell| shell.rounded(px(16.)))
-            // Opaque `bg-gray-1` with no material; a translucent tint over the
-            // live `NSGlassEffectView`/`NSVisualEffectView` backdrop with one.
-            .bg(theme.shell_bg())
-            // Only the vibrancy path draws a shell border -- Liquid Glass sets
-            // `border: 0`.
-            .when_some(theme.shell_border(), |this, color| {
-                this.border_1().border_color(color)
+            .when(!cfg!(target_os = "windows"), |shell| {
+                shell.rounded(shell_radius)
             })
+            .bg(theme.shell_bg())
+            .border_1()
+            .border_color(rgba(0xfedb0035))
+            .when_some(theme.shell_border(), |this, color| this.border_color(color))
+            .shadow(vec![
+                gpui::BoxShadow {
+                    color: rgba(0x00000080).into(),
+                    offset: point(px(0.), px(8.)),
+                    blur_radius: px(24.),
+                    spread_radius: px(0.),
+                    inset: false,
+                },
+                gpui::BoxShadow {
+                    color: rgba(0xfedb0020).into(),
+                    offset: point(px(0.), px(0.)),
+                    blur_radius: px(12.),
+                    spread_radius: px(1.),
+                    inset: false,
+                },
+            ])
             .font_family(crate::theme::UI_FONT)
-            // `body { font-weight: 500 }` (`ui-solid/src/main.css:189-192`). The shipping app renders
-            // *everything* Medium unless a `font-*` class says otherwise, so
-            // Medium -- not Regular -- is the inherited default at every root.
             .font_weight(FontWeight::MEDIUM)
             .text_color(theme.text_primary)
-            .child(self.render_header(window, cx))
-            .child(self.render_body(cx))
+            .when(!is_panel, |this| {
+                this.child(self.render_quick_bar(window, cx))
+            })
+            .when(is_panel, |this| {
+                this.child(self.render_header(window, cx))
+                    .child(self.render_body(cx))
+            })
             .children(self.render_mode_hover(cx))
             .when(
-                // The controls bar owns the live-recording UI; this overlay is
-                // the fallback for when the bar window failed to open.
                 {
                     let session = self.session.read(cx);
                     session.phase != Phase::Idle && !session.controls_open
@@ -2607,6 +2626,600 @@ impl Render for MainWindow {
 }
 
 impl MainWindow {
+    fn sync_window_size(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let is_panel = self.panel.is_some();
+        let target_height = if is_panel {
+            EXPANDED_PANEL_HEIGHT
+        } else {
+            QUICK_BAR_HEIGHT
+        };
+        let current_h = f32::from(window.bounds().size.height);
+        if (current_h - target_height).abs() > 4.0 {
+            #[cfg(target_os = "macos")]
+            if let Some(native) = crate::platform::native_window(window) {
+                let (frame_x, frame_y, _, frame_height) = crate::platform::window_frame(&native);
+                let appkit_y = (frame_y + frame_height) - target_height as f64;
+                cx.spawn(async move |_, _| {
+                    crate::platform::set_window_frame(
+                        &native,
+                        frame_x,
+                        appkit_y,
+                        MAIN_WINDOW_WIDTH as f64,
+                        target_height as f64,
+                    );
+                })
+                .detach();
+                return;
+            }
+            window.resize(size(px(MAIN_WINDOW_WIDTH), px(target_height)));
+        }
+    }
+
+    pub(crate) fn trigger_record_action(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.effective_mode(cx) == Mode::Screenshot {
+            let target = self.armed_target().unwrap_or_else(|| {
+                let id = self
+                    .selected_display
+                    .as_ref()
+                    .map(|d| d.id.clone())
+                    .unwrap_or_else(|| scap_targets::Display::primary().id());
+                ScreenCaptureTarget::Display { id }
+            });
+            cx.defer(move |cx: &mut gpui::App| {
+                crate::screenshot::take_screenshot(target, cx);
+            });
+            return;
+        }
+        if self.target == Some(TargetType::Area) {
+            self.arm_overlay(TargetType::Area, cx);
+            return;
+        }
+        if self.target.is_none() {
+            self.target = Some(TargetType::Display);
+            self.sync_overlays(cx);
+        }
+        if let Some(target) = self.armed_target() {
+            self.start_recording_with_target(target, Vec::new(), window, cx);
+        } else {
+            let id = self
+                .selected_display
+                .as_ref()
+                .map(|d| d.id.clone())
+                .unwrap_or_else(|| scap_targets::Display::primary().id());
+            self.start_recording_with_target(
+                ScreenCaptureTarget::Display { id },
+                Vec::new(),
+                window,
+                cx,
+            );
+        }
+    }
+
+    fn render_quick_bar(&self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let theme = self.theme;
+        let current_mode = self.effective_mode(cx);
+        let is_screenshot = current_mode == Mode::Screenshot;
+
+        let target_type = self.target.unwrap_or(TargetType::Display);
+        let target_label = match target_type {
+            TargetType::Display => self
+                .selected_display
+                .as_ref()
+                .map(|d| d.label.as_str())
+                .unwrap_or("Display"),
+            TargetType::Window => self
+                .selected_window
+                .as_ref()
+                .map(|w| w.label.as_str())
+                .unwrap_or("Window"),
+            TargetType::Area => "Area Crop",
+            TargetType::CameraOnly => "Camera Only",
+        };
+        let target_icon = target_type.icon();
+
+        let meter_fill = {
+            let feeds = Feeds::global(cx);
+            ui::MicrophoneLevel::fill(feeds.read(cx))
+        };
+        let mic_connected = self.microphone.is_some();
+        let mic_name = self
+            .microphone
+            .as_ref()
+            .map(|m| m.name.clone())
+            .unwrap_or_else(|| "No Mic".to_string());
+
+        let camera_active = self.camera.is_some();
+        let camera_name = self
+            .camera
+            .as_ref()
+            .map(|c| c.label.clone())
+            .unwrap_or_else(|| "No Camera".to_string());
+        let sys_audio = self.system_audio;
+
+        div()
+            .id("tweety-quick-bar")
+            .size_full()
+            .flex()
+            .flex_row()
+            .items_center()
+            .justify_between()
+            .px(px(10.))
+            .py(px(4.))
+            .gap(px(6.))
+            .child(
+                div()
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .gap(px(6.))
+                    .flex_shrink_0()
+                    .child(
+                        div()
+                            .id("tweety-brand-badge")
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .size(px(32.))
+                            .rounded_full()
+                            .bg(rgb(0xfedb00))
+                            .cursor_grab()
+                            .shadow(vec![gpui::BoxShadow {
+                                color: rgba(0xfedb0080).into(),
+                                offset: point(px(0.), px(2.)),
+                                blur_radius: px(8.),
+                                spread_radius: px(0.),
+                                inset: false,
+                            }])
+                            .tooltip(|_, cx| {
+                                ui::Tooltip::new(&Theme::dark(), "Scoopy • Drag to reposition")
+                                    .view(cx)
+                            })
+                            .on_mouse_down(gpui::MouseButton::Left, |_, window, _| {
+                                window.start_window_move();
+                            })
+                            .child(
+                                svg()
+                                    .path("icons/sparkles.svg")
+                                    .size(px(16.))
+                                    .text_color(rgb(0x18181b)),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .id("mode-switcher")
+                            .flex()
+                            .flex_row()
+                            .items_center()
+                            .h(px(32.))
+                            .p(px(2.))
+                            .rounded_full()
+                            .bg(rgba(0xffffff0d))
+                            .gap(px(2.))
+                            .child(
+                                div()
+                                    .id("mode-studio-btn")
+                                    .flex()
+                                    .items_center()
+                                    .justify_center()
+                                    .h_full()
+                                    .px(px(9.))
+                                    .rounded_full()
+                                    .cursor_pointer()
+                                    .when(!is_screenshot, |this| {
+                                        this.bg(rgb(0xfedb00))
+                                            .text_color(rgb(0x18181b))
+                                            .font_weight(FontWeight::BOLD)
+                                    })
+                                    .when(is_screenshot, |this| {
+                                        this.text_color(theme.gray_11).hover(|s| {
+                                            s.text_color(theme.gray_12).bg(rgba(0xffffff10))
+                                        })
+                                    })
+                                    .text_size(px(11.))
+                                    .child("Studio")
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.set_mode(Mode::Studio, cx);
+                                    })),
+                            )
+                            .child(
+                                div()
+                                    .id("mode-snap-btn")
+                                    .flex()
+                                    .items_center()
+                                    .justify_center()
+                                    .h_full()
+                                    .px(px(9.))
+                                    .rounded_full()
+                                    .cursor_pointer()
+                                    .when(is_screenshot, |this| {
+                                        this.bg(rgb(0xfedb00))
+                                            .text_color(rgb(0x18181b))
+                                            .font_weight(FontWeight::BOLD)
+                                    })
+                                    .when(!is_screenshot, |this| {
+                                        this.text_color(theme.gray_11).hover(|s| {
+                                            s.text_color(theme.gray_12).bg(rgba(0xffffff10))
+                                        })
+                                    })
+                                    .text_size(px(11.))
+                                    .child("Snap")
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.set_mode(Mode::Screenshot, cx);
+                                    })),
+                            ),
+                    ),
+            )
+            .child(
+                div()
+                    .id("quickbar-target-pill")
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .h(px(32.))
+                    .px(px(9.))
+                    .gap(px(5.))
+                    .rounded_full()
+                    .bg(rgba(0xffffff0d))
+                    .border_1()
+                    .border_color(rgba(0xffffff15))
+                    .cursor_pointer()
+                    .hover(|style| style.bg(rgba(0xffffff1a)).border_color(rgba(0xfedb0050)))
+                    .tooltip(move |_, cx| {
+                        ui::Tooltip::new(&theme, "Change capture target (Display / Window / Area)")
+                            .view(cx)
+                    })
+                    .on_click(cx.listener(move |this, _, window, cx| {
+                        this.open_panel(Panel::Target(target_type), window, cx);
+                    }))
+                    .child(
+                        svg()
+                            .path(target_icon)
+                            .size(px(13.))
+                            .text_color(rgb(0xfedb00)),
+                    )
+                    .child(
+                        div()
+                            .max_w(px(80.))
+                            .truncate()
+                            .text_size(px(11.))
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(theme.gray_12)
+                            .child(target_label.to_string()),
+                    )
+                    .child(
+                        svg()
+                            .path("icons/chevron-down.svg")
+                            .size(px(10.))
+                            .text_color(theme.gray_10),
+                    ),
+            )
+            .child(
+                div()
+                    .id("quickbar-mic-meter-pill")
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .h(px(32.))
+                    .px(px(8.))
+                    .gap(px(5.))
+                    .rounded_full()
+                    .bg(rgba(0xffffff0d))
+                    .border_1()
+                    .border_color(if mic_connected {
+                        rgba(0xfedb0035)
+                    } else {
+                        rgba(0xffffff10)
+                    })
+                    .cursor_pointer()
+                    .hover(|style| style.bg(rgba(0xffffff1a)).border_color(rgba(0xfedb0060)))
+                    .tooltip(move |_, cx| {
+                        let text = format!("Microphone: {mic_name} • Click to select");
+                        ui::Tooltip::new(&theme, text).view(cx)
+                    })
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        if !this.enumerating && this.device_changes_allowed(cx) {
+                            this.open_panel(Panel::Device(DeviceMenu::Microphone), window, cx);
+                        }
+                    }))
+                    .child(
+                        svg()
+                            .path(if mic_connected {
+                                "icons/microphone.svg"
+                            } else {
+                                "icons/mic-off.svg"
+                            })
+                            .size(px(13.))
+                            .text_color(if mic_connected {
+                                rgb(0xfedb00)
+                            } else {
+                                theme.gray_10
+                            }),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .flex_row()
+                            .items_center()
+                            .gap(px(2.))
+                            .h(px(14.))
+                            .children((0..8).map(|i| {
+                                let active_bars = if mic_connected {
+                                    (meter_fill * 8.).round() as usize
+                                } else {
+                                    0
+                                };
+                                let is_lit = i < active_bars;
+                                let color = if is_lit {
+                                    if i < 5 {
+                                        rgb(0xfedb00)
+                                    } else if i < 7 {
+                                        rgb(0xfbbf24)
+                                    } else {
+                                        rgb(0xef4444)
+                                    }
+                                } else {
+                                    rgba(0xffffff15)
+                                };
+                                div()
+                                    .w(px(2.5))
+                                    .h(px(5. + (i as f32) * 1.1))
+                                    .rounded(px(1.2))
+                                    .bg(color)
+                            })),
+                    ),
+            )
+            .child(
+                div()
+                    .id("quickbar-camera-pill")
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .size(px(32.))
+                    .rounded_full()
+                    .bg(if camera_active {
+                        rgba(0xfedb0022)
+                    } else {
+                        rgba(0xffffff0d)
+                    })
+                    .border_1()
+                    .border_color(if camera_active {
+                        rgba(0xfedb0055)
+                    } else {
+                        rgba(0xffffff10)
+                    })
+                    .cursor_pointer()
+                    .hover(|style| style.bg(rgba(0xffffff1a)))
+                    .tooltip(move |_, cx| {
+                        let text = format!("Camera: {camera_name} • Click to select/toggle");
+                        ui::Tooltip::new(&theme, text).view(cx)
+                    })
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        if !this.enumerating && this.device_changes_allowed(cx) {
+                            this.open_panel(Panel::Device(DeviceMenu::Camera), window, cx);
+                        }
+                    }))
+                    .child(svg().path("icons/camera.svg").size(px(13.)).text_color(
+                        if camera_active {
+                            rgb(0xfedb00)
+                        } else {
+                            theme.gray_11
+                        },
+                    )),
+            )
+            .child(
+                div()
+                    .id("quickbar-sysaudio-pill")
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .size(px(32.))
+                    .rounded_full()
+                    .bg(if sys_audio {
+                        rgba(0xfedb0022)
+                    } else {
+                        rgba(0xffffff0d)
+                    })
+                    .border_1()
+                    .border_color(if sys_audio {
+                        rgba(0xfedb0055)
+                    } else {
+                        rgba(0xffffff10)
+                    })
+                    .cursor_pointer()
+                    .hover(|style| style.bg(rgba(0xffffff1a)))
+                    .tooltip(move |_, cx| {
+                        let text = if sys_audio {
+                            "System Audio: ON • Click to disable"
+                        } else {
+                            "System Audio: OFF • Click to enable"
+                        };
+                        ui::Tooltip::new(&theme, text).view(cx)
+                    })
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.set_system_audio(!this.system_audio, cx);
+                    }))
+                    .child(
+                        svg()
+                            .path(if sys_audio {
+                                "icons/volume-2.svg"
+                            } else {
+                                "icons/volume-x.svg"
+                            })
+                            .size(px(13.))
+                            .text_color(if sys_audio {
+                                rgb(0xfedb00)
+                            } else {
+                                theme.gray_11
+                            }),
+                    ),
+            )
+            .child(
+                div()
+                    .id("tweety-record-action")
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .justify_center()
+                    .h(px(32.))
+                    .px(px(13.))
+                    .gap(px(6.))
+                    .rounded_full()
+                    .bg(rgb(0xfedb00))
+                    .cursor_pointer()
+                    .shadow(vec![gpui::BoxShadow {
+                        color: rgba(0xfedb0070).into(),
+                        offset: point(px(0.), px(2.)),
+                        blur_radius: px(8.),
+                        spread_radius: px(0.),
+                        inset: false,
+                    }])
+                    .hover(|style| {
+                        style.bg(rgb(0xffe629)).shadow(vec![gpui::BoxShadow {
+                            color: rgba(0xfedb0090).into(),
+                            offset: point(px(0.), px(3.)),
+                            blur_radius: px(12.),
+                            spread_radius: px(1.),
+                            inset: false,
+                        }])
+                    })
+                    .active(|style| style.bg(rgb(0xecd000)))
+                    .tooltip(|_, cx| ui::Tooltip::new(&Theme::dark(), "Start Recording").view(cx))
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        this.trigger_record_action(window, cx);
+                    }))
+                    .child(div().size(px(7.)).rounded_full().bg(rgb(0xef4444)))
+                    .child(
+                        div()
+                            .text_size(px(11.))
+                            .font_weight(FontWeight::BOLD)
+                            .text_color(rgb(0x18181b))
+                            .child(if is_screenshot { "Snap" } else { "REC" }),
+                    ),
+            )
+            .child(
+                div()
+                    .id("quickbar-snap-btn")
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .size(px(32.))
+                    .rounded_full()
+                    .bg(rgba(0xffffff0d))
+                    .border_1()
+                    .border_color(rgba(0xffffff15))
+                    .cursor_pointer()
+                    .hover(|style| style.bg(rgba(0xffffff1f)).border_color(rgba(0xfedb0050)))
+                    .tooltip(|_, cx| {
+                        ui::Tooltip::new(&Theme::dark(), "Instant Screenshot").view(cx)
+                    })
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        let id = this
+                            .selected_display
+                            .as_ref()
+                            .map(|d| d.id.clone())
+                            .unwrap_or_else(|| scap_targets::Display::primary().id());
+                        let target = ScreenCaptureTarget::Display { id };
+                        cx.defer(move |cx: &mut gpui::App| {
+                            crate::screenshot::take_screenshot(target, cx);
+                        });
+                    }))
+                    .child(
+                        svg()
+                            .path("icons/screenshot.svg")
+                            .size(px(13.))
+                            .text_color(rgb(0xfedb00)),
+                    ),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .gap(px(2.))
+                    .flex_shrink_0()
+                    .child(
+                        div()
+                            .id("quickbar-library-btn")
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .size(px(28.))
+                            .rounded_full()
+                            .cursor_pointer()
+                            .text_color(theme.gray_11)
+                            .hover(|s| s.text_color(rgb(0xfedb00)).bg(rgba(0xffffff10)))
+                            .tooltip(move |_, cx| {
+                                ui::Tooltip::new(&theme, "Recordings Library").view(cx)
+                            })
+                            .on_click(cx.listener(|this, _, window, cx| {
+                                this.open_panel(
+                                    Panel::Library(LibraryKind::Recordings),
+                                    window,
+                                    cx,
+                                );
+                            }))
+                            .child(svg().path("icons/play-circle.svg").size(px(14.))),
+                    )
+                    .child(
+                        div()
+                            .id("quickbar-teleprompter-btn")
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .size(px(28.))
+                            .rounded_full()
+                            .cursor_pointer()
+                            .text_color(theme.gray_11)
+                            .hover(|s| s.text_color(rgb(0xfedb00)).bg(rgba(0xffffff10)))
+                            .tooltip(move |_, cx| ui::Tooltip::new(&theme, "Teleprompter").view(cx))
+                            .on_click(cx.listener(|_, _, _, cx| {
+                                cx.defer(app_windows::open_teleprompter);
+                            }))
+                            .child(svg().path("icons/scan-text.svg").size(px(14.))),
+                    )
+                    .child(
+                        div()
+                            .id("quickbar-settings-btn")
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .size(px(28.))
+                            .rounded_full()
+                            .cursor_pointer()
+                            .text_color(theme.gray_11)
+                            .hover(|s| s.text_color(rgb(0xfedb00)).bg(rgba(0xffffff10)))
+                            .tooltip(move |_, cx| ui::Tooltip::new(&theme, "Settings").view(cx))
+                            .on_click(cx.listener(|_, _, _, cx| {
+                                cx.defer(|cx: &mut gpui::App| {
+                                    app_windows::open_settings(
+                                        crate::settings_window::Page::General,
+                                        cx,
+                                    );
+                                });
+                            }))
+                            .child(svg().path("icons/settings.svg").size(px(14.))),
+                    )
+                    .child(
+                        div()
+                            .id("quickbar-close-btn")
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .size(px(28.))
+                            .rounded_full()
+                            .cursor_pointer()
+                            .text_color(theme.gray_11)
+                            .hover(|s| s.text_color(rgb(0xef4444)).bg(rgba(0xef444420)))
+                            .tooltip(move |_, cx| {
+                                ui::Tooltip::new(&theme, "Hide Quick Bar").view(cx)
+                            })
+                            .on_click(cx.listener(|_, _, _, cx| {
+                                cx.defer(crate::app_windows::request_close_main);
+                            }))
+                            .child(svg().path("icons/traffic-close.svg").size(px(10.))),
+                    ),
+            )
+    }
     fn render_microphone_warning(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = self.theme;
         let checked = self
@@ -3005,10 +3618,10 @@ impl MainWindow {
                     "traffic-close",
                 )
                 // `getCurrentWindow().close()` in `CaptionControlsMacOS`, which
-                // reaches `CapWindowId::Main`'s `CloseRequested` arm -- and
+                // reaches `ScoopyWindowId::Main`'s `CloseRequested` arm -- and
                 // that arm *prevents* the close and hides the window
                 // (`lib.rs:5644-5697`). With the tray present, closing the main
-                // window must not quit Cap. Deferred out of the listener: the
+                // window must not quit Scoopy. Deferred out of the listener: the
                 // hide path touches the window registry and orders the NSWindow
                 // out, neither of which may happen inside this update.
                 .on_click(cx.listener(|_, _, _window, cx| {
@@ -3207,7 +3820,7 @@ impl MainWindow {
             .px(px(13.))
             .pb(px(8.))
             .gap(px(8.))
-            // `.cap-window-body { color: var(--macos-settings-text) }` under
+            // `.scoopy-window-body { color: var(--macos-settings-text) }` under
             // panel glass; `--text-primary` otherwise.
             .text_color(self.theme.body_text());
 
@@ -5614,7 +6227,7 @@ impl MainWindow {
                         // in-window info panel -- `showWindow("ModeSelect")` is
                         // `Mode.tsx`'s *fallback*, and nothing in the shipping
                         // frontend reaches it. The standalone window exists
-                        // here for parity (`CAP_GPUI_AUTO_MODE_SELECT` opens
+                        // here for parity (`SCOOPY_GPUI_AUTO_MODE_SELECT` opens
                         // it), but the dot mirrors the observed behavior.
                         this.open_panel(Panel::ModeInfo, window, cx);
                     })),
@@ -6020,10 +6633,10 @@ fn black_alpha(alpha: f32) -> Hsla {
     color
 }
 
-/// `CAP_GPUI_AUTO_OVERLAY=display|window|area|camera`, the harness's stand-in
+/// `SCOOPY_GPUI_AUTO_OVERLAY=display|window|area|camera`, the harness's stand-in
 /// for clicking a target tile.
 pub fn auto_overlay_kind() -> Option<TargetType> {
-    match std::env::var("CAP_GPUI_AUTO_OVERLAY").ok()?.as_str() {
+    match std::env::var("SCOOPY_GPUI_AUTO_OVERLAY").ok()?.as_str() {
         "display" => Some(TargetType::Display),
         "window" => Some(TargetType::Window),
         "area" => Some(TargetType::Area),
@@ -6033,7 +6646,7 @@ pub fn auto_overlay_kind() -> Option<TargetType> {
 }
 
 pub(crate) fn auto_window_title() -> Option<String> {
-    std::env::var("CAP_GPUI_AUTO_WINDOW")
+    std::env::var("SCOOPY_GPUI_AUTO_WINDOW")
         .ok()
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
@@ -6043,10 +6656,10 @@ fn window_matches(window: &crate::devices::WindowOption, title: &str) -> bool {
     window.label == title
 }
 
-/// `CAP_GPUI_AUTO_AREA=x,y,width,height`, the harness's stand-in for drawing a
+/// `SCOOPY_GPUI_AUTO_AREA=x,y,width,height`, the harness's stand-in for drawing a
 /// crop with the mouse.
 fn auto_area_rect() -> Option<crate::target_overlay::AreaRect> {
-    crate::target_overlay::AreaRect::parse(&std::env::var("CAP_GPUI_AUTO_AREA").ok()?)
+    crate::target_overlay::AreaRect::parse(&std::env::var("SCOOPY_GPUI_AUTO_AREA").ok()?)
 }
 
 /// `InfoPill` + `TargetSelectInfoPill`: 24px tall, min 40px wide, `px-2.5`,
@@ -6121,7 +6734,8 @@ mod remembered_device_tests {
     fn camera(device: &str, model: Option<&str>) -> CameraOption {
         CameraOption {
             device_id: device.to_string(),
-            model_id: model.map(|model| cap_camera::ModelID::try_from(model.to_string()).unwrap()),
+            model_id: model
+                .map(|model| scoopy_camera::ModelID::try_from(model.to_string()).unwrap()),
             label: format!("Camera {device}"),
             best_format: None,
             formats: Vec::new(),
@@ -6134,7 +6748,7 @@ mod remembered_device_tests {
             camera("other", Some("other:model")),
             camera("new-id", Some("same:model")),
         ];
-        let model = cap_camera::ModelID::try_from("same:model".to_string()).unwrap();
+        let model = scoopy_camera::ModelID::try_from("same:model".to_string()).unwrap();
         let restored = remembered_camera(&recording::DeviceOrModelID::ModelID(model), &candidates);
         assert_eq!(restored, candidates[1]);
         assert_eq!(
@@ -6212,7 +6826,7 @@ mod device_format_tests {
         Some(PendingDeviceFormat {
             target: DeviceFormatTarget::Microphone("Desk".into()),
             format: DeviceFormat::Microphone(
-                cap_recording::feeds::microphone::MicrophoneDeviceSettings {
+                scoopy_recording::feeds::microphone::MicrophoneDeviceSettings {
                     sample_rate: Some(48_000),
                     channels: Some(1),
                 },

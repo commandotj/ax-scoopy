@@ -1,5 +1,5 @@
-use cap_editor::{PreparingEditorPhase, PreparingEditorProgress, PreparingPlaybackState};
-use cap_project::ProjectConfiguration;
+use scoopy_editor::{PreparingEditorPhase, PreparingEditorProgress, PreparingPlaybackState};
+use scoopy_project::ProjectConfiguration;
 
 #[derive(Clone)]
 pub(crate) struct PreparingTimelineSeed {

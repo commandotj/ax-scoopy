@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { Popover } from "@kobalte/core/popover";
 import { createEventListener } from "@solid-primitives/event-listener";
 import { createElementSize } from "@solid-primitives/resize-observer";
@@ -405,7 +405,7 @@ function Inner() {
 						<Show when={displayInformation.data} keyed>
 							{(display) => (
 								<div class="flex flex-col items-center text-white">
-									<IconCapMonitor class="size-20 mb-3" />
+									<IconScoopyMonitor class="size-20 mb-3" />
 									<span class="mb-2 text-3xl font-semibold">
 										{display.name || "Monitor"}
 									</span>
@@ -446,7 +446,7 @@ function Inner() {
 								commands.closeTargetSelectOverlays();
 							}}
 						/>
-						<ShowCapFreeWarning isInstantMode={options.mode === "instant"} />
+						<ShowScoopyFreeWarning isInstantMode={options.mode === "instant"} />
 					</div>
 				)}
 			</Match>
@@ -744,7 +744,7 @@ function Inner() {
 										>
 											Adjust recording area
 										</Button>
-										<ShowCapFreeWarning
+										<ShowScoopyFreeWarning
 											isInstantMode={options.mode === "instant"}
 										/>
 									</div>
@@ -1488,7 +1488,7 @@ function Inner() {
 										</div>
 									</Show>
 									<Show when={isValid()}>
-										<ShowCapFreeWarning
+										<ShowScoopyFreeWarning
 											isInstantMode={options.mode === "instant"}
 										/>
 									</Show>
@@ -1560,7 +1560,7 @@ function CameraPreviewInline() {
 	let isCleanedUp = false;
 	let lastFrameTime = 0;
 
-	const cameraWsPort = window.__CAP__?.cameraWsPort;
+	const cameraWsPort = window.__SCOOPY__?.cameraWsPort;
 	const hasCameraSelected = () => rawOptions.cameraID !== null;
 
 	const closeSocket = () => {
@@ -1817,7 +1817,7 @@ function CameraPreviewInline() {
 						when={hasCameraSelected()}
 						fallback={
 							<div class="flex flex-col items-center gap-2 text-center px-4">
-								<IconCapCamera class="size-8 text-gray-9 mb-2" />
+								<IconScoopyCamera class="size-8 text-gray-9 mb-2" />
 								<div class="text-sm text-gray-11">Please select a camera</div>
 							</div>
 						}
@@ -2245,7 +2245,7 @@ function RecordingControls(props: {
 							}}
 							class="flex justify-center items-center rounded-full transition-opacity bg-gray-12 size-9 hover:opacity-80"
 						>
-							<IconCapX class="invert will-change-transform size-3 dark:invert-0" />
+							<IconScoopyX class="invert will-change-transform size-3 dark:invert-0" />
 						</div>
 						<Popover
 							open={noMicrophoneWarningOpen()}
@@ -2271,13 +2271,13 @@ function RecordingControls(props: {
 								>
 									<Switch>
 										<Match when={rawOptions.mode === "studio"}>
-											<IconCapFilmCut class="size-4 shrink-0" />
+											<IconScoopyFilmCut class="size-4 shrink-0" />
 										</Match>
 										<Match when={rawOptions.mode === "instant"}>
-											<IconCapInstant class="size-4 shrink-0" />
+											<IconScoopyInstant class="size-4 shrink-0" />
 										</Match>
 										<Match when={(rawOptions.mode as string) === "screenshot"}>
-											<IconCapCamera class="size-4 shrink-0" />
+											<IconScoopyCamera class="size-4 shrink-0" />
 										</Match>
 									</Switch>
 									<div class="flex flex-col mr-2 ml-3 min-w-0">
@@ -2301,7 +2301,7 @@ function RecordingControls(props: {
 									class="pl-2.5 pr-3 py-1.5 flex items-center border-l border-white/20 bg-white/5 transition-colors group-hover:bg-white/10"
 									onClick={(e) => showMenu(menuModes, e)}
 								>
-									<IconCapCaretDown class="pointer-events-none" />
+									<IconScoopyCaretDown class="pointer-events-none" />
 								</button>
 							</Popover.Anchor>
 							<Popover.Portal>
@@ -2355,7 +2355,7 @@ function RecordingControls(props: {
 							class="flex justify-center items-center rounded-full border transition-opacity bg-gray-6 text-gray-12 size-9 hover:opacity-80"
 							onClick={(e) => showMenu(preRecordingMenu, e)}
 						>
-							<IconCapGear class="pointer-events-none will-change-transform size-5" />
+							<IconScoopyGear class="pointer-events-none will-change-transform size-5" />
 						</button>
 					</div>
 				</div>
@@ -2411,7 +2411,7 @@ function RecordingControls(props: {
 						"hover:opacity-60": !props.showBackground,
 					}}
 				>
-					<IconCapInfo class="opacity-70 will-change-transform size-3" />
+					<IconScoopyInfo class="opacity-70 will-change-transform size-3" />
 					<p class="text-sm text-white drop-shadow-md">
 						<span class="opacity-70">What is </span>
 						<span class="font-medium">{capitalize(rawOptions.mode)} Mode</span>?
@@ -2422,7 +2422,7 @@ function RecordingControls(props: {
 	);
 }
 
-function ShowCapFreeWarning(props: { isInstantMode: boolean }) {
+function ShowScoopyFreeWarning(props: { isInstantMode: boolean }) {
 	const auth = authStore.createQuery();
 
 	return (

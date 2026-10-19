@@ -3,8 +3,8 @@
 
 mod common;
 
-use cap_project::{ProjectConfiguration, SceneMode, SceneSegment, XY};
-use cap_verify::{
+use scoopy_project::{ProjectConfiguration, SceneMode, SceneSegment, XY};
+use scoopy_verify::{
     catalog,
     fixture::FixtureSpec,
     report::{self, Case, Tier},
@@ -204,9 +204,9 @@ fn camera_user_offset(config: &mut ProjectConfiguration) {
             clip.offsets.camera = 0.3;
             clip.offsets_auto_calculated = false;
         }
-        None => config.clips.push(cap_project::ClipConfiguration {
+        None => config.clips.push(scoopy_project::ClipConfiguration {
             index: 0,
-            offsets: cap_project::ClipOffsets {
+            offsets: scoopy_project::ClipOffsets {
                 camera: 0.3,
                 ..Default::default()
             },
@@ -397,8 +397,8 @@ fn across_segments(config: &mut ProjectConfiguration) {
 fn prepare_recorded_fixtures() {
     common::recorded(&catalog::recorded_studio(report::tier()));
     for spec in catalog::instant_variants(report::tier()) {
-        cap_verify::fixture::ensure_fixture_keyed(spec.cache_key(), |dir| {
-            common::runtime().block_on(cap_verify::pipeline::record_instant(&spec, dir))
+        scoopy_verify::fixture::ensure_fixture_keyed(spec.cache_key(), |dir| {
+            common::runtime().block_on(scoopy_verify::pipeline::record_instant(&spec, dir))
         })
         .expect("instant fixture");
     }
@@ -506,8 +506,8 @@ fn instant_output() {
     common::assert_passed(failures);
 }
 
-fn instant_case(spec: cap_verify::pipeline::InstantSpec) -> Option<String> {
-    use cap_verify::{
+fn instant_case(spec: scoopy_verify::pipeline::InstantSpec) -> Option<String> {
+    use scoopy_verify::{
         audio_code::{self, AudioSource},
         fixture, media,
         pipeline::{self, Emitted},
@@ -774,7 +774,7 @@ fn instant_case(spec: cap_verify::pipeline::InstantSpec) -> Option<String> {
             av * 1e3
         ));
         eprintln!(
-            "[cap-verify] instant {}: spread {:.2} ms, A/V {:+.2} ms",
+            "[scoopy-verify] instant {}: spread {:.2} ms, A/V {:+.2} ms",
             source.name(),
             spread(&offsets) * 1e3,
             av * 1e3
@@ -868,8 +868,8 @@ fn uhd() {
 /// frame that is too small) and be at most 2 px larger on each side.
 #[test]
 fn aspect_frame_size() {
-    use cap_project::AspectRatio;
-    use cap_rendering::{ProjectUniforms, RenderOptions};
+    use scoopy_project::AspectRatio;
+    use scoopy_rendering::{ProjectUniforms, RenderOptions};
     let id = "export/frame-size/aspect-ratios";
     if !report::selected(id) {
         return;
@@ -894,13 +894,13 @@ fn aspect_frame_size() {
             (AspectRatio::Classic, 4.0 / 3.0),
             (AspectRatio::Tall, 3.0 / 4.0),
         ] {
-            let mut config = cap_verify::fixture::verification_project_config();
+            let mut config = scoopy_verify::fixture::verification_project_config();
             config.aspect_ratio = Some(aspect.clone());
             config.background.padding = 0.0;
             config.background.crop = None;
             let options = RenderOptions {
                 camera_size: None,
-                screen_size: cap_project::XY::new(w, h),
+                screen_size: scoopy_project::XY::new(w, h),
                 preserve_screen_alpha: false,
             };
             let (bw, bh) = ProjectUniforms::get_base_size(&options, &config);
@@ -967,7 +967,7 @@ fn colour_error(colour: &MeasuredColour, rgb: [u8; 3]) -> [f64; 3] {
 /// Mean code values and tag of a rectangle (fractions of the picture).
 fn rect_colour(
     frame: &ffmpeg::frame::Video,
-    view: &impl cap_verify::video_code::PixelSource,
+    view: &impl scoopy_verify::video_code::PixelSource,
     rect: [f64; 4],
 ) -> Option<MeasuredColour> {
     if !matches!(
@@ -1009,8 +1009,8 @@ const COLOUR_MATRIX_TOLERANCE: f64 = 2.0;
 /// matrix, so they pin the range independently of the matrix question.
 #[test]
 fn colour() {
-    use cap_project::BackgroundSource;
-    use cap_verify::media;
+    use scoopy_project::BackgroundSource;
+    use scoopy_verify::media;
     let spec = catalog::basic(report::tier());
     let mut failures = Vec::new();
     for (name, background) in [
@@ -1135,8 +1135,8 @@ fn colour() {
 /// must sit where the crop puts it.
 #[test]
 fn crop() {
-    use cap_project::Crop;
-    use cap_verify::{
+    use scoopy_project::Crop;
+    use scoopy_verify::{
         media,
         video_code::{self, PixelSource, StreamKind},
     };
@@ -1266,7 +1266,7 @@ fn crop() {
 /// are written with exact timing and never pass through the recorder.
 #[test]
 fn recorded_studio_audio() {
-    use cap_verify::{
+    use scoopy_verify::{
         audio_code::{self, AudioSource, MARKER_SECS},
         media,
         video_code::StreamKind,
@@ -1330,7 +1330,7 @@ fn recorded_studio_audio() {
                         ),
                     ] {
                         let heard = audio_code::locate_markers(&mono, 48_000, source);
-                        if std::env::var_os("CAP_VERIFY_DUMP_AUDIO").is_some() {
+                        if std::env::var_os("SCOOPY_VERIFY_DUMP_AUDIO").is_some() {
                             for h in &heard {
                                 eprintln!(
                                     "  heard {}: {:?} at {:.4}s gain {:.3}",
@@ -1449,7 +1449,7 @@ fn recorded_studio_audio() {
 /// filling. Recorded fresh every run (no fixture cache).
 #[test]
 fn recorded_epoch_audio_head() {
-    use cap_verify::media;
+    use scoopy_verify::media;
     const TOLERANCE_SECS: f64 = 0.005;
     let rt = common::runtime();
     let mut failures = Vec::new();
@@ -1460,7 +1460,7 @@ fn recorded_epoch_audio_head() {
         }
         let mut case = Case::new(&id);
         let dir = common::scratch_dir(&id);
-        match rt.block_on(cap_verify::pipeline::record_epoch_audio(
+        match rt.block_on(scoopy_verify::pipeline::record_epoch_audio(
             dir.path(),
             head,
             0.6,

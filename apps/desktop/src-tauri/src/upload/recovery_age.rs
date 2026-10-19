@@ -19,7 +19,7 @@ mod tests {
 
     #[test]
     fn recovery_expires_even_when_old_recording_metadata_changes() {
-        let project = std::env::temp_dir().join(format!("cap-recovery-age-{}", std::process::id()));
+        let project = std::env::temp_dir().join(format!("scoopy-recovery-age-{}", std::process::id()));
         fs::create_dir(&project).unwrap();
         let created = project.metadata().unwrap().created().unwrap();
         assert!(eligible(&project, created));

@@ -46,8 +46,8 @@ export function createLinuxBundleConfig(
 ) {
 	const files = { ...commonFiles };
 	for (const name of [...new Set(libraryNames)].toSorted()) {
-		files[`/usr/lib/cap/${name}`] =
-			`${root}/target/native-deps/cap-deb-libs/${name}`;
+		files[`/usr/lib/scoopy/${name}`] =
+			`${root}/target/native-deps/scoopy-deb-libs/${name}`;
 	}
 
 	return {
@@ -57,7 +57,7 @@ export function createLinuxBundleConfig(
 					depends: [...new Set([...debDependencies, "libasound2-plugins"])],
 					files: {
 						...files,
-						"/usr/lib/cap/package-format": `${root}/packaging/linux/deb`,
+						"/usr/lib/scoopy/package-format": `${root}/packaging/linux/deb`,
 					},
 				},
 				rpm: {
@@ -65,7 +65,7 @@ export function createLinuxBundleConfig(
 					depends: [...rpmDependencies],
 					files: {
 						...files,
-						"/usr/lib/cap/package-format": `${root}/packaging/linux/rpm`,
+						"/usr/lib/scoopy/package-format": `${root}/packaging/linux/rpm`,
 					},
 				},
 				appimage: {
@@ -73,9 +73,9 @@ export function createLinuxBundleConfig(
 					files: {
 						...files,
 						"/usr/bin/pactl": "/usr/bin/pactl",
-						"/usr/lib/alsa-lib/libasound_module_pcm_pulse.so": `${root}/target/native-deps/cap-appimage-libs/libasound_module_pcm_pulse.so`,
-						"/usr/lib/cap/alsa-pulse.conf": `${root}/packaging/linux/alsa-pulse.conf`,
-						"/usr/lib/cap/package-format": `${root}/packaging/linux/appimage`,
+						"/usr/lib/alsa-lib/libasound_module_pcm_pulse.so": `${root}/target/native-deps/scoopy-appimage-libs/libasound_module_pcm_pulse.so`,
+						"/usr/lib/scoopy/alsa-pulse.conf": `${root}/packaging/linux/alsa-pulse.conf`,
+						"/usr/lib/scoopy/package-format": `${root}/packaging/linux/appimage`,
 					},
 				},
 			},

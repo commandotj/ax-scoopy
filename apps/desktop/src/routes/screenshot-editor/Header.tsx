@@ -8,8 +8,8 @@ import { createEffect, onCleanup, Suspense } from "solid-js";
 import CaptionControlsMacOS from "~/components/titlebar/controls/CaptionControlsMacOS";
 import CaptionControlsWindows11 from "~/components/titlebar/controls/CaptionControlsWindows11";
 import { commands } from "~/utils/tauri";
-import IconCapCrop from "~icons/cap/crop";
-import IconCapTrash from "~icons/cap/trash";
+import IconScoopyCrop from "~icons/scoopy/crop";
+import IconScoopyTrash from "~icons/scoopy/trash";
 import IconLucideCopy from "~icons/lucide/copy";
 import IconLucideFolder from "~icons/lucide/folder";
 import IconLucideLink from "~icons/lucide/link";
@@ -122,7 +122,7 @@ export function Header() {
 					tooltipText="Crop Image"
 					onClick={cropDialogHandler}
 					disabled={isCropDisabled()}
-					leftIcon={<IconCapCrop class="size-4" />}
+					leftIcon={<IconScoopyCrop class="size-4" />}
 				/>
 				<div class="w-px h-6 bg-gray-4 mx-1" />
 				<AnnotationTools />
@@ -202,7 +202,7 @@ export function Header() {
 											}
 										}}
 									>
-										<IconCapTrash class="size-4 text-gray-11" />
+										<IconScoopyTrash class="size-4 text-gray-11" />
 										<span>Delete</span>
 									</DropdownItem>
 								</MenuItemList>

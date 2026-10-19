@@ -24,20 +24,20 @@ const available = (command) =>
 const zopfli = available("pigz") && available("shasum");
 
 async function workspace(t) {
-	const root = await mkdtemp(path.join(tmpdir(), "cap-macos-packages-"));
+	const root = await mkdtemp(path.join(tmpdir(), "scoopy-macos-packages-"));
 	t.after(() => rm(root, { recursive: true, force: true }));
 	return root;
 }
 
 async function updaterArchive(root) {
-	const app = path.join(root, "app/Cap.app/Contents/MacOS");
+	const app = path.join(root, "app/Scoopy.app/Contents/MacOS");
 	await mkdir(app, { recursive: true });
-	const line = "Cap records your screen, camera and microphone.\n";
-	await writeFile(path.join(app, "Cap"), line.repeat(20_000), { mode: 0o755 });
-	const archive = path.join(root, "Cap.app.tar.gz");
+	const line = "Scoopy records your screen, camera and microphone.\n";
+	await writeFile(path.join(app, "Scoopy"), line.repeat(20_000), { mode: 0o755 });
+	const archive = path.join(root, "Scoopy.app.tar.gz");
 	runCommand("bash", [
 		"-c",
-		'tar -C "$1" -cf - Cap.app | gzip -1 > "$2"',
+		'tar -C "$1" -cf - Scoopy.app | gzip -1 > "$2"',
 		"bash",
 		path.join(root, "app"),
 		archive,
@@ -78,7 +78,7 @@ test(
 
 test("an updater archive whose contents change is left untouched", async (t) => {
 	const root = await workspace(t);
-	const archive = path.join(root, "Cap.app.tar.gz");
+	const archive = path.join(root, "Scoopy.app.tar.gz");
 	await writeFile(archive, "original");
 	await writeFile(`${archive}.sig`, "original signature");
 	let digests = 0;
@@ -122,7 +122,7 @@ function diskImageHarness({ convertedSize, failAt = new Set() }) {
 				"--force",
 				"--timestamp",
 				"--sign",
-				"Developer ID Application: Cap",
+				"Developer ID Application: Scoopy",
 				"--keychain",
 			]);
 		}
@@ -156,7 +156,7 @@ for (const scenario of [
 		const warnings = [];
 		const result = await convertDiskImage(dmg, {
 			env: {
-				APPLE_SIGNING_IDENTITY: "Developer ID Application: Cap",
+				APPLE_SIGNING_IDENTITY: "Developer ID Application: Scoopy",
 				APPLE_KEYCHAIN: "/tmp/build.keychain",
 			},
 			run,
@@ -177,14 +177,14 @@ for (const scenario of [
 		if (scenario.name === "retried") assert.deepEqual(delays, [15_000]);
 		assert.deepEqual(calls[0], ["hdiutil", "convert"]);
 		assert.ok(
-			!(await readdir(root)).some((file) => file.startsWith(".cap-dmg-")),
+			!(await readdir(root)).some((file) => file.startsWith(".scoopy-dmg-")),
 		);
 	});
 }
 
 test("disk image conversion needs a signing identity before touching the image", async (t) => {
 	const root = await workspace(t);
-	const dmg = path.join(root, "Cap.dmg");
+	const dmg = path.join(root, "Scoopy.dmg");
 	await writeFile(dmg, "original");
 	await assert.rejects(
 		convertDiskImage(dmg, {
@@ -200,13 +200,13 @@ test("only the updater signer sees the updater signing key", async (t) => {
 	const root = await workspace(t);
 	await mkdir(path.join(root, "macos"));
 	await mkdir(path.join(root, "dmg"));
-	await writeFile(path.join(root, "macos/Cap.app.tar.gz"), "original archive");
-	await writeFile(path.join(root, "dmg/Cap.dmg"), Buffer.alloc(100, 7));
+	await writeFile(path.join(root, "macos/Scoopy.app.tar.gz"), "original archive");
+	await writeFile(path.join(root, "dmg/Scoopy.dmg"), Buffer.alloc(100, 7));
 	const calls = [];
 	const result = await finalizeMacosPackages(root, {
 		env: {
 			PATH: "/usr/bin",
-			APPLE_SIGNING_IDENTITY: "Developer ID Application: Cap",
+			APPLE_SIGNING_IDENTITY: "Developer ID Application: Scoopy",
 			TAURI_SIGNING_PRIVATE_KEY: "key",
 			TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "password",
 		},

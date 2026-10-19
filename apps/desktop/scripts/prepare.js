@@ -84,7 +84,7 @@ export async function createTauriPlatformConfigs(
 	const sidecarAvailable = target
 		? await fs
 				.access(
-					path.join(srcTauri, "binaries", `cap-gpui-${target}${extension}`),
+					path.join(srcTauri, "binaries", `scoopy-gpui-${target}${extension}`),
 				)
 				.then(() => true)
 				.catch(() => false)
@@ -101,10 +101,10 @@ export async function createTauriPlatformConfigs(
 		developmentWorkspaceAvailable,
 	);
 	const externalBin = [
-		"binaries/cap-muxer",
-		"binaries/cap-exporter",
-		"binaries/cap-cli",
-		...(includeGpui ? ["binaries/cap-gpui"] : []),
+		"binaries/scoopy-muxer",
+		"binaries/scoopy-exporter",
+		"binaries/scoopy-cli",
+		...(includeGpui ? ["binaries/scoopy-gpui"] : []),
 	];
 	let baseConfig = {};
 	let configFileName = null;

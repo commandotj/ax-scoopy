@@ -112,7 +112,7 @@ impl Field {
         Self::new(theme, name, FieldStyle::Inline, px(0.))
     }
 
-    /// `<IconCapImage class="size-4" />` and friends. Some call sites pass no
+    /// `<IconScoopyImage class="size-4" />` and friends. Some call sites pass no
     /// class at all, which is `text-lg`'s 18px; those pass their own size.
     pub fn icon(mut self, icon: impl Into<SharedString>) -> Self {
         self.icon = Some(icon.into());

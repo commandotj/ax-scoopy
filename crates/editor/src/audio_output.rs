@@ -21,11 +21,11 @@ use std::{
     time::{Duration, Instant},
 };
 
-use cap_audio::{AudioData, FromSampleBytes};
+use scoopy_audio::{AudioData, FromSampleBytes};
 #[cfg(not(target_os = "windows"))]
-use cap_audio::{LatencyCorrectionConfig, LatencyCorrector, default_output_latency_hint};
-use cap_media_info::AudioInfo;
-use cap_project::ProjectConfiguration;
+use scoopy_audio::{LatencyCorrectionConfig, LatencyCorrector, default_output_latency_hint};
+use scoopy_media_info::AudioInfo;
+use scoopy_project::ProjectConfiguration;
 use cpal::{
     SampleFormat,
     traits::{DeviceTrait, HostTrait, StreamTrait},
@@ -367,7 +367,7 @@ impl AudioOutput {
         let (control_tx, control_rx) = std_mpsc::channel();
 
         if let Err(e) = std::thread::Builder::new()
-            .name("cap-audio-output".into())
+            .name("scoopy-audio-output".into())
             .spawn(move || control_thread(control_rx))
         {
             // Sends will fail and playback degrades to video-only, matching
@@ -390,7 +390,7 @@ impl AudioOutput {
         let (control_tx, control_rx) = std_mpsc::channel();
 
         if let Err(e) = std::thread::Builder::new()
-            .name("cap-audio-headless".into())
+            .name("scoopy-audio-headless".into())
             .spawn(move || control_thread_headless(control_rx, tap))
         {
             error!("Failed to spawn headless audio output thread: {e}");
@@ -1139,7 +1139,7 @@ fn control_thread_headless(control_rx: std_mpsc::Receiver<ControlMsg>, mut tap: 
         let stop = stop.clone();
         let channels = usize::from(HEADLESS_CHANNELS);
         std::thread::Builder::new()
-            .name("cap-audio-headless-pump".into())
+            .name("scoopy-audio-headless-pump".into())
             .spawn(move || {
                 let mut buffer = vec![0.0f32; HEADLESS_BLOCK_FRAMES * channels];
                 let mut active: Option<ActiveSource<f32>> = None;
@@ -1303,7 +1303,7 @@ impl AudioOutput {
         let (control_tx, control_rx) = std_mpsc::channel();
         let (source_tx, source_rx) = std_mpsc::channel();
         if let Err(e) = std::thread::Builder::new()
-            .name("cap-audio-offline".into())
+            .name("scoopy-audio-offline".into())
             .spawn(move || control_thread_offline(control_rx, source_tx))
         {
             error!("Failed to spawn offline audio output thread: {e}");
@@ -1488,7 +1488,7 @@ fn ensure_stream(state: &mut Option<StreamState>) -> bool {
             *state = Some(StreamState {
                 device_name,
                 failed,
-                supports_idle_pause: cap_audio::default_output_supports_idle_pause(),
+                supports_idle_pause: scoopy_audio::default_output_supports_idle_pause(),
                 paused: false,
                 handle,
             });

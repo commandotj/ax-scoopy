@@ -166,17 +166,17 @@ mod tests {
         static CLASSES: OnceLock<Classes> = OnceLock::new();
         CLASSES.get_or_init(|| {
             let native_window = with_method(
-                "CapOcclusionTestNativeWindow",
+                "ScoopyOcclusionTestNativeWindow",
                 NSObject::class(),
                 native_window_state,
             );
             let native_panel = with_method(
-                "CapOcclusionTestNativePanel",
+                "ScoopyOcclusionTestNativePanel",
                 native_window,
                 native_panel_state,
             );
-            let window = inherit("CapOcclusionTestWindow", native_window);
-            let panel = inherit("CapOcclusionTestPanel", native_panel);
+            let window = inherit("ScoopyOcclusionTestWindow", native_window);
+            let panel = inherit("ScoopyOcclusionTestPanel", native_panel);
             assert!(WINDOW_SHIM.install(window, window_occlusion_state).unwrap());
             assert!(PANEL_SHIM.install(panel, panel_occlusion_state).unwrap());
 
@@ -184,21 +184,21 @@ mod tests {
             let mut inherited_panel = panel;
             for depth in 0..4 {
                 inherited_window = inherit(
-                    &format!("CapOcclusionTestWindowSubclass{depth}"),
+                    &format!("ScoopyOcclusionTestWindowSubclass{depth}"),
                     inherited_window,
                 );
                 inherited_panel = inherit(
-                    &format!("CapOcclusionTestPanelSubclass{depth}"),
+                    &format!("ScoopyOcclusionTestPanelSubclass{depth}"),
                     inherited_panel,
                 );
             }
             let window_override = with_method(
-                "CapOcclusionTestWindowOverride",
+                "ScoopyOcclusionTestWindowOverride",
                 window,
                 overriding_window_state,
             );
             let panel_override = with_method(
-                "CapOcclusionTestPanelOverride",
+                "ScoopyOcclusionTestPanelOverride",
                 panel,
                 overriding_panel_state,
             );
@@ -208,10 +208,10 @@ mod tests {
                 inherited_window,
                 inherited_panel,
                 overridden_window: inherit(
-                    "CapOcclusionTestInheritedWindowOverride",
+                    "ScoopyOcclusionTestInheritedWindowOverride",
                     window_override,
                 ),
-                overridden_panel: inherit("CapOcclusionTestInheritedPanelOverride", panel_override),
+                overridden_panel: inherit("ScoopyOcclusionTestInheritedPanelOverride", panel_override),
             }
         })
     }
@@ -295,7 +295,7 @@ mod tests {
 
         let state = OcclusionShim::new();
         let mut builder =
-            ClassBuilder::new("CapOcclusionTestWrongSignature", NSObject::class()).unwrap();
+            ClassBuilder::new("ScoopyOcclusionTestWrongSignature", NSObject::class()).unwrap();
         unsafe {
             builder.add_method(
                 sel!(occlusionState),
@@ -311,7 +311,7 @@ mod tests {
     fn existing_class_override_is_not_replaced() {
         let state = OcclusionShim::new();
         let class = with_method(
-            "CapOcclusionTestExistingOverride",
+            "ScoopyOcclusionTestExistingOverride",
             NSObject::class(),
             native_window_state,
         );
@@ -325,7 +325,7 @@ mod tests {
     #[test]
     fn missing_native_method_does_not_install_a_shim() {
         let state = OcclusionShim::new();
-        let class = inherit("CapOcclusionTestMissingMethod", NSObject::class());
+        let class = inherit("ScoopyOcclusionTestMissingMethod", NSObject::class());
         assert!(state.install(class, window_occlusion_state).is_err());
         assert!(state.original.get().is_none());
         assert!(class.instance_method(sel!(occlusionState)).is_none());

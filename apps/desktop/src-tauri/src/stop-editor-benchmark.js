@@ -6,7 +6,7 @@
 		requestAnimationFrame(() => {
 			requestAnimationFrame(() => {
 				void window.__TAURI_INTERNALS__.invoke("plugin:event|emit", {
-					event: "cap-stop-benchmark-frame",
+					event: "scoopy-stop-benchmark-frame",
 					payload: {},
 				});
 			});

@@ -3,7 +3,7 @@
 //!
 //! **This is not the settings sidebar's shape.** The usage matrix lists `KTabs`
 //! in the editor and the screenshot editor only; the settings window's sidebar
-//! is a vertical nav *list* (icon plus label rows, `.cap-settings-nav`), and
+//! is a vertical nav *list* (icon plus label rows, `.scoopy-settings-nav`), and
 //! `settings.tsx` renders it with `<For>` over `settingsItems`, not with tabs.
 //! They were checked against each other and kept apart deliberately -- merging
 //! them would mean inventing a shared component neither app has.

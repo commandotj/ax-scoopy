@@ -1,6 +1,6 @@
 use crate::output_pipeline::core::{HealthSender, PipelineHealthEvent, emit_health};
 use anyhow::{Context, Result, anyhow};
-use cap_muxer_protocol::{
+use scoopy_muxer_protocol::{
     Frame, InitAudio, InitVideo, PACKET_FLAG_KEYFRAME, Packet, STREAM_INDEX_AUDIO,
     STREAM_INDEX_VIDEO, StartParams, write_frame, write_packet as write_packet_frame,
 };
@@ -20,7 +20,7 @@ use std::{
 };
 use tracing::{debug, error, info, warn};
 
-pub const ENV_BIN_PATH: &str = "CAP_MUXER_BIN";
+pub const ENV_BIN_PATH: &str = "SCOOPY_MUXER_BIN";
 const STDERR_RING_LIMIT: usize = 128;
 const RESPAWN_COOLDOWN: Duration = Duration::from_millis(500);
 const RESPAWN_STABILITY_WINDOW: Duration = Duration::from_secs(5);
@@ -41,7 +41,7 @@ pub fn resolve_muxer_binary() -> Result<PathBuf> {
             return Ok(override_path.clone());
         }
         return Err(anyhow!(
-            "registered cap-muxer override points to missing path: {}",
+            "registered scoopy-muxer override points to missing path: {}",
             override_path.display()
         ));
     }
@@ -83,15 +83,15 @@ pub fn resolve_muxer_binary() -> Result<PathBuf> {
     }
 
     Err(anyhow!(
-        "cap-muxer binary not found; set {ENV_BIN_PATH} or place it next to the main executable"
+        "scoopy-muxer binary not found; set {ENV_BIN_PATH} or place it next to the main executable"
     ))
 }
 
 fn bin_name() -> &'static str {
     if cfg!(windows) {
-        "cap-muxer.exe"
+        "scoopy-muxer.exe"
     } else {
-        "cap-muxer"
+        "scoopy-muxer"
     }
 }
 
@@ -192,8 +192,8 @@ impl MuxerSubprocess {
             .stdout(Stdio::null())
             .stderr(Stdio::piped())
             .env(
-                "CAP_MUXER_LOG",
-                std::env::var("CAP_MUXER_LOG").unwrap_or_else(|_| "info".to_string()),
+                "SCOOPY_MUXER_LOG",
+                std::env::var("SCOOPY_MUXER_LOG").unwrap_or_else(|_| "info".to_string()),
             );
         configure_muxer_command(&mut command);
 
@@ -238,7 +238,7 @@ impl MuxerSubprocess {
         info!(
             bin_path = %subprocess.bin_path.display(),
             output_dir = %config.output_directory.display(),
-            "cap-muxer subprocess spawned"
+            "scoopy-muxer subprocess spawned"
         );
 
         Ok(subprocess)
@@ -447,7 +447,7 @@ impl MuxerSubprocess {
         {
             return;
         }
-        error!(reason, "cap-muxer subprocess crashed");
+        error!(reason, "scoopy-muxer subprocess crashed");
         if let Some(tx) = &self.health_tx {
             emit_health(
                 tx,
@@ -466,7 +466,7 @@ impl MuxerSubprocess {
         {
             return;
         }
-        error!(reason, "cap-muxer subprocess exited with disk full");
+        error!(reason, "scoopy-muxer subprocess exited with disk full");
         if let Some(tx) = &self.health_tx {
             emit_health(
                 tx,
@@ -509,14 +509,14 @@ impl MuxerSubprocess {
                 Err(error) => {
                     let stderr_tail = self.snapshot_stderr();
                     return Err(MuxerSubprocessFinishError::Unconfirmed(anyhow!(
-                        "cap-muxer wait failed: {error}; stderr tail: {:?}",
+                        "scoopy-muxer wait failed: {error}; stderr tail: {:?}",
                         stderr_tail.iter().rev().take(3).collect::<Vec<_>>()
                     )));
                 }
             },
             None => {
                 return Err(MuxerSubprocessFinishError::Unconfirmed(anyhow!(
-                    "cap-muxer child missing during finish"
+                    "scoopy-muxer child missing during finish"
                 )));
             }
         };
@@ -552,7 +552,7 @@ impl MuxerSubprocess {
         info!(
             packets,
             uptime_secs = self.started_at.elapsed().as_secs_f64(),
-            "cap-muxer subprocess finished cleanly"
+            "scoopy-muxer subprocess finished cleanly"
         );
 
         Ok(MuxerSubprocessReport {
@@ -570,12 +570,12 @@ impl Drop for MuxerSubprocess {
             match child.try_wait() {
                 Ok(Some(_)) => {}
                 Ok(None) => {
-                    warn!("cap-muxer subprocess being dropped while still running; killing");
+                    warn!("scoopy-muxer subprocess being dropped while still running; killing");
                     let _ = child.kill();
                     let _ = child.wait();
                 }
                 Err(error) => {
-                    warn!(%error, "cap-muxer subprocess status is unknown during drop; killing");
+                    warn!(%error, "scoopy-muxer subprocess status is unknown during drop; killing");
                     let _ = child.kill();
                     let _ = child.wait();
                 }
@@ -605,7 +605,7 @@ fn spawn_stderr_reader(
     lines: Arc<parking_lot::Mutex<VecDeque<String>>>,
 ) -> Result<JoinHandle<Vec<String>>, MuxerSubprocessError> {
     std::thread::Builder::new()
-        .name("cap-muxer-stderr".into())
+        .name("scoopy-muxer-stderr".into())
         .spawn(move || {
             use std::io::{BufRead, BufReader};
             let reader = BufReader::new(stderr);
@@ -613,7 +613,7 @@ fn spawn_stderr_reader(
             for line_res in reader.lines() {
                 match line_res {
                     Ok(line) => {
-                        debug!(target: "cap_muxer_stderr", "{line}");
+                        debug!(target: "scoopy_muxer_stderr", "{line}");
                         let mut guard = lines.lock();
                         guard.push_back(line.clone());
                         if guard.len() > STDERR_RING_LIMIT {
@@ -626,7 +626,7 @@ fn spawn_stderr_reader(
                         }
                     }
                     Err(e) => {
-                        debug!(target: "cap_muxer_stderr", "read err: {e}");
+                        debug!(target: "scoopy_muxer_stderr", "read err: {e}");
                         break;
                     }
                 }
@@ -634,7 +634,7 @@ fn spawn_stderr_reader(
             final_lines
         })
         .map_err(|e| {
-            MuxerSubprocessError::Spawn(anyhow!("failed to spawn cap-muxer-stderr thread: {e}"))
+            MuxerSubprocessError::Spawn(anyhow!("failed to spawn scoopy-muxer-stderr thread: {e}"))
         })
 }
 
@@ -774,7 +774,7 @@ impl RespawningMuxerSubprocess {
         info!(
             attempt = self.respawn_attempts,
             output_dir = %respawned_config.output_directory.display(),
-            "respawning cap-muxer subprocess into isolated directory"
+            "respawning scoopy-muxer subprocess into isolated directory"
         );
 
         let new = MuxerSubprocess::spawn(
@@ -819,7 +819,7 @@ impl RespawningMuxerSubprocess {
 }
 
 pub fn feature_enabled() -> bool {
-    std::env::var("CAP_OUT_OF_PROCESS_MUXER")
+    std::env::var("SCOOPY_OUT_OF_PROCESS_MUXER")
         .ok()
         .filter(|v| v == "1" || v.eq_ignore_ascii_case("true"))
         .is_some()

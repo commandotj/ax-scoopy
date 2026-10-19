@@ -19,11 +19,11 @@ import {
 } from "solid-js";
 import { Toaster } from "solid-toast";
 
-import "@cap/ui-solid/main.css";
+import "@scoopy/ui-solid/main.css";
 import "unfonts.css";
 import "./styles/theme.css";
 
-import { CapErrorBoundary } from "./components/CapErrorBoundary";
+import { ScoopyErrorBoundary } from "./components/ScoopyErrorBoundary";
 import WindowChromeLayout from "./routes/(window-chrome)";
 import SettingsLayout from "./routes/(window-chrome)/settings";
 import { authStore, generalSettingsStore } from "./store";
@@ -163,7 +163,7 @@ function Inner() {
 					},
 				}}
 			/>
-			<CapErrorBoundary>
+			<ScoopyErrorBoundary>
 				<Router
 					root={(props) => {
 						const matches = useCurrentMatches();
@@ -271,7 +271,7 @@ function Inner() {
 						component={TeleprompterPage}
 					/>
 				</Router>
-			</CapErrorBoundary>
+			</ScoopyErrorBoundary>
 		</>
 	);
 }
@@ -395,9 +395,9 @@ function createThemeListener(currentWindow: WebviewWindow) {
 
 		try {
 			if (appTheme === "system") {
-				localStorage.removeItem("cap-theme");
+				localStorage.removeItem("scoopy-theme");
 			} else {
-				localStorage.setItem("cap-theme", appTheme);
+				localStorage.setItem("scoopy-theme", appTheme);
 			}
 		} catch {}
 

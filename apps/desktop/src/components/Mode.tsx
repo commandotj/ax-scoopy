@@ -26,7 +26,7 @@ const MODE_BUTTONS: ModeButtonConfig[] = [
 		description:
 			"No rendering required — uploads on the fly so you can share the link the moment you stop.",
 		settingsSection: "instant-quality",
-		icon: (p) => <IconCapInstant {...p} />,
+		icon: (p) => <IconScoopyInstant {...p} />,
 		iconClass: "size-4 invert dark:invert-0",
 	},
 	{
@@ -35,7 +35,7 @@ const MODE_BUTTONS: ModeButtonConfig[] = [
 		description:
 			"Saves to your computer and opens the editor when you stop. Choose recording quality in settings.",
 		settingsSection: "studio-quality",
-		icon: (p) => <IconCapFilmCut {...p} />,
+		icon: (p) => <IconScoopyFilmCut {...p} />,
 		iconClass: "size-[0.9rem] invert dark:invert-0",
 	},
 	{
@@ -43,7 +43,7 @@ const MODE_BUTTONS: ModeButtonConfig[] = [
 		label: "Screenshot mode",
 		description: "Capture and annotate stills.",
 		settingsSection: null,
-		icon: (p) => <IconCapScreenshot {...p} />,
+		icon: (p) => <IconScoopyScreenshot {...p} />,
 		iconClass: "size-[0.9rem] invert dark:invert-0",
 	},
 ];
@@ -64,7 +64,7 @@ const Mode = (props: ModeProps) => {
 		section: "instant-quality" | "studio-quality",
 	) => {
 		try {
-			localStorage.setItem("cap.settings.scrollToSection", section);
+			localStorage.setItem("scoopy.settings.scrollToSection", section);
 		} catch {}
 		await commands.showWindow({ Settings: { page: "quality" } });
 		await events.requestScrollToSettingsSection.emit({ section });
@@ -82,7 +82,7 @@ const Mode = (props: ModeProps) => {
 				)}
 				aria-label="Recording mode info"
 			>
-				<IconCapInfo class="invert transition-opacity duration-200 size-2.5 dark:invert-0 group-hover:opacity-50" />
+				<IconScoopyInfo class="invert transition-opacity duration-200 size-2.5 dark:invert-0 group-hover:opacity-50" />
 			</button>
 
 			{MODE_BUTTONS.map((button) => {
@@ -134,7 +134,7 @@ const Mode = (props: ModeProps) => {
 												}}
 												class="flex gap-1.5 items-center px-2 py-1 -mx-1 text-[11px] rounded-md transition-colors text-gray-4 hover:bg-gray-11 hover:text-gray-1"
 											>
-												<IconCapSettings class="size-3" />
+												<IconScoopySettings class="size-3" />
 												<span>Quality settings</span>
 											</button>
 										)}

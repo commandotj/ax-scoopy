@@ -1,12 +1,12 @@
 use crate::PendingScreenshots;
 use crate::frame_ws::{WSFrame, create_watch_frame_ws};
 use crate::gpu_context;
-use crate::windows::{CapWindowId, ScreenshotEditorWindowIds};
-use cap_project::{
+use crate::windows::{ScoopyWindowId, ScreenshotEditorWindowIds};
+use scoopy_project::{
     ProjectConfiguration, RecordingMeta, RecordingMetaInner, SingleSegment, StudioRecordingMeta,
     VideoMeta,
 };
-use cap_rendering::{
+use scoopy_rendering::{
     DecodedFrame, DecodedSegmentFrames, FrameRenderer, ProjectUniforms, RenderVideoConstants,
     RendererLayers, ZoomTransformTimeline,
 };
@@ -266,10 +266,10 @@ impl ScreenshotEditorInstances {
             "screenshot_editor timing: source image ready"
         );
 
-        let cap_dir = if path.extension().and_then(|s| s.to_str()) == Some("cap") {
+        let scoopy_dir = if path.extension().and_then(|s| s.to_str()) == Some("scoopy") {
             Some(path.clone())
         } else if let Some(parent) = path.parent() {
-            if parent.extension().and_then(|s| s.to_str()) == Some("cap") {
+            if parent.extension().and_then(|s| s.to_str()) == Some("scoopy") {
                 Some(parent.to_path_buf())
             } else {
                 None
@@ -278,9 +278,9 @@ impl ScreenshotEditorInstances {
             None
         };
 
-        let (recording_meta, loaded_config) = if let Some(cap_dir) = &cap_dir {
-            let meta = RecordingMeta::load_for_project(cap_dir).ok();
-            let config = ProjectConfiguration::load(cap_dir).ok();
+        let (recording_meta, loaded_config) = if let Some(scoopy_dir) = &scoopy_dir {
+            let meta = RecordingMeta::load_for_project(scoopy_dir).ok();
+            let config = ProjectConfiguration::load(scoopy_dir).ok();
             (meta, config)
         } else {
             (None, None)
@@ -349,7 +349,7 @@ impl ScreenshotEditorInstances {
 
         let (shared, background_cache) = if let Some(gpu) = gpu_context::get_shared_gpu().await {
             (
-                cap_rendering::SharedWgpuDevice {
+                scoopy_rendering::SharedWgpuDevice {
                     instance: (*gpu.instance).clone(),
                     adapter: (*gpu.adapter).clone(),
                     device: (*gpu.device).clone(),
@@ -359,8 +359,8 @@ impl ScreenshotEditorInstances {
                 gpu.background_cache.clone(),
             )
         } else {
-            let instance = cap_rendering::create_wgpu_instance().await;
-            let force_software_adapter = cap_rendering::force_software_wgpu_adapter();
+            let instance = scoopy_rendering::create_wgpu_instance().await;
+            let force_software_adapter = scoopy_rendering::force_software_wgpu_adapter();
             let hardware_adapter = if force_software_adapter {
                 None
             } else {
@@ -385,30 +385,30 @@ impl ScreenshotEditorInstances {
                     .map_err(|_| "No GPU adapter found".to_string())?,
             };
             let adapter_info = adapter.get_info();
-            let is_software_adapter = cap_rendering::is_software_wgpu_adapter(&adapter_info);
+            let is_software_adapter = scoopy_rendering::is_software_wgpu_adapter(&adapter_info);
 
             let (device, queue) = adapter
                 .request_device(&wgpu::DeviceDescriptor {
-                    label: Some("cap-rendering-device"),
+                    label: Some("scoopy-rendering-device"),
                     required_features: wgpu::Features::empty(),
                     ..Default::default()
                 })
                 .await
                 .map_err(|e| e.to_string())?;
             (
-                cap_rendering::SharedWgpuDevice {
+                scoopy_rendering::SharedWgpuDevice {
                     instance,
                     adapter,
                     device,
                     queue,
                     is_software_adapter,
                 },
-                Arc::new(cap_rendering::BackgroundTextureCache::default()),
+                Arc::new(scoopy_rendering::BackgroundTextureCache::default()),
             )
         };
 
-        let options = cap_rendering::RenderOptions {
-            screen_size: cap_project::XY::new(width, height),
+        let options = scoopy_rendering::RenderOptions {
+            screen_size: scoopy_project::XY::new(width, height),
             camera_size: None,
             preserve_screen_alpha: true,
         };
@@ -478,7 +478,7 @@ impl ScreenshotEditorInstances {
                     break;
                 }
                 let segment_frames = DecodedSegmentFrames {
-                    screen_size: cap_project::XY::new(
+                    screen_size: scoopy_project::XY::new(
                         decoded_frame.width(),
                         decoded_frame.height(),
                     ),
@@ -496,7 +496,7 @@ impl ScreenshotEditorInstances {
                 let (base_w, base_h) =
                     ProjectUniforms::get_base_size(&constants.options, &current_config);
 
-                let cursor_events = cap_project::CursorEvents::default();
+                let cursor_events = scoopy_project::CursorEvents::default();
                 let mut zoom_timeline = ZoomTransformTimeline::from_project(
                     &current_config,
                     &cursor_events,
@@ -510,7 +510,7 @@ impl ScreenshotEditorInstances {
                     &current_config,
                     0,
                     30,
-                    cap_project::XY::new(base_w, base_h),
+                    scoopy_project::XY::new(base_w, base_h),
                     &cursor_events,
                     &segment_frames,
                     0.0,
@@ -522,7 +522,7 @@ impl ScreenshotEditorInstances {
                     .render_immediate(
                         segment_frames,
                         uniforms,
-                        &cap_project::CursorEvents::default(),
+                        &scoopy_project::CursorEvents::default(),
                         true,
                         &mut layers,
                     )
@@ -581,8 +581,8 @@ impl ScreenshotEditorInstances {
         window: &Window,
         path: PathBuf,
     ) -> Result<Arc<ScreenshotEditorInstance>, String> {
-        let CapWindowId::ScreenshotEditor { id } =
-            CapWindowId::from_str(window.label()).map_err(|error| error.to_string())?
+        let ScoopyWindowId::ScreenshotEditor { id } =
+            ScoopyWindowId::from_str(window.label()).map_err(|error| error.to_string())?
         else {
             return Err("Invalid screenshot editor window".to_string());
         };
@@ -707,7 +707,7 @@ impl PendingScreenshotEditorInstances {
     }
 
     pub async fn start_prewarm(app: &AppHandle, window_label: String, path: PathBuf) {
-        let Ok(CapWindowId::ScreenshotEditor { id }) = CapWindowId::from_str(&window_label) else {
+        let Ok(ScoopyWindowId::ScreenshotEditor { id }) = ScoopyWindowId::from_str(&window_label) else {
             return;
         };
         let window_ids = ScreenshotEditorWindowIds::get(app);
@@ -891,8 +891,8 @@ struct ScreenshotOcrImage {
 pub async fn create_screenshot_editor_instance(
     window: Window,
 ) -> Result<SerializedScreenshotEditorInstance, String> {
-    let CapWindowId::ScreenshotEditor { id } =
-        CapWindowId::from_str(window.label()).map_err(|e| e.to_string())?
+    let ScoopyWindowId::ScreenshotEditor { id } =
+        ScoopyWindowId::from_str(window.label()).map_err(|e| e.to_string())?
     else {
         return Err("Invalid window".to_string());
     };
@@ -937,11 +937,11 @@ pub async fn prewarm_screenshot_renderer() {
         return;
     };
 
-    let _ = tokio::task::spawn_blocking(cap_rendering::prewarm_fonts).await;
+    let _ = tokio::task::spawn_blocking(scoopy_rendering::prewarm_fonts).await;
 
     let started = Instant::now();
 
-    let shared = cap_rendering::SharedWgpuDevice {
+    let shared = scoopy_rendering::SharedWgpuDevice {
         instance: (*gpu.instance).clone(),
         adapter: (*gpu.adapter).clone(),
         device: (*gpu.device).clone(),
@@ -975,8 +975,8 @@ pub async fn prewarm_screenshot_renderer() {
         upload: None,
     };
 
-    let options = cap_rendering::RenderOptions {
-        screen_size: cap_project::XY::new(width, height),
+    let options = scoopy_rendering::RenderOptions {
+        screen_size: scoopy_project::XY::new(width, height),
         camera_size: None,
         preserve_screen_alpha: true,
     };
@@ -986,7 +986,7 @@ pub async fn prewarm_screenshot_renderer() {
         options,
         studio_meta,
         recording_meta,
-        Arc::new(cap_rendering::BackgroundTextureCache::default()),
+        Arc::new(scoopy_rendering::BackgroundTextureCache::default()),
     );
 
     let config = ProjectConfiguration::default();
@@ -998,7 +998,7 @@ pub async fn prewarm_screenshot_renderer() {
     );
 
     let segment_frames = DecodedSegmentFrames {
-        screen_size: cap_project::XY::new(width, height),
+        screen_size: scoopy_project::XY::new(width, height),
         screen_frame: Some(DecodedFrame::new(
             vec![255u8; (width * height * 4) as usize],
             width,
@@ -1011,7 +1011,7 @@ pub async fn prewarm_screenshot_renderer() {
     };
 
     let (base_w, base_h) = ProjectUniforms::get_base_size(&constants.options, &config);
-    let cursor_events = cap_project::CursorEvents::default();
+    let cursor_events = scoopy_project::CursorEvents::default();
     let mut zoom_timeline = ZoomTransformTimeline::new(
         &[],
         None,
@@ -1026,7 +1026,7 @@ pub async fn prewarm_screenshot_renderer() {
         &config,
         0,
         30,
-        cap_project::XY::new(base_w, base_h),
+        scoopy_project::XY::new(base_w, base_h),
         &cursor_events,
         &segment_frames,
         0.0,
@@ -1037,7 +1037,7 @@ pub async fn prewarm_screenshot_renderer() {
         .render_immediate(
             segment_frames,
             uniforms,
-            &cap_project::CursorEvents::default(),
+            &scoopy_project::CursorEvents::default(),
             true,
             &mut layers,
         )
@@ -1062,7 +1062,7 @@ pub async fn prewarm_screenshot_background(path: String) -> Result<(), String> {
         return Ok(());
     };
 
-    let Some(clean_path) = cap_rendering::clean_background_path(&path) else {
+    let Some(clean_path) = scoopy_rendering::clean_background_path(&path) else {
         return Ok(());
     };
 
@@ -1097,7 +1097,7 @@ pub async fn update_screenshot_config(
         return Ok(());
     };
 
-    if parent.extension().and_then(|s| s.to_str()) == Some("cap") {
+    if parent.extension().and_then(|s| s.to_str()) == Some("scoopy") {
         let path = parent.to_path_buf();
         if let Err(e) = config.write(&path) {
             eprintln!("Failed to save screenshot config: {e}");
@@ -1105,7 +1105,7 @@ pub async fn update_screenshot_config(
             println!("Saved screenshot config to {path:?}");
         }
     } else {
-        println!("Not saving config: parent {parent:?} is not a .cap directory");
+        println!("Not saving config: parent {parent:?} is not a .scoopy directory");
     }
     Ok(())
 }
@@ -1647,10 +1647,10 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
 
     let data = instance.source_rgba.as_ref().clone();
 
-    let cap_dir = if path.extension().and_then(|s| s.to_str()) == Some("cap") {
+    let scoopy_dir = if path.extension().and_then(|s| s.to_str()) == Some("scoopy") {
         Some(path.clone())
     } else if let Some(parent) = path.parent() {
-        if parent.extension().and_then(|s| s.to_str()) == Some("cap") {
+        if parent.extension().and_then(|s| s.to_str()) == Some("scoopy") {
             Some(parent.to_path_buf())
         } else {
             None
@@ -1659,8 +1659,8 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
         None
     };
 
-    let recording_meta = if let Some(cap_dir) = &cap_dir {
-        RecordingMeta::load_for_project(cap_dir).map_err(|e| e.to_string())?
+    let recording_meta = if let Some(scoopy_dir) = &scoopy_dir {
+        RecordingMeta::load_for_project(scoopy_dir).map_err(|e| e.to_string())?
     } else {
         let filename = path
             .file_name()
@@ -1692,7 +1692,7 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
 
     let (shared, background_cache) = if let Some(gpu) = gpu_context::get_shared_gpu().await {
         (
-            cap_rendering::SharedWgpuDevice {
+            scoopy_rendering::SharedWgpuDevice {
                 instance: (*gpu.instance).clone(),
                 adapter: (*gpu.adapter).clone(),
                 device: (*gpu.device).clone(),
@@ -1702,8 +1702,8 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
             gpu.background_cache.clone(),
         )
     } else {
-        let instance = cap_rendering::create_wgpu_instance().await;
-        let force_software_adapter = cap_rendering::force_software_wgpu_adapter();
+        let instance = scoopy_rendering::create_wgpu_instance().await;
+        let force_software_adapter = scoopy_rendering::force_software_wgpu_adapter();
         let hardware_adapter = if force_software_adapter {
             None
         } else {
@@ -1728,29 +1728,29 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
                 .map_err(|_| "No GPU adapter found".to_string())?,
         };
         let adapter_info = adapter.get_info();
-        let is_software_adapter = cap_rendering::is_software_wgpu_adapter(&adapter_info);
+        let is_software_adapter = scoopy_rendering::is_software_wgpu_adapter(&adapter_info);
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
-                label: Some("cap-rendering-device"),
+                label: Some("scoopy-rendering-device"),
                 required_features: wgpu::Features::empty(),
                 ..Default::default()
             })
             .await
             .map_err(|e| e.to_string())?;
         (
-            cap_rendering::SharedWgpuDevice {
+            scoopy_rendering::SharedWgpuDevice {
                 instance,
                 adapter,
                 device,
                 queue,
                 is_software_adapter,
             },
-            Arc::new(cap_rendering::BackgroundTextureCache::default()),
+            Arc::new(scoopy_rendering::BackgroundTextureCache::default()),
         )
     };
 
-    let options = cap_rendering::RenderOptions {
-        screen_size: cap_project::XY::new(width, height),
+    let options = scoopy_rendering::RenderOptions {
+        screen_size: scoopy_project::XY::new(width, height),
         camera_size: None,
         preserve_screen_alpha: true,
     };
@@ -1772,7 +1772,7 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
     let display_size = ProjectUniforms::display_size(
         &constants.options,
         &config,
-        cap_project::XY::new(base_width, base_height),
+        scoopy_project::XY::new(base_width, base_height),
     )
     .coord;
     let crop = ProjectUniforms::get_crop(&constants.options, &config);
@@ -1784,7 +1784,7 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
         1.0,
     );
 
-    let resolution_base = cap_project::XY::new(
+    let resolution_base = scoopy_project::XY::new(
         (((base_width as f64 * export_scale).ceil() as u32) + 3) & !3,
         (((base_height as f64 * export_scale).ceil() as u32) + 1) & !1,
     );
@@ -1804,7 +1804,7 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
     );
     let decoded_frame = DecodedFrame::new(data, width, height);
     let segment_frames = DecodedSegmentFrames {
-        screen_size: cap_project::XY::new(width, height),
+        screen_size: scoopy_project::XY::new(width, height),
         screen_frame: Some(DecodedFrame::new(
             decoded_frame.data().to_vec(),
             decoded_frame.width(),
@@ -1815,7 +1815,7 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
         recording_time: 0.0,
         segment_has_camera: false,
     };
-    let cursor_events = cap_project::CursorEvents::default();
+    let cursor_events = scoopy_project::CursorEvents::default();
     let mut zoom_timeline = ZoomTransformTimeline::from_project(
         &config,
         &cursor_events,
@@ -1838,7 +1838,7 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
         .render_immediate(
             segment_frames,
             uniforms,
-            &cap_project::CursorEvents::default(),
+            &scoopy_project::CursorEvents::default(),
             true,
             &mut layers,
         )

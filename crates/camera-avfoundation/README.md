@@ -1,4 +1,4 @@
-# cap-camera-avfoundation
+# scoopy-camera-avfoundation
 
 Ergonomic Rust wrapper around macOS AVFoundation API for camera capture,
 providing safe abstractions while maintaining low-level control.

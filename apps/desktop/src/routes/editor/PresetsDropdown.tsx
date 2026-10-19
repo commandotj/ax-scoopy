@@ -36,8 +36,8 @@ export function PresetsDropdown() {
 		<KDropdownMenu gutter={8} placement="bottom">
 			<EditorButton<typeof KDropdownMenu.Trigger>
 				as={KDropdownMenu.Trigger}
-				leftIcon={<IconCapPresets />}
-				rightIcon={<IconCapChevronDown />}
+				leftIcon={<IconScoopyPresets />}
+				rightIcon={<IconScoopyChevronDown />}
 				title="Presets"
 				aria-label="Presets"
 			>
@@ -67,7 +67,7 @@ export function PresetsDropdown() {
 											Default
 										</span>
 									</Show>
-									<IconCapSettings class="text-ed-text-3 group-hover:text-[currentColor] shrink-0" />
+									<IconScoopySettings class="text-ed-text-3 group-hover:text-[currentColor] shrink-0" />
 								</MenuItem>
 								<KDropdownMenu.Portal>
 									<MenuItemList<typeof KDropdownMenu.SubContent>
@@ -124,7 +124,7 @@ export function PresetsDropdown() {
 														Default
 													</span>
 												</Show>
-												<IconCapSettings class="text-ed-text-3 group-hover:text-[currentColor] shrink-0" />
+												<IconScoopySettings class="text-ed-text-3 group-hover:text-[currentColor] shrink-0" />
 											</MenuItem>
 											<KDropdownMenu.Portal>
 												<MenuItemList<typeof KDropdownMenu.SubContent>
@@ -193,7 +193,7 @@ export function PresetsDropdown() {
 								onSelect={() => setDialog({ type: "createPreset", open: true })}
 							>
 								<span>Create new preset</span>
-								<IconCapCirclePlus class="ml-auto" />
+								<IconScoopyCirclePlus class="ml-auto" />
 							</DropdownItem>
 						</MenuItemList>
 					</PopperContent>

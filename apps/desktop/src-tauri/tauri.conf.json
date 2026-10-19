@@ -1,18 +1,18 @@
 {
 	"$schema": "https://schema.tauri.app/config/2",
 	"productName": "Scoopy - Development",
-	"identifier": "so.cap.desktop.dev",
+	"identifier": "me.systembug.scoopy.dev",
 	"mainBinaryName": "Scoopy - Development",
 	"build": {
 		"beforeDevCommand": "bun run localdev",
 		"devUrl": "http://localhost:3002",
-		"beforeBuildCommand": "bun run turbo build --filter @cap/desktop",
+		"beforeBuildCommand": "bun run turbo build --filter @scoopy/desktop",
 		"frontendDist": "../.output/public"
 	},
 	"app": {
 		"macOSPrivateApi": true,
 		"security": {
-			"csp": "default-src 'self' ws: ipc: http://ipc.localhost; connect-src 'self' ws: wss: ipc: http://ipc.localhost https://t.cap.so; img-src 'self' asset: http://asset.localhost blob: data:; media-src 'self' asset: http://asset.localhost; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'",
+			"csp": "default-src 'self' ws: ipc: http://ipc.localhost; connect-src 'self' ws: wss: ipc: http://ipc.localhost https://t.example.com; img-src 'self' asset: http://asset.localhost blob: data:; media-src 'self' asset: http://asset.localhost; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'",
 			"assetProtocol": {
 				"enable": true,
 				"scope": [
@@ -36,7 +36,7 @@
 		"updater": { "active": false, "pubkey": "" },
 		"deep-link": {
 			"desktop": {
-				"schemes": ["cap-desktop"]
+				"schemes": ["scoopy-desktop"]
 			}
 		}
 	},
@@ -45,9 +45,9 @@
 		"createUpdaterArtifacts": true,
 		"targets": "all",
 		"externalBin": [
-			"binaries/cap-muxer",
-			"binaries/cap-exporter",
-			"binaries/cap-cli"
+			"binaries/scoopy-muxer",
+			"binaries/scoopy-exporter",
+			"binaries/scoopy-cli"
 		],
 		"icon": [
 			"icons/32x32.png",
@@ -109,19 +109,19 @@
 					"libssl3t64 | libssl3"
 				],
 				"files": {
-					"/usr/share/icons/hicolor/scalable/status/so.cap.desktop-tray-default-symbolic.svg": "icons/linux/so.cap.desktop-tray-default-symbolic.svg",
-					"/usr/share/icons/hicolor/scalable/status/so.cap.desktop-tray-instant-symbolic.svg": "icons/linux/so.cap.desktop-tray-instant-symbolic.svg",
-					"/usr/share/icons/hicolor/scalable/status/so.cap.desktop-tray-screenshot-symbolic.svg": "icons/linux/so.cap.desktop-tray-screenshot-symbolic.svg",
-					"/usr/share/icons/hicolor/scalable/status/so.cap.desktop-tray-studio-symbolic.svg": "icons/linux/so.cap.desktop-tray-studio-symbolic.svg",
-					"/usr/share/icons/hicolor/scalable/status/so.cap.desktop-tray-stop-symbolic.svg": "icons/linux/so.cap.desktop-tray-stop-symbolic.svg"
+					"/usr/share/icons/hicolor/scalable/status/me.systembug.scoopy-tray-default-symbolic.svg": "icons/linux/me.systembug.scoopy-tray-default-symbolic.svg",
+					"/usr/share/icons/hicolor/scalable/status/me.systembug.scoopy-tray-instant-symbolic.svg": "icons/linux/me.systembug.scoopy-tray-instant-symbolic.svg",
+					"/usr/share/icons/hicolor/scalable/status/me.systembug.scoopy-tray-screenshot-symbolic.svg": "icons/linux/me.systembug.scoopy-tray-screenshot-symbolic.svg",
+					"/usr/share/icons/hicolor/scalable/status/me.systembug.scoopy-tray-studio-symbolic.svg": "icons/linux/me.systembug.scoopy-tray-studio-symbolic.svg",
+					"/usr/share/icons/hicolor/scalable/status/me.systembug.scoopy-tray-stop-symbolic.svg": "icons/linux/me.systembug.scoopy-tray-stop-symbolic.svg"
 				}
 			}
 		},
 		"fileAssociations": [
 			{
-				"ext": ["cap"],
+				"ext": ["scoopy"],
 				"name": "Scoopy Project",
-				"mimeType": "application/x-cap-project",
+				"mimeType": "application/x-scoopy-project",
 				"role": "Editor"
 			}
 		]

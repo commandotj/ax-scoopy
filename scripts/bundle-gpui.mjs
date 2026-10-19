@@ -11,7 +11,7 @@ const repoRoot = path.resolve(
 );
 export const gpuiDirectory = path.join(repoRoot, "apps", "desktop-gpui");
 const desktopDirectory = path.join(repoRoot, "apps", "desktop");
-export const gpuiToolchain = process.env.CAP_GPUI_RUST_TOOLCHAIN || "1.95.0";
+export const gpuiToolchain = process.env.SCOOPY_GPUI_RUST_TOOLCHAIN || "1.95.0";
 
 const platformConfigNames = {
 	darwin: "tauri.macos.conf.json",
@@ -157,7 +157,7 @@ export async function bundleGpui(target, args, { env = process.env } = {}) {
 			.access(path.join(gpuiDirectory, platformConfigNames.linux))
 			.catch(() => {
 				throw new Error(
-					"Missing apps/desktop-gpui/tauri.linux.conf.json; run `RUST_TARGET_TRIPLE=<target> bun run cap-setup` first",
+					"Missing apps/desktop-gpui/tauri.linux.conf.json; run `RUST_TARGET_TRIPLE=<target> bun run scoopy-setup` first",
 				);
 			});
 	}

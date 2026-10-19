@@ -45,7 +45,7 @@ pub fn blur_disabled() -> bool {
 /// Registers a callback invoked with `true` while any `BlurProcessor` exists
 /// (from just before the ONNX/GPU session is created until drop), so a host can
 /// attribute a hard process death to the blur pipeline. Processes that never
-/// register (cap-exporter, the CLI) get a no-op and unchanged behavior.
+/// register (scoopy-exporter, the CLI) get a no-op and unchanged behavior.
 pub fn set_blur_session_observer(observer: fn(bool)) {
     let _ = BLUR_SESSION_OBSERVER.set(observer);
 }
@@ -279,7 +279,7 @@ enum Segmenter {
 impl Segmenter {
     fn new() -> anyhow::Result<Self> {
         #[cfg(target_os = "macos")]
-        if std::env::var("CAP_CAMERA_SEGMENTATION").as_deref() != Ok("onnx") {
+        if std::env::var("SCOOPY_CAMERA_SEGMENTATION").as_deref() != Ok("onnx") {
             match vision::VisionSegmenter::new() {
                 Ok(segmenter) => return Ok(Self::Vision(Box::new(segmenter))),
                 Err(error) => {

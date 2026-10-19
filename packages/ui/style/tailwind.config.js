@@ -179,19 +179,19 @@ module.exports = (__app, _options) => {
 					// made centred dialogs render off-centre and then snap into
 					// place when the animation ended. The class names below are
 					// unchanged; only the keyframes they point at are now ours.
-					capFadeIn: {
+					scoopyFadeIn: {
 						from: { opacity: 0 },
 						to: { opacity: 1 },
 					},
-					capFadeOut: {
+					scoopyFadeOut: {
 						from: { opacity: 1 },
 						to: { opacity: 0 },
 					},
 				},
 				animation: {
 					flyEmoji: "flyEmoji 1.5s forwards",
-					fadeIn: "capFadeIn 200ms ease-out",
-					fadeOut: "capFadeOut 150ms ease-in",
+					fadeIn: "scoopyFadeIn 200ms ease-out",
+					fadeOut: "scoopyFadeOut 150ms ease-in",
 				},
 			},
 		},

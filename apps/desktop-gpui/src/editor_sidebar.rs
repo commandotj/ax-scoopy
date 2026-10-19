@@ -41,7 +41,7 @@ use std::{
     time::Instant,
 };
 
-use cap_project::{
+use scoopy_project::{
     AnimatedGradientParameter, BackgroundSource, BorderConfiguration, Color, CornerStyle,
     DisplayNotch, NotchConfiguration, ProjectConfiguration, ShadowConfiguration,
 };
@@ -475,16 +475,16 @@ pub fn wallpapers_for_theme(theme: &str) -> Vec<&'static str> {
 /// Where the bundled wallpapers live.
 ///
 /// **They are not embedded, and cannot be**: selecting one writes an *absolute
-/// filesystem path* into `background.source.path`, which `cap-rendering` then
+/// filesystem path* into `background.source.path`, which `scoopy-rendering` then
 /// opens (`layers/background.rs`) -- so the file has to exist on disk for the
 /// picture to render at all, in this app and in the shipping one. Embedding the
 /// 25 MB of JPEGs would add 25 MB to the binary *and* still need them written
 /// back out somewhere. So this resolves the same files
 /// `resolveResource("assets/backgrounds/<id>.jpg")` does, preferring an
-/// installed Cap.app (whose paths are byte-identical to what the shipping app
+/// installed Scoopy.app (whose paths are byte-identical to what the shipping app
 /// would write) and falling back to the repository the dev build runs from.
 pub fn wallpaper_dir() -> Option<PathBuf> {
-    let override_dir = std::env::var_os("CAP_GPUI_WALLPAPERS_DIR").map(PathBuf::from);
+    let override_dir = std::env::var_os("SCOOPY_GPUI_WALLPAPERS_DIR").map(PathBuf::from);
     wallpaper_dir_from(
         &crate::store::bundled_resource_dirs(),
         override_dir.as_deref(),
@@ -508,7 +508,7 @@ fn wallpaper_dir_from(
         .map(|directory| directory.join("assets/backgrounds"))
         .collect::<Vec<_>>();
     candidates.push(PathBuf::from(
-        "/Applications/Cap.app/Contents/Resources/assets/backgrounds",
+        "/Applications/Scoopy.app/Contents/Resources/assets/backgrounds",
     ));
     candidates.push(
         manifest
@@ -586,11 +586,11 @@ pub fn noise_opacity(intensity: f32) -> f32 {
 /// Perlin-style gradient noise becomes value noise (a different grain
 /// *character* at the same frequency), and `overlay` becomes source-over (the
 /// grain lightens and darkens less selectively). The **rendered** frame's grain
-/// is not affected either way -- `cap-rendering` applies `noise_intensity` /
+/// is not affected either way -- `scoopy-rendering` applies `noise_intensity` /
 /// `noise_scale` itself (`layers/background.rs:251-299`), so the player shows
 /// the real thing.
 fn noise_texture(width: u32, height: u32, base_frequency: f32) -> Arc<RenderImage> {
-    let rgba = cap_gpui_kernels::texture::noise_texture_bgra(width, height, base_frequency);
+    let rgba = scoopy_gpui_kernels::texture::noise_texture_bgra(width, height, base_frequency);
     Arc::new(RenderImage::new(smallvec::smallvec![image::Frame::new(
         rgba
     )]))
@@ -777,7 +777,7 @@ pub struct SidebarState {
     /// pixel box it was drawn for. A `BTreeMap` because `CursorShape` is `Ord`
     /// but not `Hash`.
     cursor_previews:
-        std::cell::RefCell<BTreeMap<(cap_cursor_info::CursorShape, u32, u32), Arc<RenderImage>>>,
+        std::cell::RefCell<BTreeMap<(scoopy_cursor_info::CursorShape, u32, u32), Arc<RenderImage>>>,
     /// The device scale those were rasterised at, sampled once a frame from
     /// `render` -- the only place in the sidebar's chain with a `&Window`.
     cursor_scale: f32,
@@ -1135,7 +1135,7 @@ impl EditorWindow {
         self.instance
             .as_ref()
             .and_then(|instance| instance.render_constants.meta.display_notch())
-            .unwrap_or(cap_project::DEFAULT_MACBOOK_NOTCH)
+            .unwrap_or(scoopy_project::DEFAULT_MACBOOK_NOTCH)
     }
 
     fn notch_value(&self, slider: BgSlider) -> f64 {
@@ -1976,7 +1976,7 @@ fn write_desktop_background_snapshot(source: &Path, output: &Path) -> Result<(),
         return Ok(());
     }
 
-    let decoded = cap_gpui_kernels::codec::open_image(source)
+    let decoded = scoopy_gpui_kernels::codec::open_image(source)
         .map_err(|err| format!("failed to decode desktop background: {err}"))?;
     let decoded = if decoded.width() > DESKTOP_BACKGROUND_MAX_DIMENSION
         || decoded.height() > DESKTOP_BACKGROUND_MAX_DIMENSION
@@ -1989,7 +1989,7 @@ fn write_desktop_background_snapshot(source: &Path, output: &Path) -> Result<(),
     } else {
         decoded
     };
-    cap_gpui_kernels::codec::save_rgb_image(&decoded.to_rgb8(), output, image::ImageFormat::Jpeg)
+    scoopy_gpui_kernels::codec::save_rgb_image(&decoded.to_rgb8(), output, image::ImageFormat::Jpeg)
         .map_err(|err| format!("failed to save desktop background: {err}"))
 }
 
@@ -3989,7 +3989,7 @@ impl SelectionRing for gpui::Stateful<gpui::Div> {
 // ---------------------------------------------------------------------------
 
 impl EditorWindow {
-    /// `CAP_GPUI_AUTO_SIDEBAR=<tab>[:<scroll>]`, through the rail's own handler
+    /// `SCOOPY_GPUI_AUTO_SIDEBAR=<tab>[:<scroll>]`, through the rail's own handler
     /// so the tab switch is the one a click makes -- selection cleared, menu
     /// dismissed, body back to the top -- with the scroll applied afterwards.
     pub(crate) fn auto_select_sidebar_tab(
@@ -4017,7 +4017,7 @@ impl EditorWindow {
         window.refresh();
     }
 
-    /// `CAP_GPUI_AUTO_SELECT=<track>:<i>[,<i>][@<scroll>]`, through
+    /// `SCOOPY_GPUI_AUTO_SELECT=<track>:<i>[,<i>][@<scroll>]`, through
     /// `set_selection` so the panel opens exactly as a timeline click opens it.
     ///
     /// The optional `@<scroll>` is the same escape hatch the tab hook has: a
@@ -4091,7 +4091,7 @@ mod tests {
     #[test]
     fn animated_gradient_has_a_distinct_source_tab() {
         let source = BackgroundSource::AnimatedGradient {
-            config: cap_project::AnimatedGradientConfig::default(),
+            config: scoopy_project::AnimatedGradientConfig::default(),
         };
         assert_eq!(source_tab_for(&source), SourceTab::AnimatedGradient);
         assert_eq!(SourceTab::AnimatedGradient.label(), "Animated");
@@ -4147,10 +4147,10 @@ mod tests {
     #[test]
     fn built_in_wallpapers_resolve_from_an_installed_bundle() {
         let root = std::env::temp_dir().join(format!(
-            "cap-gpui-installed-wallpapers-{}",
+            "scoopy-gpui-installed-wallpapers-{}",
             std::process::id()
         ));
-        let resources = root.join("Cap.app/Contents/Resources");
+        let resources = root.join("Scoopy.app/Contents/Resources");
         let backgrounds = resources.join("assets/backgrounds");
         let wallpaper = backgrounds.join("macOS/sequoia-dark.jpg");
         std::fs::create_dir_all(wallpaper.parent().unwrap()).unwrap();
@@ -4190,22 +4190,22 @@ mod tests {
     #[test]
     fn a_desktop_wallpaper_path_reads_as_the_desktop_tab() {
         let desktop = BackgroundSource::Wallpaper {
-            path: Some("/tmp/p.cap/assets/current-desktop-background-1234.jpg".into()),
+            path: Some("/tmp/p.scoopy/assets/current-desktop-background-1234.jpg".into()),
         };
         assert_eq!(source_tab_for(&desktop), SourceTab::Desktop);
 
         let legacy = BackgroundSource::Wallpaper {
-            path: Some("/tmp/p.cap/assets/current-desktop-background.png".into()),
+            path: Some("/tmp/p.scoopy/assets/current-desktop-background.png".into()),
         };
         assert_eq!(source_tab_for(&legacy), SourceTab::Desktop);
 
         let bundled = BackgroundSource::Wallpaper {
-            path: Some("/Applications/Cap.app/.../assets/backgrounds/macOS/tahoe-dark.jpg".into()),
+            path: Some("/Applications/Scoopy.app/.../assets/backgrounds/macOS/tahoe-dark.jpg".into()),
         };
         assert_eq!(source_tab_for(&bundled), SourceTab::Wallpaper);
         assert_eq!(
             wallpaper_id_for_path(
-                "/Applications/Cap.app/.../assets/backgrounds/macOS/tahoe-dark.jpg"
+                "/Applications/Scoopy.app/.../assets/backgrounds/macOS/tahoe-dark.jpg"
             ),
             Some("macOS/tahoe-dark")
         );
@@ -4214,14 +4214,14 @@ mod tests {
     #[test]
     fn importing_a_desktop_background_preserves_referenced_snapshots() {
         let root = std::env::temp_dir().join(format!(
-            "cap-gpui-desktop-background-{}-{}",
+            "scoopy-gpui-desktop-background-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_nanos()
         ));
-        let project = root.join("project.cap");
+        let project = root.join("project.scoopy");
         let source = root.join("wallpaper.jpg");
         std::fs::create_dir_all(&root).unwrap();
         image::RgbImage::from_pixel(32, 16, image::Rgb([40, 120, 200]))
@@ -4403,7 +4403,7 @@ pub(crate) fn apply_style_control_change(
 }
 
 impl EditorWindow {
-    pub(crate) fn style_background(&self) -> &cap_project::BackgroundConfiguration {
+    pub(crate) fn style_background(&self) -> &scoopy_project::BackgroundConfiguration {
         self.sidebar
             .style_target
             .filter(|(_, group)| *group == StyleGroup::Background)

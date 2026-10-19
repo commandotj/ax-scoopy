@@ -32,7 +32,7 @@ export type RecoveredRecordingSpool = RecordingSpoolSessionRecord & {
 	blob: Blob;
 };
 
-const DATABASE_NAME = "cap-recording-spool";
+const DATABASE_NAME = "scoopy-recording-spool";
 const DATABASE_VERSION = 1;
 const SESSIONS_STORE = "sessions";
 const CHUNKS_STORE = "chunks";

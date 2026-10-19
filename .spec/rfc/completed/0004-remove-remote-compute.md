@@ -23,7 +23,7 @@ Distributed rendering needs remote workers and is unused by a local-only app.
 
 ## Design
 
-Grep `cap-render-farm` and `render_farm` for dependents, cut them, delete the directories, refresh `Cargo.lock`.
+Grep `scoopy-render-farm` and `render_farm` for dependents, cut them, delete the directories, refresh `Cargo.lock`.
 
 ## Acceptance
 

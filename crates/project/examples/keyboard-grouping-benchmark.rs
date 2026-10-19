@@ -1,4 +1,4 @@
-use cap_project::{
+use scoopy_project::{
     KeyPressEvent, KeyboardEvents, KeyboardSettings, RecordingMeta, TimelineConfiguration,
     generate_project_keyboard_segments, group_key_events,
 };
@@ -109,7 +109,7 @@ fn main() {
             }));
         }
     }
-    if let Some(path) = std::env::var_os("CAP_KEYBOARD_BENCH_OUTPUT") {
+    if let Some(path) = std::env::var_os("SCOOPY_KEYBOARD_BENCH_OUTPUT") {
         std::fs::write(path, serde_json::to_vec(&outputs).unwrap()).unwrap();
     }
     if check_scaling {

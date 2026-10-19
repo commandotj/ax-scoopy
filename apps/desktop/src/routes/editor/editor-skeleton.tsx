@@ -36,7 +36,7 @@ function PreparingHeader(props: { model: PreparingEditorModel }) {
 				<span class="truncate text-[13px] font-medium">
 					{props.model.seed().title || "Recording"}
 				</span>
-				<span class="ml-1.5 text-[13px] text-ed-text-3">.cap</span>
+				<span class="ml-1.5 text-[13px] text-ed-text-3">.scoopy</span>
 				<div class="flex gap-1 ml-3">
 					<button
 						type="button"
@@ -125,9 +125,9 @@ function PreparingPlayer(props: { model: PreparingEditorModel }) {
 					>
 						<Show
 							when={props.model.playback().playing}
-							fallback={<IconCapPlay class="size-3" />}
+							fallback={<IconScoopyPlay class="size-3" />}
 						>
-							<IconCapPause class="size-3" />
+							<IconScoopyPause class="size-3" />
 						</Show>
 					</button>
 					<button

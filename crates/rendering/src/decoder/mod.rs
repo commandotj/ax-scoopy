@@ -1207,7 +1207,7 @@ impl Drop for CancelManagedReadiness {
 }
 
 struct ManagedVideoInput {
-    source: cap_enc_ffmpeg::RelocatableSource,
+    source: scoopy_enc_ffmpeg::RelocatableSource,
     paths: Vec<PathBuf>,
 }
 
@@ -1390,7 +1390,7 @@ impl Drop for ManagedVideoDecoder {
 
 pub fn spawn_managed_decoder<'a>(
     name: &'static str,
-    source: cap_enc_ffmpeg::RelocatableSource,
+    source: scoopy_enc_ffmpeg::RelocatableSource,
     paths: impl IntoIterator<Item = &'a std::path::Path>,
     fps: u32,
     offset: f64,
@@ -2227,7 +2227,7 @@ mod managed_worker_tests {
         }
     }
     use super::*;
-    use cap_enc_ffmpeg::segmented_stream::{SegmentedVideoEncoder, SegmentedVideoEncoderConfig};
+    use scoopy_enc_ffmpeg::segmented_stream::{SegmentedVideoEncoder, SegmentedVideoEncoderConfig};
     use std::sync::atomic::{AtomicBool, Ordering};
 
     struct DropSignal(Arc<AtomicBool>);
@@ -2378,8 +2378,8 @@ mod managed_worker_tests {
         ::ffmpeg::init().unwrap();
         let mut encoder = SegmentedVideoEncoder::init(
             directory.to_path_buf(),
-            cap_media_info::VideoInfo {
-                pixel_format: cap_media_info::Pixel::NV12,
+            scoopy_media_info::VideoInfo {
+                pixel_format: scoopy_media_info::Pixel::NV12,
                 width: 160,
                 height: 120,
                 time_base: Rational(1, 1_000_000),
@@ -2587,7 +2587,7 @@ mod managed_worker_tests {
         for path in &paths {
             std::fs::copy(original.join(path), reference.join(path)).unwrap();
         }
-        let source = cap_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
+        let source = scoopy_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
         let (ordinary, join) = ordinary_worker(reference, 0.25, hardware).await;
         let mut managed = spawn_managed_decoder(
             "gapped-test",
@@ -2670,7 +2670,7 @@ mod managed_worker_tests {
             .map(|path| directory.join(path))
             .collect::<Vec<_>>();
         let mut input =
-            cap_enc_ffmpeg::SegmentedInput::open(absolute_paths.iter().map(PathBuf::as_path))
+            scoopy_enc_ffmpeg::SegmentedInput::open(absolute_paths.iter().map(PathBuf::as_path))
                 .unwrap();
         let (stream_index, start_time, time_base) = {
             let stream = input
@@ -2716,8 +2716,8 @@ mod managed_worker_tests {
         let retained = directory.path().join("retained");
         let paths = encode_gapped_segments(&original);
         let requested_time = last_fragment_request_time(&original, &paths, 30);
-        let source = cap_enc_ffmpeg::RelocatableSource::new(original).unwrap();
-        let mut input_probe = cap_enc_ffmpeg::SegmentedInput::open_relocatable(
+        let source = scoopy_enc_ffmpeg::RelocatableSource::new(original).unwrap();
+        let mut input_probe = scoopy_enc_ffmpeg::SegmentedInput::open_relocatable(
             &source,
             paths.iter().map(PathBuf::as_path),
         )
@@ -2773,7 +2773,7 @@ mod managed_worker_tests {
         assert_eq!(managed.stop_handle().wait_for_terminal().await, error);
         assert_eq!(managed.stop_and_wait().await.terminal, error);
     }
-    fn segment_wrapper_metadata(camera: bool) -> cap_project::StudioRecordingMeta {
+    fn segment_wrapper_metadata(camera: bool) -> scoopy_project::StudioRecordingMeta {
         serde_json::from_value(serde_json::json!({
             "segments": [{
                 "display": {"path":"display.mp4", "fps":30, "start_time":10.0},
@@ -2798,7 +2798,7 @@ mod managed_worker_tests {
         for path in &paths {
             std::fs::copy(original.join(path), reference.join(path)).unwrap();
         }
-        let source = cap_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
+        let source = scoopy_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
         let (display, display_join) =
             ordinary_worker_with_fps(reference.clone(), 0.25, false, 30).await;
         let (camera, camera_join) = ordinary_worker_with_fps(reference, 0.125, false, 24).await;
@@ -2830,7 +2830,7 @@ mod managed_worker_tests {
                 .map(|camera| (camera.video_width, camera.video_height)),
             ordinary.camera_video_dimensions()
         );
-        let offsets = cap_project::ClipOffsets {
+        let offsets = scoopy_project::ClipOffsets {
             camera: 0.125,
             ..Default::default()
         };
@@ -2930,7 +2930,7 @@ mod managed_worker_tests {
         let directory = tempfile::tempdir().unwrap();
         let original = directory.path().join("original");
         let paths = encode_gapped_segments(&original);
-        let source = cap_enc_ffmpeg::RelocatableSource::new(original).unwrap();
+        let source = scoopy_enc_ffmpeg::RelocatableSource::new(original).unwrap();
         let input = ManagedSegmentVideoInput::new(
             0,
             &segment_wrapper_metadata(true),

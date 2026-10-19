@@ -1,4 +1,4 @@
-import capUIPlugin from "@cap/ui-solid/vite";
+import scoopyUIPlugin from "@scoopy/ui-solid/vite";
 import { defineConfig } from "@solidjs/start/config";
 import devtools from "solid-devtools/vite";
 import topLevelAwait from "vite-plugin-top-level-await";
@@ -56,7 +56,7 @@ export default defineConfig({
 			fontDisplayBlock,
 			wasm(),
 			topLevelAwait(),
-			capUIPlugin,
+			scoopyUIPlugin,
 			tsconfigPaths({
 				root: ".",
 			}),

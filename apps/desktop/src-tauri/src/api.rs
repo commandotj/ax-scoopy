@@ -412,8 +412,8 @@ pub(crate) async fn prepare_recording_segments(
 pub async fn verify_recording_complete(
     app: &AppHandle,
     video_id: &str,
-    verification: &cap_recording::upload_verification::UploadVerification,
-) -> Result<Option<cap_recording::upload_verification::VerifiedUploadReceipt>, AuthedApiError> {
+    verification: &scoopy_recording::upload_verification::UploadVerification,
+) -> Result<Option<scoopy_recording::upload_verification::VerifiedUploadReceipt>, AuthedApiError> {
     let response = app
         .authed_api_request("/api/upload/recording-complete", |client, url| {
             client

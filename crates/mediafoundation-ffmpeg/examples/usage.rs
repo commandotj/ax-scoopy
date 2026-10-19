@@ -5,7 +5,7 @@ fn main() {
 
 #[cfg(windows)]
 mod win {
-    use cap_mediafoundation_ffmpeg::{H264StreamMuxer, MuxerConfig};
+    use scoopy_mediafoundation_ffmpeg::{H264StreamMuxer, MuxerConfig};
     use ffmpeg::format;
     use std::path::PathBuf;
 

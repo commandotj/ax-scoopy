@@ -1,11 +1,11 @@
-use cap_enc_ffmpeg::{
+use scoopy_enc_ffmpeg::{
     AudioEncoder,
     h264::{H264EncoderBuilder, H264Preset},
     opus::OpusEncoder,
     remux::{get_media_duration, probe_video_can_decode},
 };
-use cap_media_info::{AudioInfo, FFRational, Pixel, VideoInfo, ensure_even};
-use cap_project::{
+use scoopy_media_info::{AudioInfo, FFRational, Pixel, VideoInfo, ensure_even};
+use scoopy_project::{
     AudioMeta, ClipConfiguration, CursorEvents, CursorMeta, Cursors, InstantRecordingMeta,
     MultipleSegment, MultipleSegments, Platform, ProjectConfiguration, RecordingMeta,
     RecordingMetaInner, SingleSegment, StudioRecordingMeta, StudioRecordingStatus,
@@ -32,7 +32,7 @@ use tracing::{debug, error, info};
 use crate::{
     create_screenshot,
     editor_window::EditorInstances,
-    windows::{CapWindowId, EditorWindowIds},
+    windows::{ScoopyWindowId, EditorWindowIds},
 };
 
 const VIDEO_IMPORT_EXTENSIONS: &[&str] = &["mp4", "mov", "avi", "mkv", "webm", "wmv", "m4v", "flv"];
@@ -245,8 +245,8 @@ fn legacy_cursor_relative_path(path: &str) -> Result<RelativePathBuf, String> {
 }
 
 fn editor_project_path_from_window(window: &Window) -> Result<PathBuf, String> {
-    let CapWindowId::Editor { id } =
-        CapWindowId::from_str(window.label()).map_err(|e| e.to_string())?
+    let ScoopyWindowId::Editor { id } =
+        ScoopyWindowId::from_str(window.label()).map_err(|e| e.to_string())?
     else {
         return Err("Import can only be started from an editor window".to_string());
     };
@@ -592,7 +592,7 @@ fn copy_keyboard_path(
 ) -> Result<Option<RelativePathBuf>, String> {
     if let Some(source_relative_path) = &source_segment.keyboard {
         let file_name =
-            relative_file_name(source_relative_path, cap_project::KEYBOARD_EVENTS_FILE_NAME);
+            relative_file_name(source_relative_path, scoopy_project::KEYBOARD_EVENTS_FILE_NAME);
         let Some(source_path) = source_asset_path(
             &source_meta.project_path,
             source_relative_path,
@@ -617,8 +617,8 @@ fn copy_keyboard_path(
     };
 
     for file_name in [
-        cap_project::KEYBOARD_EVENTS_FILE_NAME,
-        cap_project::LEGACY_KEYBOARD_EVENTS_FILE_NAME,
+        scoopy_project::KEYBOARD_EVENTS_FILE_NAME,
+        scoopy_project::LEGACY_KEYBOARD_EVENTS_FILE_NAME,
     ] {
         let source_relative_path = display_dir.join(file_name);
         let Some(source_path) = source_asset_path(
@@ -1384,12 +1384,12 @@ pub async fn start_video_import(app: AppHandle, source_path: PathBuf) -> Result<
 
     let project_name = generate_project_name(&source_path);
     let sanitized_name = sanitize_filename(&project_name);
-    let project_dir_name = format!("{sanitized_name}.cap");
+    let project_dir_name = format!("{sanitized_name}.scoopy");
 
     let mut project_path = recordings_dir.join(&project_dir_name);
     let mut counter = 1;
     while project_path.exists() {
-        let new_name = format!("{sanitized_name} ({counter}).cap");
+        let new_name = format!("{sanitized_name} ({counter}).scoopy");
         project_path = recordings_dir.join(new_name);
         counter += 1;
     }
@@ -1968,8 +1968,8 @@ pub async fn start_image_import(app: AppHandle, source_path: PathBuf) -> Result<
 
     let project_name = generate_image_project_name(&source_path);
     let filename = project_name.replace(":", ".");
-    let filename = format!("{}.cap", sanitize_filename::sanitize(&filename));
-    let project_path = screenshots_dir.join(cap_utils::ensure_unique_filename(
+    let filename = format!("{}.scoopy", sanitize_filename::sanitize(&filename));
+    let project_path = screenshots_dir.join(scoopy_utils::ensure_unique_filename(
         &filename,
         &screenshots_dir,
     )?);

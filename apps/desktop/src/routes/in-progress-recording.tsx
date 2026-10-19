@@ -957,7 +957,7 @@ function InProgressRecordingInner() {
 										title="Stop recording"
 										aria-label="Stop recording"
 									>
-										<IconCapStopCircle class="size-5 shrink-0" />
+										<IconScoopyStopCircle class="size-5 shrink-0" />
 										<span class="truncate text-sm font-medium tabular-nums">
 											<Show
 												when={!isCountdown()}
@@ -1044,7 +1044,7 @@ function InProgressRecordingInner() {
 															<IconLucideMicOff class="size-5 text-[var(--amber-11)]" />
 														) : (
 															<>
-																<IconCapMicrophone class="size-5 text-gray-12" />
+																<IconScoopyMicrophone class="size-5 text-gray-12" />
 																<div class="absolute bottom-1 left-1 right-1 h-0.5 overflow-hidden rounded-full bg-gray-10">
 																	<div
 																		class="absolute inset-0 bg-blue-9 transition-transform duration-100"
@@ -1084,7 +1084,7 @@ function InProgressRecordingInner() {
 												<IconLucideMicOff class="size-5 text-red-9" />
 											) : (
 												<>
-													<IconCapMicrophone class="size-5 text-gray-12" />
+													<IconScoopyMicrophone class="size-5 text-gray-12" />
 													<div class="absolute bottom-1 left-1 right-1 h-0.5 overflow-hidden rounded-full bg-gray-10">
 														<div
 															class="absolute inset-0 bg-blue-9 transition-transform duration-100"
@@ -1160,9 +1160,9 @@ function InProgressRecordingInner() {
 													when={togglePause.isPending}
 													fallback={
 														state().variant === "paused" ? (
-															<IconCapPlayCircle />
+															<IconScoopyPlayCircle />
 														) : (
-															<IconCapPauseCircle />
+															<IconScoopyPauseCircle />
 														)
 													}
 												>
@@ -1177,7 +1177,7 @@ function InProgressRecordingInner() {
 											title="Restart recording"
 											aria-label="Restart recording"
 										>
-											<IconCapRestart />
+											<IconScoopyRestart />
 										</ActionButton>
 										<ActionButton
 											disabled={deleteRecording.isPending || isCountdown()}
@@ -1185,7 +1185,7 @@ function InProgressRecordingInner() {
 											title="Delete recording"
 											aria-label="Delete recording"
 										>
-											<IconCapTrash />
+											<IconScoopyTrash />
 										</ActionButton>
 										<ActionButton
 											ref={(el) => {
@@ -1197,7 +1197,7 @@ function InProgressRecordingInner() {
 											title="Recording settings"
 											aria-label="Recording settings"
 										>
-											<IconCapSettings class="size-5" />
+											<IconScoopySettings class="size-5" />
 										</ActionButton>
 									</Show>
 								</div>
@@ -1208,7 +1208,7 @@ function InProgressRecordingInner() {
 							class="non-styled-move flex w-6 shrink-0 cursor-move items-center justify-center border-l border-gray-5 p-1 hover:cursor-move transition-colors duration-100 hover:bg-gray-12/4 dark:hover:bg-white/6"
 							data-tauri-drag-region
 						>
-							<IconCapMoreVertical class="pointer-events-none size-4 text-gray-10" />
+							<IconScoopyMoreVertical class="pointer-events-none size-4 text-gray-10" />
 						</div>
 					</div>
 				</div>

@@ -364,7 +364,7 @@ impl Iterator for VideoInputDeviceIterator {
 /// costs a thread and dozens of kernel handles that are not reclaimed on
 /// release. Plain enumeration (name/id/model) must never pay that price, so
 /// binding is deferred until formats or capture genuinely need it
-/// (CapSoftware/Cap#2132).
+///.
 #[derive(Clone)]
 pub struct VideoInputDevice {
     moniker: IMoniker,

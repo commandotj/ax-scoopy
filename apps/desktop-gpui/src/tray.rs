@@ -214,7 +214,7 @@ fn load_thumbnail_png(path: &Path) -> Option<Vec<u8>> {
 /// `load_all_previous_items` + the background thumbnail pass, in one call.
 ///
 /// Reuses the library scan the main window's Recents runs on, so the two lists
-/// can never disagree about what is in the library (and `CAP_GPUI_RECORDINGS_DIR`
+/// can never disagree about what is in the library (and `SCOOPY_GPUI_RECORDINGS_DIR`
 /// redirects both). Two nuances inherited from that scan rather than from
 /// `load_all_previous_items`: each kind is capped at `RECENT_MEDIA_LIMIT`
 /// before the merge, and a screenshot sorts by its PNG's timestamp rather than
@@ -376,7 +376,7 @@ pub fn handle_item(item: TrayItem, cx: &mut App) {
             let display = scap_targets::Display::get_containing_cursor()
                 .unwrap_or_else(scap_targets::Display::primary);
             crate::screenshot::take_screenshot(
-                cap_recording::sources::screen_capture::ScreenCaptureTarget::Display {
+                scoopy_recording::sources::screen_capture::ScreenCaptureTarget::Display {
                     id: display.id(),
                 },
                 cx,
@@ -422,13 +422,13 @@ fn set_mode(mode: Mode, cx: &mut App) {
 
 /// `handle_previous_item_click`.
 fn open_previous_item(path: PathBuf, cx: &mut App) {
-    use cap_project::{RecordingMeta, RecordingMetaInner};
+    use scoopy_project::{RecordingMeta, RecordingMetaInner};
 
     let screenshots_dir = library::screenshots_dir();
     let is_screenshot = path
         .extension()
         .and_then(|ext| ext.to_str())
-        .map(|ext| ext.eq_ignore_ascii_case("scoopy") || ext.eq_ignore_ascii_case("cap"))
+        .map(|ext| ext.eq_ignore_ascii_case("scoopy") || ext.eq_ignore_ascii_case("scoopy"))
         .unwrap_or(false)
         && path
             .parent()
@@ -534,22 +534,22 @@ pub fn describe_menu(entries: &[Entry]) -> String {
     out
 }
 
-/// `CAP_GPUI_AUTO_TRAY=<spec>` picks a menu row and activates it through
+/// `SCOOPY_GPUI_AUTO_TRAY=<spec>` picks a menu row and activates it through
 /// [`handle_item`] -- the exact function the ObjC action's channel drain calls,
 /// so the harness path and the click path are one path. It exists for the same
-/// reason as every other `CAP_GPUI_AUTO_*` hook: unprivileged synthetic clicks
+/// reason as every other `SCOOPY_GPUI_AUTO_*` hook: unprivileged synthetic clicks
 /// are dropped, and a status-item menu is a nested tracking run loop on top of
 /// that.
 ///
-/// `CAP_GPUI_TRAY_DUMP=<path>` writes [`describe_menu`] of the live menu.
+/// `SCOOPY_GPUI_TRAY_DUMP=<path>` writes [`describe_menu`] of the live menu.
 pub fn drive_from_env(cx: &mut App) {
-    let spec = std::env::var("CAP_GPUI_AUTO_TRAY")
+    let spec = std::env::var("SCOOPY_GPUI_AUTO_TRAY")
         .ok()
         .filter(|s| !s.is_empty());
-    let dump = std::env::var("CAP_GPUI_TRAY_DUMP")
+    let dump = std::env::var("SCOOPY_GPUI_TRAY_DUMP")
         .ok()
         .filter(|s| !s.is_empty());
-    let delay_ms = std::env::var("CAP_GPUI_AUTO_TRAY_DELAY")
+    let delay_ms = std::env::var("SCOOPY_GPUI_AUTO_TRAY_DELAY")
         .ok()
         .and_then(|value| value.parse::<u64>().ok())
         .unwrap_or(3000);
@@ -576,7 +576,7 @@ pub fn drive_from_env(cx: &mut App) {
                 match harness_item(spec, cx) {
                     Some(item) => handle_item(item, cx),
                     None if spec == "stop" => stop_recording(cx),
-                    None => tracing::error!(spec, "CAP_GPUI_AUTO_TRAY: unknown item"),
+                    None => tracing::error!(spec, "SCOOPY_GPUI_AUTO_TRAY: unknown item"),
                 }
             }
         });
@@ -653,7 +653,7 @@ mod mac {
         unsafe impl ClassType for TrayTarget {
             type Super = objc2::runtime::NSObject;
             type Mutability = objc2::mutability::InteriorMutable;
-            const NAME: &'static str = "CapGpuiTrayTarget";
+            const NAME: &'static str = "ScoopyGpuiTrayTarget";
         }
 
         impl DeclaredClass for TrayTarget {}
@@ -662,7 +662,7 @@ mod mac {
             /// Fires inside AppKit's menu-tracking run loop. Touching gpui here
             /// is what "RefCell already borrowed" looks like, so it only posts
             /// the tag.
-            #[method(capTrayItem:)]
+            #[method(scoopyTrayItem:)]
             fn tray_item(&self, sender: *mut AnyObject) {
                 if sender.is_null() {
                     return;
@@ -672,7 +672,7 @@ mod mac {
             }
 
             /// The status button's action while a recording is running.
-            #[method(capTrayStop:)]
+            #[method(scoopyTrayStop:)]
             fn tray_stop(&self, _sender: *mut AnyObject) {
                 post(STOP_TAG);
             }
@@ -939,7 +939,7 @@ mod mac {
                     enabled,
                     icon,
                 } => {
-                    let menu_item = new_menu_item(title, sel!(capTrayItem:));
+                    let menu_item = new_menu_item(title, sel!(scoopyTrayItem:));
                     let _: () = msg_send![&*menu_item, setTarget: target];
                     let _: () = msg_send![&*menu_item, setEnabled: *enabled && item.is_some()];
                     if let Some(item) = item {
@@ -959,7 +959,7 @@ mod mac {
                     enabled,
                     items,
                 } => {
-                    let menu_item = new_menu_item(title, sel!(capTrayItem:));
+                    let menu_item = new_menu_item(title, sel!(scoopyTrayItem:));
                     let submenu = build_ns_menu(items, target, actions);
                     let _: () = msg_send![&*menu_item, setSubmenu: &*submenu];
                     let _: () = msg_send![&*menu_item, setEnabled: *enabled];
@@ -1002,7 +1002,7 @@ mod mac {
                     msg_send![&*tray.status_item, setMenu: std::ptr::null_mut::<AnyObject>()];
                 if !button.is_null() {
                     let _: () = msg_send![button, setTarget: &*tray.target];
-                    let _: () = msg_send![button, setAction: Some(sel!(capTrayStop:))];
+                    let _: () = msg_send![button, setAction: Some(sel!(scoopyTrayStop:))];
                 }
                 set_button_image(tray, STOP_ICON);
             } else {
@@ -1171,7 +1171,7 @@ mod tests {
     }
 
     fn temp_root(tag: &str) -> PathBuf {
-        let root = std::env::temp_dir().join(format!("cap-tray-{tag}-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("scoopy-tray-{tag}-{}", std::process::id()));
         std::fs::remove_dir_all(&root).ok();
         root
     }
@@ -1209,7 +1209,7 @@ mod tests {
     #[test]
     fn previous_thumbnails_reuse_the_recents_cache() {
         let root = temp_root("cache");
-        let display = bundle_display_jpg(&root.join("bundle.cap"), 1512, 982);
+        let display = bundle_display_jpg(&root.join("bundle.scoopy"), 1512, 982);
 
         let cold = load_thumbnail_png(&display).expect("a thumbnail from the original");
         let cold = image::load_from_memory(&cold).unwrap();
@@ -1284,7 +1284,7 @@ mod tests {
 
         let root = temp_root("bench");
         let displays: Vec<_> = (0..MAX_PREVIOUS_ITEMS)
-            .map(|index| bundle_display_jpg(&root.join(format!("{index}.cap")), 3024, 1964))
+            .map(|index| bundle_display_jpg(&root.join(format!("{index}.scoopy")), 3024, 1964))
             .collect();
         let scan = || {
             let start = Instant::now();
@@ -1435,7 +1435,7 @@ mod tests {
             (MediaKind::Screenshot, "Shot", "\u{1f4f7} Shot"),
         ]
         .map(|(kind, name, _)| PreviousItem {
-            path: PathBuf::from(format!("/tmp/{name}.cap")),
+            path: PathBuf::from(format!("/tmp/{name}.scoopy")),
             kind,
             pretty_name: name.to_string(),
             thumbnail: None,

@@ -186,7 +186,7 @@ pub fn apply_squircle_corners(window: &tauri::WebviewWindow, radius: f64) {
 }
 
 const TAURI_VIBRANCY_VIEW_TAG: isize = 91376254;
-const LIQUID_GLASS_IDENTIFIER: &str = "so.cap.liquid-glass-background";
+const LIQUID_GLASS_IDENTIFIER: &str = "me.systembug.scoopy.liquid-glass-background";
 const NS_GLASS_EFFECT_VIEW_STYLE_REGULAR: isize = 0;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -322,7 +322,7 @@ fn apply_liquid_glass_background_inner(
 
         // Clip the content view itself to the same continuous (squircle) curve we apply
         // to the NSGlassEffectView below. Without this, WebKit's CSS border-radius on
-        // `.cap-window-shell` and the window's Core Animation corner are rasterised by
+        // `.scoopy-window-shell` and the window's Core Animation corner are rasterised by
         // different engines and don't align pixel-perfectly, producing the visible inner
         // "second border" inside the rounded corner. This is plain Core Animation (no
         // private SPI / no WindowServer risk), so we apply it up front — it must clip
@@ -365,7 +365,7 @@ fn apply_liquid_glass_background_inner(
         // Pin the glass to its "always-active" representation so it keeps re-rendering
         // the live backdrop regardless of which window currently has key state. The
         // default for an NSVisualEffectView-derived view is FollowsWindowActiveState,
-        // which dims the material whenever another Cap window (camera, settings, etc.)
+        // which dims the material whenever another Scoopy window (camera, settings, etc.)
         // becomes key and masks the backdrop reactivity that's the whole point of
         // Liquid Glass. The always-active state is private SPI, so we probe multiple
         // state knobs (`setState:`, `setActive:`) instead of assuming one inheritance
@@ -397,7 +397,7 @@ fn apply_liquid_glass_background_inner(
         // Deliberately DO NOT disable window/WKWebView occlusion detection here.
         // Earlier builds called the private `_setWindowOcclusionDetectionEnabled:` /
         // `_setWebViewWindowOcclusionDetectionEnabled:` SPI so the glass backdrop kept
-        // sampling while Cap was unfocused, but an occlusion-suppressed surface is one
+        // sampling while Scoopy was unfocused, but an occlusion-suppressed surface is one
         // WindowServer can never quiesce — on macOS 26 that wedged the compositor when
         // the window was later hidden or the app quit (often after sleep/lid-close),
         // watchdog-stalling WindowServer and soft-restarting the whole login session.
@@ -443,19 +443,19 @@ unsafe fn force_glass_view_always_active(glass_view: cocoa::base::id) -> bool {
         if responds_to_set_state {
             // NSVisualEffectStateActive == 1
             let _: () = msg_send![glass_view, setState: 1isize];
-            tracing::info!(target: "cap_desktop_lib::liquid_glass", "NSGlassEffectView responds to setState:");
+            tracing::info!(target: "scoopy_desktop_lib::liquid_glass", "NSGlassEffectView responds to setState:");
         }
 
         let responds_to_set_active: bool =
             msg_send![glass_view, respondsToSelector: sel!(setActive:)];
         if responds_to_set_active {
             let _: () = msg_send![glass_view, setActive: true];
-            tracing::info!(target: "cap_desktop_lib::liquid_glass", "NSGlassEffectView responds to setActive:");
+            tracing::info!(target: "scoopy_desktop_lib::liquid_glass", "NSGlassEffectView responds to setActive:");
         }
 
         if !responds_to_set_state && !responds_to_set_active {
             tracing::debug!(
-                target: "cap_desktop_lib::liquid_glass",
+                target: "scoopy_desktop_lib::liquid_glass",
                 "NSGlassEffectView responds to neither setState: nor setActive: — \
                  cannot pin material to always-active; falling back to vibrancy"
             );
@@ -648,7 +648,7 @@ pub async fn teardown_all_liquid_glass(app: &tauri::AppHandle) -> Result<(), Str
         .await
         .map_err(|_| "liquid glass teardown task was cancelled".to_string())?;
     tracing::info!(
-        target: "cap_desktop_lib::liquid_glass",
+        target: "scoopy_desktop_lib::liquid_glass",
         windows = count,
         "Tore down liquid glass before exit"
     );

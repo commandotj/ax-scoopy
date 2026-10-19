@@ -78,12 +78,12 @@ class ProcessMetricsTests(unittest.TestCase):
 
 	def test_encoder_descendants_are_counted_once(self):
 		apps = '\n'.join([
-			'1) "cap-desktop" ASN:0x1:', '    pid = 10',
-			'2) "cap-desktop Graphics and Media" ASN:0x2:',
+			'1) "scoopy-desktop" ASN:0x1:', '    pid = 10',
+			'2) "scoopy-desktop Graphics and Media" ASN:0x2:',
 			'    bundleID="com.apple.WebKit.GPU"', '    pid = 11',
 			'3) "Other App" ASN:0x3:', '    pid = 99',
 		])
-		processes = '10 1 cap-desktop\n11 10 WebKit\n12 10 cap-muxer\n13 12 helper\n99 1 Other App\n'
+		processes = '10 1 scoopy-desktop\n11 10 WebKit\n12 10 scoopy-muxer\n13 12 helper\n99 1 Other App\n'
 		with patch.object(PERF, "run", side_effect=[
 			subprocess.CompletedProcess([], 0, stdout=apps),
 			subprocess.CompletedProcess([], 0, stdout=processes),

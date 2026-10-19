@@ -7,8 +7,8 @@ use std::{
     },
 };
 
-use cap_export::{ExporterBase, make_cursor_only_project};
-use cap_project::{RecordingMeta, RecordingMetaInner, XY};
+use scoopy_export::{ExporterBase, make_cursor_only_project};
+use scoopy_project::{RecordingMeta, RecordingMetaInner, XY};
 use clap::{Args, ValueEnum};
 use serde::{Deserialize, Serialize};
 use tracing::info;
@@ -28,7 +28,7 @@ pub enum QualityArg {
     Potato,
 }
 
-impl From<QualityArg> for cap_export::mp4::ExportCompression {
+impl From<QualityArg> for scoopy_export::mp4::ExportCompression {
     fn from(value: QualityArg) -> Self {
         match value {
             QualityArg::Maximum => Self::Maximum,
@@ -40,7 +40,7 @@ impl From<QualityArg> for cap_export::mp4::ExportCompression {
 }
 
 #[derive(Args)]
-#[command(long_about = "Render a '.cap' project to a video file.
+#[command(long_about = "Render a '.scoopy' project to a video file.
 
 NOTE: here --format selects the CONTAINER (mp4/gif/mov), NOT the output mode. For machine-readable
 output pass --json (the global flag), which streams NDJSON progress + completion events to stdout.
@@ -48,7 +48,7 @@ The NDJSON uses PascalCase type tags and snake_case fields ({\"type\":\"Progress
 \"total_frames\":N} then {\"type\":\"Completed\",\"path\":\"...\"}); on failure a final
 {\"type\":\"Error\",\"error\":\"...\"} is emitted.")]
 pub struct Export {
-    /// Path to a '.cap' project directory (as produced by `cap record`)
+    /// Path to a '.scoopy' project directory (as produced by `scoopy record`)
     project_path: PathBuf,
     /// Output file (positional alternative to --output)
     output_path: Option<PathBuf>,
@@ -108,11 +108,11 @@ impl ExportFlags {
 #[serde(tag = "format")]
 pub enum CliExportSettings {
     #[serde(alias = "mp4")]
-    Mp4(cap_export::mp4::Mp4ExportSettings),
+    Mp4(scoopy_export::mp4::Mp4ExportSettings),
     #[serde(alias = "gif")]
-    Gif(cap_export::gif::GifExportSettings),
+    Gif(scoopy_export::gif::GifExportSettings),
     #[serde(alias = "mov")]
-    Mov(cap_export::mov::MovExportSettings),
+    Mov(scoopy_export::mov::MovExportSettings),
 }
 
 impl CliExportSettings {
@@ -176,13 +176,13 @@ pub fn settings_from_flags(flags: &ExportFlags) -> Result<CliExportSettings, Str
     };
 
     match format {
-        ExportFormat::Mp4 => Ok(CliExportSettings::Mp4(cap_export::mp4::Mp4ExportSettings {
+        ExportFormat::Mp4 => Ok(CliExportSettings::Mp4(scoopy_export::mp4::Mp4ExportSettings {
             fps,
             resolution_base,
             compression: flags
                 .quality
                 .map(Into::into)
-                .unwrap_or(cap_export::mp4::ExportCompression::Maximum),
+                .unwrap_or(scoopy_export::mp4::ExportCompression::Maximum),
             custom_bpp: None,
             force_ffmpeg_decoder: flags.force_ffmpeg_decoder,
             optimize_filesize: flags.optimize_filesize,
@@ -197,7 +197,7 @@ pub fn settings_from_flags(flags: &ExportFlags) -> Result<CliExportSettings, Str
             if flags.optimize_filesize {
                 return Err("--optimize-filesize is only supported for --format mp4".to_string());
             }
-            Ok(CliExportSettings::Gif(cap_export::gif::GifExportSettings {
+            Ok(CliExportSettings::Gif(scoopy_export::gif::GifExportSettings {
                 fps,
                 resolution_base,
                 quality: None,
@@ -210,7 +210,7 @@ pub fn settings_from_flags(flags: &ExportFlags) -> Result<CliExportSettings, Str
             if flags.optimize_filesize {
                 return Err("--optimize-filesize is only supported for --format mp4".to_string());
             }
-            Ok(CliExportSettings::Mov(cap_export::mov::MovExportSettings {
+            Ok(CliExportSettings::Mov(scoopy_export::mov::MovExportSettings {
                 fps,
                 resolution_base,
                 cursor_only: false,
@@ -410,13 +410,13 @@ impl Export {
 }
 
 /// Remux a recording left as fragments (status `NeedsRemux`) into a progressive `display.mp4` before
-/// export, reusing the shared `RecoveryManager`. A graceful `cap record` stop already remuxes in
+/// export, reusing the shared `RecoveryManager`. A graceful `scoopy record` stop already remuxes in
 /// `finalize`, so this only fires for recordings interrupted before that (e.g. a killed worker);
 /// without it the exporter fails trying to open a fragment directory as a video. No-op for recordings
 /// that are already progressive.
 async fn ensure_remuxed(project_path: PathBuf) -> Result<(), String> {
     tokio::task::spawn_blocking(move || {
-        cap_recording::recovery::RecoveryManager::remux_if_needed(&project_path)
+        scoopy_recording::recovery::RecoveryManager::remux_if_needed(&project_path)
     })
     .await
     .map_err(|e| format!("recording remux task failed: {e}"))?
@@ -430,7 +430,7 @@ async fn prepare_instant_output(project_path: PathBuf) -> Result<PathBuf, String
         if let Some(output) = completed_instant_output(&project_path)? {
             return Ok(output);
         }
-        let ownership = cap_recording::upload_resume::UploadLock::acquire(&project_path).map_err(
+        let ownership = scoopy_recording::upload_resume::UploadLock::acquire(&project_path).map_err(
             |error| {
                 format!(
                     "Instant output needs repair, but upload ownership is unavailable: {error}; local recording retained"
@@ -441,7 +441,7 @@ async fn prepare_instant_output(project_path: PathBuf) -> Result<PathBuf, String
         if let Some(output) = completed_instant_output(project_path)? {
             return Ok(output);
         }
-        cap_recording::recovery::RecoveryManager::finalize_instant_output(
+        scoopy_recording::recovery::RecoveryManager::finalize_instant_output(
             &project_path.join("content/display"),
             &project_path.join("content/audio"),
             &project_path.join("content/output.mp4"),
@@ -462,7 +462,7 @@ fn completed_instant_output(project_path: &Path) -> Result<Option<PathBuf>, Stri
     }
     let meta = RecordingMeta::load_for_project(project_path)
         .map_err(|error| format!("Failed to load Instant recording metadata: {error}"))?;
-    let RecordingMetaInner::Instant(cap_project::InstantRecordingMeta::Complete {
+    let RecordingMetaInner::Instant(scoopy_project::InstantRecordingMeta::Complete {
         sample_rate,
         ..
     }) = meta.inner
@@ -523,7 +523,7 @@ fn completed_instant_output(project_path: &Path) -> Result<Option<PathBuf>, Stri
     {
         return Ok(Some(output));
     }
-    match cap_recording::recovery::RecoveryManager::validate_instant_output(
+    match scoopy_recording::recovery::RecoveryManager::validate_instant_output(
         project_path,
         required_audio,
     ) {
@@ -561,7 +561,7 @@ fn instant_export_settings_supported(settings: &CliExportSettings) -> bool {
                 && settings.resolution_base == XY::new(1920, 1080)
                 && matches!(
                     settings.compression,
-                    cap_export::mp4::ExportCompression::Maximum
+                    scoopy_export::mp4::ExportCompression::Maximum
                 )
                 && settings.custom_bpp.is_none()
                 && !settings.optimize_filesize
@@ -671,7 +671,7 @@ async fn export_instant_project(
 }
 
 /// Render a project to its default output path with default settings (mp4, 1080p60, Maximum). Used by
-/// `cap upload --export` to glue record -> export -> upload into one step.
+/// `scoopy upload --export` to glue record -> export -> upload into one step.
 pub async fn export_project_default(project_path: PathBuf) -> Result<PathBuf, String> {
     let settings = settings_from_flags(&ExportFlags::default())?;
     ensure_remuxed(project_path.clone()).await?;
@@ -703,7 +703,7 @@ pub async fn export_project_default(project_path: PathBuf) -> Result<PathBuf, St
     .map_err(|v| format!("Exporter error: {v}"))?;
 
     // Same 0-frame guard as Export::run_inner: a recording with missing media renders an empty,
-    // unplayable file that otherwise "succeeds", and `cap upload --export` would sign + upload it and
+    // unplayable file that otherwise "succeeds", and `scoopy upload --export` would sign + upload it and
     // hand back a valid-looking link. Fail loudly and remove the artifact instead.
     if total_frames > 0 && rendered.load(Ordering::Relaxed) == 0 {
         let _ = std::fs::remove_file(&output_path);
@@ -739,9 +739,9 @@ impl ExportPreview {
 
     async fn run_inner(self) -> Result<(), String> {
         let settings =
-            serde_json::from_str::<cap_export::preview::ExportPreviewSettings>(&self.settings_json)
+            serde_json::from_str::<scoopy_export::preview::ExportPreviewSettings>(&self.settings_json)
                 .map_err(|e| format!("Invalid preview settings JSON: {e}"))?;
-        let result = cap_export::preview::render_preview(
+        let result = scoopy_export::preview::render_preview(
             self.project_path,
             self.frame_time,
             settings,
@@ -831,7 +831,7 @@ mod tests {
             platform: None,
             pretty_name: "Owned Instant fixture".into(),
             sharing: None,
-            inner: RecordingMetaInner::Instant(cap_project::InstantRecordingMeta::Complete {
+            inner: RecordingMetaInner::Instant(scoopy_project::InstantRecordingMeta::Complete {
                 fps: 30,
                 sample_rate: None,
             }),
@@ -848,7 +848,7 @@ mod tests {
         std::fs::create_dir(project.path().join("content/audio")).unwrap();
         let output = project.path().join("content/output.mp4");
         let before = std::fs::read(&output).unwrap();
-        let _upload = cap_recording::upload_resume::UploadLock::acquire(project.path()).unwrap();
+        let _upload = scoopy_recording::upload_resume::UploadLock::acquire(project.path()).unwrap();
         assert_eq!(
             prepare_instant_output(project.path().to_path_buf())
                 .await
@@ -872,7 +872,7 @@ mod tests {
         let output = project.path().join("content/output.mp4");
         std::fs::write(&output, b"broken media must remain available for repair").unwrap();
         let before = std::fs::read(&output).unwrap();
-        let _upload = cap_recording::upload_resume::UploadLock::acquire(project.path()).unwrap();
+        let _upload = scoopy_recording::upload_resume::UploadLock::acquire(project.path()).unwrap();
         let error = prepare_instant_output(project.path().to_path_buf())
             .await
             .unwrap_err();
@@ -904,7 +904,7 @@ mod tests {
                 }
             }
             let _upload =
-                cap_recording::upload_resume::UploadLock::acquire(project.path()).unwrap();
+                scoopy_recording::upload_resume::UploadLock::acquire(project.path()).unwrap();
             assert!(
                 prepare_instant_output(project.path().to_path_buf())
                     .await
@@ -923,7 +923,7 @@ mod tests {
                 assert_eq!(s.resolution_base, XY::new(1920, 1080));
                 assert!(matches!(
                     s.compression,
-                    cap_export::mp4::ExportCompression::Maximum
+                    scoopy_export::mp4::ExportCompression::Maximum
                 ));
                 assert!(!s.optimize_filesize);
             }
@@ -958,7 +958,7 @@ mod tests {
                 assert_eq!(s.resolution_base, XY::new(1280, 720));
                 assert!(matches!(
                     s.compression,
-                    cap_export::mp4::ExportCompression::Web
+                    scoopy_export::mp4::ExportCompression::Web
                 ));
             }
             _ => panic!("expected mp4 settings"),

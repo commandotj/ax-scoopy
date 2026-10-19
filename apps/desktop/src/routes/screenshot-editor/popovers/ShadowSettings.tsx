@@ -1,7 +1,7 @@
 import { Collapsible as KCollapsible } from "@kobalte/core/collapsible";
 import { cx } from "cva";
 import { createSignal } from "solid-js";
-import IconCapChevronDown from "~icons/cap/chevron-down";
+import IconScoopyChevronDown from "~icons/scoopy/chevron-down";
 import { Field, Slider } from "../ui";
 
 interface Props {
@@ -43,7 +43,7 @@ const ShadowSettings = (props: Props) => {
 				class="flex gap-1 items-center w-full font-medium text-left transition duration-200 text-gray-12 hover:text-gray-10"
 			>
 				<span class="text-sm">Advanced shadow settings</span>
-				<IconCapChevronDown
+				<IconScoopyChevronDown
 					class={cx(
 						"size-5",
 						isOpen() ? "transition-transform rotate-180" : "",

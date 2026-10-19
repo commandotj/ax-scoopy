@@ -12,7 +12,7 @@ pub fn prime_recording_start_sound() -> StartCue {
     recording_start_sound::prime(AppSound::StartRecording.bytes())
 }
 
-pub async fn play_recording_start_sound(cue: StartCue, gate: cap_recording::RecordingStartGate) {
+pub async fn play_recording_start_sound(cue: StartCue, gate: scoopy_recording::RecordingStartGate) {
     recording_start_sound::play(cue, gate).await;
 }
 

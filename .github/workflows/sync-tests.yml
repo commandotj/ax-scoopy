@@ -91,12 +91,12 @@ jobs:
         run: Add-Content -Path $env:GITHUB_PATH -Value "${{ github.workspace }}\\target\\ffmpeg\\bin"
 
       - name: RNNoise lifecycle regression tests
-        run: cargo test --locked -p cap-rnnoise --lib
+        run: cargo test --locked -p scoopy-rnnoise --lib
 
       - name: Recording metadata and harness regression tests
         shell: bash
         run: |
-          cargo test --locked -p cap-project --lib
+          cargo test --locked -p scoopy-project --lib
           python -B scripts/test-recording-reliability.py
 
       - name: Compile recording process supervisor (Windows)
@@ -142,24 +142,24 @@ jobs:
       - name: Timestamp pipeline unit + property tests
         shell: bash
         run: |
-          cargo test --locked -p cap-timestamp -p cap-enc-ffmpeg
-          cargo test --locked -p cap-camera-effects --lib
-          cargo test --locked -p cap-recording --lib -- --test-threads=1
+          cargo test --locked -p scoopy-timestamp -p scoopy-enc-ffmpeg
+          cargo test --locked -p scoopy-camera-effects --lib
+          cargo test --locked -p scoopy-recording --lib -- --test-threads=1
           # --nocapture so a WARP-adapter notch skip prints instead of
           # looking identical to a pass in the CI log. The decoder model
           # fuzzing runs in Engine verify (scripts/verify/suites.json); its
           # 2 s decode deadline is not meant for a loaded hosted runner.
-          cargo test --locked -p cap-rendering -- --nocapture --skip zoom_spring::tests::precompute_cost_is_bounded_for_long_projects --skip decoder::model::
-          cargo test --locked -p cap-rendering --lib zoom_spring::tests::precompute_cost_is_bounded_for_long_projects -- --exact --nocapture --test-threads=1
+          cargo test --locked -p scoopy-rendering -- --nocapture --skip zoom_spring::tests::precompute_cost_is_bounded_for_long_projects --skip decoder::model::
+          cargo test --locked -p scoopy-rendering --lib zoom_spring::tests::precompute_cost_is_bounded_for_long_projects -- --exact --nocapture --test-threads=1
 
       - name: Editor audio playback and export regressions
         shell: bash
         run: |
-          cargo test --locked -p cap-audio --lib
-          cargo test --locked -p cap-export --lib
-          cargo test --locked -p cap-editor --lib audio::tests::
-          cargo test --locked -p cap-editor --lib audio_output::tests::
-          cargo test --locked -p cap-editor --lib playback::tests::
+          cargo test --locked -p scoopy-audio --lib
+          cargo test --locked -p scoopy-export --lib
+          cargo test --locked -p scoopy-editor --lib audio::tests::
+          cargo test --locked -p scoopy-editor --lib audio_output::tests::
+          cargo test --locked -p scoopy-editor --lib playback::tests::
 
       # Real encoders + DASH muxer + remux/validation over full instant-mode
       # scenarios: pause/resume excision, stall-recovery bursts with
@@ -167,7 +167,7 @@ jobs:
       - name: Instant mode scenario harness
         shell: bash
         run: |
-          cargo test --locked -p cap-recording --test instant_mode_scenarios
+          cargo test --locked -p scoopy-recording --test instant_mode_scenarios
 
       # The hardware harnesses (real screen/mic recordings) only run on
       # developer machines, but they must keep compiling: nothing else
@@ -177,7 +177,7 @@ jobs:
       - name: Compile recording test harnesses
         shell: bash
         run: |
-          cargo check --locked -p cap-recording --tests
+          cargo check --locked -p scoopy-recording --tests
 
       # The AVFoundation encoder (studio camera/display on macOS) has its own
       # pts handling; its fps-matrix duration tests guard against re-timing
@@ -186,7 +186,7 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          cargo test --locked -p cap-enc-avfoundation
+          cargo test --locked -p scoopy-enc-avfoundation
 
       # Runs against the Scream endpoint installed above; the env var turns
       # a missing endpoint (driver install regression) into a hard failure
@@ -195,19 +195,19 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         env:
-          CAP_REQUIRE_AUDIO_ENDPOINT: "1"
+          SCOOPY_REQUIRE_AUDIO_ENDPOINT: "1"
         run: |
-          cargo test --locked -p cap-recording --test windows_loopback -- --nocapture
+          cargo test --locked -p scoopy-recording --test windows_loopback -- --nocapture
 
       - name: Synthetic device matrix
         id: matrix
         continue-on-error: true
         shell: bash
         env:
-          CAP_SYNC_MATRIX_REPORT: ${{ github.workspace }}/sync-matrix-${{ matrix.runner }}.json
-          CAP_SYNC_MATRIX_RANDOM_CASES: ${{ github.event_name == 'schedule' && '40' || '6' }}
+          SCOOPY_SYNC_MATRIX_REPORT: ${{ github.workspace }}/sync-matrix-${{ matrix.runner }}.json
+          SCOOPY_SYNC_MATRIX_RANDOM_CASES: ${{ github.event_name == 'schedule' && '40' || '6' }}
         run: |
-          cargo test --locked -p cap-recording --test sync_matrix -- --nocapture
+          cargo test --locked -p scoopy-recording --test sync_matrix -- --nocapture
 
       # Verifies the editor's playback machinery (decoders, frame scheduling,
       # audio pipeline) preserves sync. The fixture recording is generated
@@ -223,12 +223,12 @@ jobs:
       # regardless of decoder, so neither can sustain a wall-clock playback
       # measurement. The decoder logic under test (FFmpeg gap holds) is fully
       # exercised here; the macOS AVAssetReader path is covered by running
-      # `cap selftest playback` locally on real hardware.
+      # `scoopy selftest playback` locally on real hardware.
       - name: Editor playback sync harness
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          cargo run --locked -p cap -- --log-level info selftest playback --duration 30 --json
+          cargo run --locked -p scoopy -- --log-level info selftest playback --duration 30 --json
 
       - name: Report findings
         if: always()
@@ -242,7 +242,7 @@ jobs:
               PYTHONIOENCODING=utf-8 python3 - "$REPORT" << 'PYEOF'
           import json, sys
           report = json.load(open(sys.argv[1]))
-          print(f"Randomized seed: `{report.get('seed')}` (rerun with CAP_SYNC_MATRIX_SEED)")
+          print(f"Randomized seed: `{report.get('seed')}` (rerun with SCOOPY_SYNC_MATRIX_SEED)")
           print()
           print("| Case | Result | Detail |")
           print("| --- | --- | --- |")

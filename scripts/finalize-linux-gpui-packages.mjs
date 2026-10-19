@@ -34,7 +34,7 @@ export const webviewRpmRequirements = new Set([
 export const RPM_PAYLOAD = "w22T0.zstdio";
 
 // dpkg-deb only offers presets, whose largest dictionary is 64 MiB; 192 MiB
-// lets xz match cap-cli against the Cap binary it shares most of its code with.
+// lets xz match scoopy-cli against the Scoopy binary it shares most of its code with.
 export const DEB_DATA_XZ = ["--threads=1", "--lzma2=preset=9,dict=192MiB"];
 
 export function withoutWebviewDebDependencies(control) {
@@ -234,7 +234,7 @@ async function verifyDebGlibc(root, control, { env, run }) {
 		.find(Boolean)?.[1];
 	if (!minimum) {
 		throw new Error(
-			"The Cap deb must declare a versioned libc6 (>= version) dependency",
+			"The Scoopy deb must declare a versioned libc6 (>= version) dependency",
 		);
 	}
 	async function verifyDirectory(directory) {
@@ -308,12 +308,12 @@ export async function finalizeGpuiDeb(
 	if (!deb.endsWith(".deb")) throw new Error("Expected a .deb artifact");
 	requireSigningKey(unsigned, env);
 	const tools = withoutUpdaterSecrets(env);
-	const work = await mkdtemp(path.join(path.dirname(deb), ".cap-deb-"));
+	const work = await mkdtemp(path.join(path.dirname(deb), ".scoopy-deb-"));
 	try {
 		const root = path.join(work, "root");
 		await run("dpkg-deb", ["--raw-extract", deb, root], { env: tools });
 		const linked = await linkDuplicateLibraries(
-			path.join(root, "usr", "lib", "cap"),
+			path.join(root, "usr", "lib", "scoopy"),
 		);
 		const control = path.join(root, "DEBIAN", "control");
 		await verifyDebGlibc(root, await readFile(control, "utf8"), {
@@ -333,7 +333,7 @@ export async function finalizeGpuiDeb(
 				md5sums,
 				withoutLinkedFiles(
 					await readFile(md5sums, "utf8"),
-					linked.map((link) => `usr/lib/cap/${link.name}`),
+					linked.map((link) => `usr/lib/scoopy/${link.name}`),
 				),
 			);
 		}
@@ -414,7 +414,7 @@ export async function finalizeGpuiRpm(
 		),
 	);
 
-	const work = await mkdtemp(path.join(path.dirname(rpm), ".cap-rpm-"));
+	const work = await mkdtemp(path.join(path.dirname(rpm), ".scoopy-rpm-"));
 	try {
 		const staging = path.join(work, "staging");
 		const top = path.join(work, "rpmbuild");
@@ -432,8 +432,8 @@ export async function finalizeGpuiRpm(
 		await run("bsdtar", ["-xf", rpm, "-C", staging], { env: tools });
 		const linked = new Set(
 			(
-				await linkDuplicateLibraries(path.join(staging, "usr", "lib", "cap"))
-			).map((link) => `/usr/lib/cap/${link.name}`),
+				await linkDuplicateLibraries(path.join(staging, "usr", "lib", "scoopy"))
+			).map((link) => `/usr/lib/scoopy/${link.name}`),
 		);
 		for (const file of files) {
 			if (linked.has(file.name)) file.mode = 0o120777;
@@ -499,7 +499,7 @@ if (
 	const files = args.filter((arg) => arg !== "--unsigned");
 	if (process.platform !== "linux" || files.length === 0) {
 		throw new Error(
-			"Run on Linux: node scripts/finalize-linux-gpui-packages.mjs [--unsigned] <Cap.deb|Cap.rpm>...",
+			"Run on Linux: node scripts/finalize-linux-gpui-packages.mjs [--unsigned] <Scoopy.deb|Scoopy.rpm>...",
 		);
 	}
 	for (const file of files) {

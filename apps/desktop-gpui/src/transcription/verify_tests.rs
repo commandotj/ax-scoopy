@@ -1,4 +1,4 @@
-//! cap-verify oracles for caption generation, with a fake transcriber in
+//! scoopy-verify oracles for caption generation, with a fake transcriber in
 //! place of Whisper/Parakeet (no model download):
 //!
 //! - `fake_transcriber_*`: the real project audio extraction
@@ -28,7 +28,7 @@
 //!   joins the words with spaces, except before attaching punctuation; ids
 //!   are `segment-<n>`.
 
-use cap_verify::{
+use scoopy_verify::{
     audio_code::{self, AudioSource, MARKER_SECS},
     catalog,
     fixture::{self, AudioTrackSpec, FixtureSpec, Rng, SegmentSpec, Timing, VideoTrackSpec},
@@ -44,7 +44,7 @@ const MARKER_RATE: u32 = 16_000;
 
 fn finish(case: Case) {
     for note in &case.notes {
-        eprintln!("[cap-verify]   {}: {note}", case.id);
+        eprintln!("[scoopy-verify]   {}: {note}", case.id);
     }
     if let Err(message) = report::settle(case) {
         panic!("{message}");
@@ -442,7 +442,7 @@ fn fake_transcriber_single_segment_studio() {
     let spec = catalog::basic(report::tier());
     let source = fixture::ensure_fixture(&spec, fixture::write_fixture).expect("fixture");
     let dir = tempfile::tempdir().expect("temp dir");
-    let project = dir.path().join("single.cap");
+    let project = dir.path().join("single.scoopy");
     let segment_dir = project.join("content");
     std::fs::create_dir_all(&segment_dir).expect("mkdir");
     let meta = RecordingMeta::load_for_project(&source).expect("meta");
@@ -505,7 +505,7 @@ fn instant_project_is_refused() {
         return;
     }
     let dir = tempfile::tempdir().expect("temp dir");
-    let project = dir.path().join("instant.cap");
+    let project = dir.path().join("instant.scoopy");
     std::fs::create_dir_all(project.join("content")).expect("mkdir");
     let meta = serde_json::json!({
         "pretty_name": "instant",
@@ -519,7 +519,7 @@ fn instant_project_is_refused() {
     .expect("write meta");
     let mut case = Case::new(id);
     match RecordingMeta::load_for_project(&project) {
-        Ok(meta) if matches!(meta.inner, cap_project::RecordingMetaInner::Instant(_)) => {}
+        Ok(meta) if matches!(meta.inner, scoopy_project::RecordingMetaInner::Instant(_)) => {}
         other => case.problem(
             "error",
             format!("the Instant project did not load as one: {:?}", other.err()),

@@ -7,10 +7,10 @@ describe("Tauri platform release configuration", () => {
 		const existing = createLinuxBundleConfig(["libavcodec.so.61"]);
 
 		const merged = deepMerge(existing, {
-			bundle: { externalBin: ["binaries/cap-gpui"] },
+			bundle: { externalBin: ["binaries/scoopy-gpui"] },
 		});
 
-		expect(merged.bundle.externalBin).toEqual(["binaries/cap-gpui"]);
+		expect(merged.bundle.externalBin).toEqual(["binaries/scoopy-gpui"]);
 		for (const format of ["deb", "rpm", "appimage"]) {
 			expect(merged.bundle.linux[format]).toEqual(
 				existing.bundle.linux[format],
@@ -22,14 +22,14 @@ describe("Tauri platform release configuration", () => {
 		const merged = deepMerge(
 			{
 				bundle: {
-					externalBin: ["binaries/cap-cli", "binaries/cap-gpui"],
+					externalBin: ["binaries/scoopy-cli", "binaries/scoopy-gpui"],
 					resources: { "ffmpeg/*.dll": "./" },
 				},
 			},
 			{ bundle: { windows: { wix: { version: "0.6.0" } } } },
 		);
 
-		expect(merged.bundle.externalBin).toContain("binaries/cap-gpui");
+		expect(merged.bundle.externalBin).toContain("binaries/scoopy-gpui");
 		expect(merged.bundle.resources).toEqual({ "ffmpeg/*.dll": "./" });
 		expect(merged.bundle.windows.wix.version).toBe("0.6.0");
 	});

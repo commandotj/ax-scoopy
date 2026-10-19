@@ -70,7 +70,7 @@ impl EstimateRequest<'_> {
         match AssertUnwindSafe(future).catch_unwind().await {
             Ok(result) => result,
             Err(_) => {
-                tracing::error!(target: "cap_desktop_export", "Export estimate panicked");
+                tracing::error!(target: "scoopy_desktop_export", "Export estimate panicked");
                 Err("Export estimate failed unexpectedly".to_string())
             }
         }
@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn successful_request_returns_estimate_and_cleans_up() {
         let requests = EstimateRequests::default();
-        let request = requests.start("example.cap".into()).unwrap();
+        let request = requests.start("example.scoopy".into()).unwrap();
         let cancel = request.cancellation();
         let result = block_on(request.run(async { Ok(42) }));
         assert_eq!(result, Ok(42));
@@ -118,7 +118,7 @@ mod tests {
     #[test]
     fn ordinary_error_is_preserved_and_cleans_up() {
         let requests = EstimateRequests::default();
-        let request = requests.start("example.cap".into()).unwrap();
+        let request = requests.start("example.scoopy".into()).unwrap();
         let result = block_on(request.run(async { Err::<(), _>("Invalid resolution".into()) }));
         assert_eq!(result, Err("Invalid resolution".into()));
         assert!(requests.cancellations.lock().unwrap().is_empty());
@@ -127,7 +127,7 @@ mod tests {
     #[test]
     fn polling_panic_returns_safe_error_and_drops_sample_resources() {
         let requests = EstimateRequests::default();
-        let request = requests.start("example.cap".into()).unwrap();
+        let request = requests.start("example.scoopy".into()).unwrap();
         let cancel = request.cancellation();
         let dropped = Arc::new(AtomicBool::new(false));
         let signal = dropped.clone();
@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn dropping_pending_request_cancels_and_cleans_up() {
         let requests = EstimateRequests::default();
-        let request = requests.start("example.cap".into()).unwrap();
+        let request = requests.start("example.scoopy".into()).unwrap();
         let cancel = request.cancellation();
         let mut running = Box::pin(request.run(future::pending::<Result<(), String>>()));
         assert!(running.as_mut().now_or_never().is_none());
@@ -171,7 +171,7 @@ mod tests {
     #[test]
     fn superseded_request_cannot_remove_replacement() {
         let requests = EstimateRequests::default();
-        let path = PathBuf::from("example.cap");
+        let path = PathBuf::from("example.scoopy");
         let first = requests.start(path.clone()).unwrap();
         let first_cancel = first.cancellation();
         let second = requests.start(path.clone()).unwrap();
@@ -192,7 +192,7 @@ mod tests {
     #[test]
     fn panicking_request_cannot_remove_replacement() {
         let requests = EstimateRequests::default();
-        let path = PathBuf::from("example.cap");
+        let path = PathBuf::from("example.scoopy");
         let first = requests.start(path.clone()).unwrap();
         let second = requests.start(path.clone()).unwrap();
         let second_cancel = second.cancellation();
@@ -212,7 +212,7 @@ mod tests {
     #[test]
     fn dropping_unpolled_request_cleans_up_registration() {
         let requests = EstimateRequests::default();
-        let request = requests.start("example.cap".into()).unwrap();
+        let request = requests.start("example.scoopy".into()).unwrap();
         let cancel = request.cancellation();
         drop(request.run(future::pending::<Result<(), String>>()));
         assert!(cancel.load(Ordering::Acquire));
@@ -222,9 +222,9 @@ mod tests {
     #[test]
     fn cancellation_is_scoped_to_the_requested_project() {
         let requests = EstimateRequests::default();
-        let first = requests.start("first.cap".into()).unwrap();
-        let second = requests.start("second.cap".into()).unwrap();
-        requests.cancel(Path::new("first.cap"));
+        let first = requests.start("first.scoopy".into()).unwrap();
+        let second = requests.start("second.scoopy".into()).unwrap();
+        requests.cancel(Path::new("first.scoopy"));
         assert!(first.cancellation().load(Ordering::Acquire));
         assert!(!second.cancellation().load(Ordering::Acquire));
     }
@@ -232,7 +232,7 @@ mod tests {
     #[test]
     fn run_passes_the_registered_cancellation_to_the_estimate() {
         let requests = EstimateRequests::default();
-        let path = PathBuf::from("example.cap");
+        let path = PathBuf::from("example.scoopy");
         let result = block_on(requests.run(path.clone(), |cancel| {
             let requests = &requests;
             let path = path.clone();
@@ -251,7 +251,7 @@ mod tests {
         let requests = EstimateRequests::default();
         let observed = Arc::new(Mutex::new(None));
         let seen = observed.clone();
-        let result = block_on(requests.run("example.cap".into(), |cancel| {
+        let result = block_on(requests.run("example.scoopy".into(), |cancel| {
             *seen.lock().unwrap() = Some(cancel);
             future::poll_fn(|_| -> Poll<Result<(), String>> {
                 panic!("synthetic rendering failure")
@@ -267,7 +267,7 @@ mod tests {
     fn run_settles_a_panic_while_building_the_estimate() {
         let requests = EstimateRequests::default();
         let result = block_on(requests.run(
-            "example.cap".into(),
+            "example.scoopy".into(),
             |_| -> future::Ready<Result<(), String>> { panic!("synthetic setup failure") },
         ));
         assert_eq!(result, Err("Export estimate failed unexpectedly".into()));
@@ -277,12 +277,12 @@ mod tests {
     #[test]
     fn new_request_can_succeed_after_a_panic() {
         let requests = EstimateRequests::default();
-        let first = requests.start("example.cap".into()).unwrap();
+        let first = requests.start("example.scoopy".into()).unwrap();
         let result = block_on(first.run(future::poll_fn(|_| -> Poll<Result<(), String>> {
             panic!("synthetic failure")
         })));
         assert!(result.is_err());
-        let second = requests.start("example.cap".into()).unwrap();
+        let second = requests.start("example.scoopy".into()).unwrap();
         assert!(!second.cancellation().load(Ordering::Acquire));
         assert_eq!(block_on(second.run(async { Ok(42) })), Ok(42));
         assert!(requests.cancellations.lock().unwrap().is_empty());

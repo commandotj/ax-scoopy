@@ -22,7 +22,7 @@ DEFAULT_RECORDINGS_DIR = (
 	Path.home()
 	/ "Library"
 	/ "Application Support"
-	/ "so.cap.desktop.dev"
+	/ "me.systembug.scoopy.dev"
 	/ "recordings"
 )
 NUMERIC_COLUMNS = {
@@ -137,9 +137,9 @@ def parse_args():
 	parser.add_argument("--pause-seconds", type=float, default=0.0)
 	parser.add_argument("--resume-seconds", type=float, default=5.0)
 	parser.add_argument(
-		"--cap-binary",
+		"--scoopy-binary",
 		type=Path,
-		default=REPO_ROOT / "target" / "debug" / "cap",
+		default=REPO_ROOT / "target" / "debug" / "scoopy",
 	)
 	parser.add_argument(
 		"--recordings-dir",
@@ -177,13 +177,13 @@ def parse_args():
 def find_app_pid(explicit_pid):
 	if explicit_pid is not None:
 		if run(["kill", "-0", explicit_pid], check=False).returncode != 0:
-			raise RuntimeError(f"Cap process {explicit_pid} is not running")
+			raise RuntimeError(f"Scoopy process {explicit_pid} is not running")
 		return explicit_pid
-	result = run(["pgrep", "-x", "cap-desktop"], check=False)
+	result = run(["pgrep", "-x", "scoopy-desktop"], check=False)
 	pids = [int(value) for value in result.stdout.split() if value.isdigit()]
 	if not pids:
 		raise RuntimeError(
-			"cap-desktop is not running. Start the existing desktop build, then rerun the harness."
+			"scoopy-desktop is not running. Start the existing desktop build, then rerun the harness."
 		)
 	if len(pids) == 1:
 		return pids[0]
@@ -193,7 +193,7 @@ def find_app_pid(explicit_pid):
 		if elapsed.isdigit():
 			by_elapsed.append((int(elapsed), pid))
 	if not by_elapsed:
-		raise RuntimeError(f"Could not choose between cap-desktop processes: {pids}")
+		raise RuntimeError(f"Could not choose between scoopy-desktop processes: {pids}")
 	return min(by_elapsed)[1]
 
 
@@ -235,10 +235,10 @@ def compile_action_sender(artifacts_dir):
 	return binary
 
 
-def load_targets(cap_binary):
-	if not cap_binary.exists():
-		raise RuntimeError(f"Cap CLI not found at {cap_binary}")
-	result = run([cap_binary, "targets", "--json"], timeout=60)
+def load_targets(scoopy_binary):
+	if not scoopy_binary.exists():
+		raise RuntimeError(f"Scoopy CLI not found at {scoopy_binary}")
+	result = run([scoopy_binary, "targets", "--json"], timeout=60)
 	return json.loads(result.stdout)
 
 
@@ -298,7 +298,7 @@ def choose_targets(targets, args):
 def expected_preview_backend(recordings_dir):
 	store_path = recordings_dir.parent / "store"
 	if not store_path.exists():
-		raise RuntimeError(f"Cap settings store not found at {store_path}")
+		raise RuntimeError(f"Scoopy settings store not found at {store_path}")
 	store = json.loads(store_path.read_text())
 	settings = store.get("general_settings", {})
 	return (
@@ -316,7 +316,7 @@ def deep_link(action, app_pid, action_sender):
 		[
 			action_sender,
 			app_pid,
-			f"cap-desktop://action?{query}",
+			f"scoopy-desktop://action?{query}",
 		]
 	)
 
@@ -330,7 +330,7 @@ def visible_camera_windows(snapshot):
 	return [
 		window
 		for window in snapshot["windows"]
-		if window["name"] == "Cap Camera"
+		if window["name"] == "Scoopy Camera"
 		and window["on_screen"]
 		and window["bounds"].get("Width", 0) > 0
 		and window["bounds"].get("Height", 0) > 0
@@ -347,7 +347,7 @@ def wait_for_camera_window(app_pid, action_sender, timeout=8):
 		time.sleep(0.25)
 	names = [window["name"] for window in latest["windows"]] if latest else []
 	raise RuntimeError(
-		f"Cap Camera window is not on-screen for PID {app_pid}; windows={names}"
+		f"Scoopy Camera window is not on-screen for PID {app_pid}; windows={names}"
 	)
 
 
@@ -410,7 +410,7 @@ def project_snapshot(recordings_dir):
 		return {}
 	return {
 		str(project): project.stat().st_mtime_ns
-		for project in recordings_dir.glob("*.cap")
+		for project in recordings_dir.glob("*.scoopy")
 		if project.is_dir()
 	}
 
@@ -419,7 +419,7 @@ def wait_for_project(recordings_dir, before, started_ns, timeout=30):
 	deadline = time.monotonic() + timeout
 	while time.monotonic() < deadline:
 		candidates = []
-		for project in recordings_dir.glob("*.cap"):
+		for project in recordings_dir.glob("*.scoopy"):
 			if not project.is_dir():
 				continue
 			mtime = project.stat().st_mtime_ns
@@ -428,7 +428,7 @@ def wait_for_project(recordings_dir, before, started_ns, timeout=30):
 		if candidates:
 			return max(candidates)[1]
 		time.sleep(0.25)
-	raise RuntimeError("No new .cap project appeared after the Instant Mode start action")
+	raise RuntimeError("No new .scoopy project appeared after the Instant Mode start action")
 
 
 def process_executable(pid):
@@ -442,10 +442,10 @@ def process_executable(pid):
 	path_buffer = ctypes.create_string_buffer(4096)
 	path_length = libproc.proc_pidpath(pid, path_buffer, len(path_buffer))
 	if path_length <= 0:
-		raise RuntimeError(f"Could not resolve the cap-desktop executable for PID {pid}")
+		raise RuntimeError(f"Could not resolve the scoopy-desktop executable for PID {pid}")
 	executable = Path(path_buffer.value.decode())
 	if not executable.exists():
-		raise RuntimeError(f"Could not resolve the cap-desktop executable for PID {pid}")
+		raise RuntimeError(f"Could not resolve the scoopy-desktop executable for PID {pid}")
 	return executable
 
 
@@ -475,13 +475,13 @@ def associated_pids(app_pid):
 		None,
 	)
 	if app_block_index is None:
-		raise RuntimeError(f"Could not find cap-desktop PID {app_pid} in lsappinfo")
+		raise RuntimeError(f"Could not find scoopy-desktop PID {app_pid} in lsappinfo")
 	app_name_match = re.search(r'^\s*\d+\) "([^"]+)"', blocks[app_block_index])
 	if not app_name_match:
 		raise RuntimeError(f"Could not resolve the application name for PID {app_pid}")
 	app_name = app_name_match.group(1)
 	pids = [app_pid]
-	processes = [{"pid": app_pid, "role": "app", "command": "cap-desktop"}]
+	processes = [{"pid": app_pid, "role": "app", "command": "scoopy-desktop"}]
 	for block in blocks[app_block_index + 1 :]:
 		name_match = re.search(r'^\s*\d+\) "([^"]+)"', block)
 		if not name_match or not name_match.group(1).startswith(f"{app_name} "):
@@ -549,7 +549,7 @@ def nettop_snapshot(app_pid):
 	for row in csv.reader(result.stdout.splitlines()):
 		if len(row) < 5 or not row[0]:
 			continue
-		if row[0].startswith("cap-desktop."):
+		if row[0].startswith("scoopy-desktop."):
 			aggregate = {
 				"bytes_in": integer(row[3]),
 				"bytes_out": integer(row[4]),
@@ -1102,7 +1102,7 @@ def project_validation_errors(
 			)
 		for name, snapshot in camera_window_checks.items():
 			if not visible_camera_windows(snapshot):
-				errors.append(f"Cap Camera window was not on-screen at {name}")
+				errors.append(f"Scoopy Camera window was not on-screen at {name}")
 		if not camera_capture["selected"]:
 			errors.append("the selected camera was not locked into the Instant pipeline")
 		if not camera_capture["native_sender_attached"]:
@@ -1247,19 +1247,19 @@ def main():
 	timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 	safe_label = re.sub(r"[^A-Za-z0-9_.-]+", "-", args.label).strip("-")
 	artifacts_dir = args.artifacts_dir or Path(
-		f"/private/tmp/cap-instant-mode-{safe_label}-{timestamp}"
+		f"/private/tmp/scoopy-instant-mode-{safe_label}-{timestamp}"
 	)
 	artifacts_dir.mkdir(parents=True, exist_ok=False)
 	sampler_binary = compile_sampler(artifacts_dir)
 	action_sender = compile_action_sender(artifacts_dir)
 	app_pid = find_app_pid(args.app_pid)
 	app_executable = process_executable(app_pid)
-	expected_executable = (REPO_ROOT / "target" / "debug" / "cap-desktop").resolve()
+	expected_executable = (REPO_ROOT / "target" / "debug" / "scoopy-desktop").resolve()
 	if app_executable.resolve() != expected_executable:
 		raise RuntimeError(
 			f"PID {app_pid} is {app_executable}, expected the local app at {expected_executable}"
 		)
-	targets = choose_targets(load_targets(args.cap_binary), args)
+	targets = choose_targets(load_targets(args.scoopy_binary), args)
 	preview_backend = expected_preview_backend(args.recordings_dir)
 	expected_preview_format = (
 		"RGBA"
@@ -1300,7 +1300,7 @@ def main():
 		"resume_seconds": args.resume_seconds,
 		"app_pid": app_pid,
 		"app_executable": str(app_executable),
-		"cap_binary": str(args.cap_binary),
+		"scoopy_binary": str(args.scoopy_binary),
 		"recordings_dir": str(args.recordings_dir),
 		"expected_preview_backend": preview_backend,
 	}
@@ -1311,7 +1311,7 @@ def main():
 		"git_commit": run(["git", "rev-parse", "HEAD"]).stdout.strip(),
 		"git_status": run(["git", "status", "--porcelain"]).stdout.strip(),
 		"app_binary": executable_identity(app_executable),
-		"cap_binary": executable_identity(args.cap_binary),
+		"scoopy_binary": executable_identity(args.scoopy_binary),
 		"configuration": configuration,
 		"targets": targets,
 		"artifacts_dir": str(artifacts_dir),

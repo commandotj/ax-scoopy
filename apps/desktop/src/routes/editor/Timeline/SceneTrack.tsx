@@ -214,9 +214,9 @@ export function SceneTrack(props: {
 			<For
 				each={project.timeline?.sceneSegments}
 				fallback={
-					<div class="cap-empty-lane pointer-events-none">
+					<div class="scoopy-empty-lane pointer-events-none">
 						<span>Switch layouts between your screen and camera</span>
-						<span class="cap-empty-lane-action">· Add scene</span>
+						<span class="scoopy-empty-lane-action">· Add scene</span>
 					</div>
 				}
 			>
@@ -536,22 +536,22 @@ export function SceneTrack(props: {
 							>
 								<SegmentLabel
 									full={() => (
-										<div class="cap-seg-labels animate-in fade-in">
-											<span class="cap-seg-label">Scene</span>
-											<span class="cap-seg-sublabel truncate">
+										<div class="scoopy-seg-labels animate-in fade-in">
+											<span class="scoopy-seg-label">Scene</span>
+											<span class="scoopy-seg-sublabel truncate">
 												{getSceneLabel(segment.mode)}
 											</span>
 										</div>
 									)}
 									compact={() => (
-										<div class="cap-seg-labels">
-											<span class="cap-seg-label truncate">
+										<div class="scoopy-seg-labels">
+											<span class="scoopy-seg-label truncate">
 												{getSceneLabel(segment.mode)}
 											</span>
 										</div>
 									)}
 									glyph={() => (
-										<div class="cap-seg-label flex justify-center items-center">
+										<div class="scoopy-seg-label flex justify-center items-center">
 											{getSceneIcon(segment.mode)}
 										</div>
 									)}
@@ -633,7 +633,7 @@ export function SceneTrack(props: {
 						}}
 					>
 						<SegmentContent class="group justify-center">
-							<p class="cap-seg-label">+</p>
+							<p class="scoopy-seg-label">+</p>
 						</SegmentContent>
 					</SegmentRoot>
 				)}

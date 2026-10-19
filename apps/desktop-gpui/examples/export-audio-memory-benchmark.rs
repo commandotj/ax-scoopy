@@ -4,17 +4,17 @@ use std::{
     time::Instant,
 };
 
-use cap_export::{
+use scoopy_export::{
     ExporterBase,
     mp4::{ExportCompression, Mp4ExportSettings},
 };
-use cap_project::{ProjectConfiguration, XY};
+use scoopy_project::{ProjectConfiguration, XY};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let mut args = std::env::args_os().skip(1);
     let project_path = args.next().map(PathBuf::from).ok_or_else(|| {
-        anyhow::anyhow!("Usage: export-audio-memory-benchmark <copy.cap> <output.mp4> [--hold] [--prepare-only] [--studio-sound]")
+        anyhow::anyhow!("Usage: export-audio-memory-benchmark <copy.scoopy> <output.mp4> [--hold] [--prepare-only] [--studio-sound]")
     })?;
     let output_path = args
         .next()

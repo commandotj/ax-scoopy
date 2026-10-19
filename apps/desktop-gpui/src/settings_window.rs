@@ -36,13 +36,13 @@ use crate::{
 };
 
 /// `.inner_size(782.0, 775.0)` / `.min_inner_size(780.0, 560.0)` on the
-/// `ShowCapWindow::Settings` builder in `windows.rs`.
+/// `ShowScoopyWindow::Settings` builder in `windows.rs`.
 pub const SETTINGS_WIDTH: f32 = 782.;
 pub const SETTINGS_HEIGHT: f32 = 775.;
 pub const SETTINGS_MIN_WIDTH: f32 = 780.;
 pub const SETTINGS_MIN_HEIGHT: f32 = 560.;
 
-/// `CapWindowId::Settings::traffic_lights_position` -- `Some(Some(
+/// `ScoopyWindowId::Settings::traffic_lights_position` -- `Some(Some(
 /// LogicalPosition::new(22.0, 22.0)))`. Unlike the main window these are the
 /// *real* AppKit buttons, repositioned; `(window-chrome).tsx` returns `null`
 /// for its own header on the settings route, so there is nothing hand-drawn to
@@ -67,7 +67,7 @@ const SIDEBAR_WIDTH: f32 = 227.;
 const SIDEBAR_PADDING_X: f32 = 10.;
 /// `--macos-settings-content-padding-x: 16px`.
 const CONTENT_PADDING_X: f32 = 16.;
-/// `.cap-settings-window-spacer { height: calc(
+/// `.scoopy-settings-window-spacer { height: calc(
 ///  var(--macos-settings-window-header-height) -
 ///  var(--macos-settings-sidebar-wrapper-padding)) }` -- 52 - 8. The strip the
 /// repositioned traffic lights sit in.
@@ -128,9 +128,9 @@ impl Page {
         }
     }
 
-    /// The `icon` field. Cap's own icon set where the TSX uses `IconCap*`,
+    /// The `icon` field. Scoopy's own icon set where the TSX uses `IconCap*`,
     /// Lucide's where it uses `IconLucide*` -- except Screenshots, whose
-    /// `IconLucideImage` is served by the Cap picture glyph already embedded
+    /// `IconLucideImage` is served by the Scoopy picture glyph already embedded
     /// for the main window's screenshots button.
     fn icon(self) -> &'static str {
         match self {
@@ -504,7 +504,7 @@ impl SettingsWindow {
         let settings = GeneralSettings::load();
 
         // The Tauri app's close button and Cmd-W both go through the window's
-        // own close, and `CapWindowId::Settings`'s `Destroyed` arm calls
+        // own close, and `ScoopyWindowId::Settings`'s `Destroyed` arm calls
         // `restore_main_and_target_select_windows`. Same here: whichever way
         // the window goes away, the main window comes back.
         window.on_window_should_close(cx, |_window, cx| {
@@ -1464,7 +1464,7 @@ impl SettingsWindow {
             .flex_shrink_0()
             .bg(theme.settings_sidebar_bg())
             .child(
-                // `.cap-settings-window-spacer`, the strip the traffic lights
+                // `.scoopy-settings-window-spacer`, the strip the traffic lights
                 // sit in. `data-tauri-drag-region` on the sidebar makes it a
                 // drag handle; AppKit already drags the top ~28pt of a
                 // transparent titlebar, this covers the rest of the strip.
@@ -1496,7 +1496,7 @@ impl SettingsWindow {
             .id("settings-nav")
             .flex()
             .flex_col()
-            // `.cap-settings-nav { padding: 0 var(--sidebar-padding-x)
+            // `.scoopy-settings-nav { padding: 0 var(--sidebar-padding-x)
             //  var(--sidebar-padding-x); overflow-y: auto }`, `space-y-1`.
             .px(px(SIDEBAR_PADDING_X))
             .pb(px(SIDEBAR_PADDING_X))
@@ -1511,7 +1511,7 @@ impl SettingsWindow {
                     .flex()
                     .flex_row()
                     .items_center()
-                    // `.cap-settings-nav-item { height: 32px; padding: 6px;
+                    // `.scoopy-settings-nav-item { height: 32px; padding: 6px;
                     //  border-radius: 8px }`, `gap-1.5 text-[13px]`.
                     .h(px(30.))
                     .px(px(6.))
@@ -1591,7 +1591,7 @@ impl SettingsWindow {
                     .min_h_0()
                     .overflow_y_scroll()
                     .track_scroll(&self.page_scroll)
-                    // `.cap-settings-page > .px-6 { max-width: none; padding:
+                    // `.scoopy-settings-page > .px-6 { max-width: none; padding:
                     //  18px var(--macos-settings-content-padding-x) 28px }`,
                     //  and `space-y-7` between sections.
                     .pt(px(18.))
@@ -2236,7 +2236,7 @@ impl SettingsWindow {
             })
             .when_some(item.status.error().map(str::to_string), |this, error| {
                 this.child(
-                    // The badge is wrapped in a `<CapTooltip>` whose content is
+                    // The badge is wrapped in a `<ScoopyTooltip>` whose content is
                     // the error string.
                     pill(Hsla::from(theme.red_9))
                         .id("recording-failed")
@@ -2499,7 +2499,7 @@ impl SettingsWindow {
                         "System notifications",
                         Some(
                             "Show notifications for clipboard copies, saved files, and more. \
-                             You may need to allow Cap in your system's notification settings.",
+                             You may need to allow Scoopy in your system's notification settings.",
                         ),
                         self.toggle(
                             "enable-notifications",
@@ -2873,7 +2873,7 @@ impl SettingsWindow {
                     // next to the shortcuts it shapes. There is no
                     // post-capture overlay in this app, so a stored
                     // `showOverlay` means "reshow the main window"
-                    // (`app_windows.rs`) and is labelled "Show Cap".
+                    // (`app_windows.rs`) and is labelled "Show Scoopy".
                     self.setting_row(
                         "After deleting a recording",
                         Some("Whether the recording window should reopen."),
@@ -4067,16 +4067,16 @@ mod tests {
     #[test]
     fn server_url_is_normalised_to_its_origin() {
         assert_eq!(
-            origin_of("https://cap.example.com/dashboard?x=1"),
-            Some("https://cap.example.com".to_string())
+            origin_of("https://example.com/dashboard?x=1"),
+            Some("https://example.com".to_string())
         );
         assert_eq!(
             origin_of("http://localhost:3000"),
             Some("http://localhost:3000".to_string())
         );
         // `new URL()` throws on these, and the handler never runs.
-        assert_eq!(origin_of("cap.so"), None);
-        assert_eq!(origin_of("ftp://cap.so"), None);
+        assert_eq!(origin_of("example.com"), None);
+        assert_eq!(origin_of("ftp://example.com"), None);
         assert_eq!(origin_of(""), None);
     }
 
@@ -4085,21 +4085,21 @@ mod tests {
     #[test]
     fn default_exclusions_are_covered_by_title() {
         let default = WindowExclusion {
-            window_title: Some("Cap Camera".into()),
+            window_title: Some("Scoopy Camera".into()),
             ..Default::default()
         };
         assert!(covers_default_exclusion(&default, &default));
         assert!(covers_default_exclusion(
             &WindowExclusion {
-                owner_name: Some("Cap".into()),
-                window_title: Some("Cap Camera".into()),
+                owner_name: Some("Scoopy".into()),
+                window_title: Some("Scoopy Camera".into()),
                 ..Default::default()
             },
             &default
         ));
         assert!(!covers_default_exclusion(
             &WindowExclusion {
-                window_title: Some("Cap Settings".into()),
+                window_title: Some("Scoopy Settings".into()),
                 ..Default::default()
             },
             &default
@@ -4111,7 +4111,7 @@ mod tests {
     fn recording(name: &str, mode: RecordingMode) -> RecordingItem {
         RecordingItem {
             thumbnail_version: None,
-            path: std::path::PathBuf::from(format!("/tmp/{name}.cap")),
+            path: std::path::PathBuf::from(format!("/tmp/{name}.scoopy")),
             mode,
             status: crate::library::RecordingStatus::Complete,
             clip_count: 1,

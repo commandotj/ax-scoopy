@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { useMutation } from "@tanstack/solid-query";
 import { createResource, createSignal, Show, Suspense } from "solid-js";
 import { createSelectedOrganization } from "~/utils/organization-branding";
@@ -274,7 +274,7 @@ export default function GoogleDriveConfigPage() {
 		disconnect.isPending;
 
 	return (
-		<div class="cap-settings-page flex flex-col h-full custom-scroll">
+		<div class="scoopy-settings-page flex flex-col h-full custom-scroll">
 			<SettingsPageContent>
 				<IntegrationConfigHeader title="Google Drive" />
 				<Section
@@ -285,7 +285,7 @@ export default function GoogleDriveConfigPage() {
 						<Suspense
 							fallback={
 								<div class="flex justify-center items-center w-full h-screen">
-									<IconCapLogo class="animate-spin size-16" />
+									<IconScoopyLogo class="animate-spin size-16" />
 								</div>
 							}
 						>

@@ -1,7 +1,7 @@
 use super::{SegmentUploadState, lifecycle};
 use crate::{api, web_api::inherit_upload_context};
-use cap_recording::upload_preparation::Preparation;
-pub(crate) use cap_recording::upload_preparation::Segment;
+use scoopy_recording::upload_preparation::Preparation;
+pub(crate) use scoopy_recording::upload_preparation::Segment;
 use std::{
     sync::{Arc, Mutex},
     time::Duration,

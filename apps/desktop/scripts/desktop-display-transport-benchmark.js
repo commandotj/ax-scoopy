@@ -13,7 +13,7 @@ const DESKTOP_ROOT = path.resolve(
 );
 const REPO_ROOT = path.resolve(DESKTOP_ROOT, "../..");
 const DEFAULT_RECORDING =
-	"/tmp/cap-performance-fixtures/reference-recording.cap";
+	"/tmp/scoopy-performance-fixtures/reference-recording.scoopy";
 
 function parseArgs(argv) {
 	const options = {
@@ -245,7 +245,7 @@ snapshot();
 
 	writeFileSync(
 		path.join(tempDir, "dist/index.html"),
-		`<!doctype html><html><head><meta charset="utf-8"><title>Cap Display Benchmark</title><style>html,body{margin:0;background:#111;color:#eee;font:12px system-ui}canvas{width:960px;height:540px;display:block}</style></head><body><canvas id="canvas"></canvas><pre id="status"></pre><script type="module" src="./entry.mjs"></script></body></html>`,
+		`<!doctype html><html><head><meta charset="utf-8"><title>Scoopy Display Benchmark</title><style>html,body{margin:0;background:#111;color:#eee;font:12px system-ui}canvas{width:960px;height:540px;display:block}</style></head><body><canvas id="canvas"></canvas><pre id="status"></pre><script type="module" src="./entry.mjs"></script></body></html>`,
 	);
 
 	return path.join(tempDir, "dist/index.html");
@@ -255,7 +255,7 @@ function spawnRustBenchmark(options) {
 	const args = [
 		"run",
 		"-p",
-		"cap-desktop",
+		"scoopy-desktop",
 		"--example",
 		"desktop-display-transport-benchmark",
 		"--",
@@ -332,10 +332,10 @@ function spawnChrome(debuggingPort, tempDir) {
 			...(process.platform === "linux" && process.getuid?.() === 0
 				? ["--no-sandbox"]
 				: []),
-			...(process.env.CAP_DESKTOP_BENCHMARK_HEADLESS === "1"
+			...(process.env.SCOOPY_DESKTOP_BENCHMARK_HEADLESS === "1"
 				? ["--headless=new"]
 				: []),
-			...(process.env.CAP_DESKTOP_BENCHMARK_SOFTWARE_GPU === "1"
+			...(process.env.SCOOPY_DESKTOP_BENCHMARK_SOFTWARE_GPU === "1"
 				? ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"]
 				: []),
 			"about:blank",
@@ -516,7 +516,7 @@ function assertResult(result, options) {
 
 async function main() {
 	const options = parseArgs(process.argv.slice(2));
-	const tempDir = mkdtempSync(path.join(tmpdir(), "cap-display-transport-"));
+	const tempDir = mkdtempSync(path.join(tmpdir(), "scoopy-display-transport-"));
 	let chrome = null;
 	let rust = null;
 	let cdp = null;

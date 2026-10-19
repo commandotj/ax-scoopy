@@ -13,7 +13,7 @@ export default createHandler(() => (
 						innerHTML={`
 							(function() {
 								var theme = null;
-								try { theme = localStorage.getItem('cap-theme'); } catch (e) {}
+								try { theme = localStorage.getItem('scoopy-theme'); } catch (e) {}
 								var isDark = theme === 'dark' ||
 									(theme !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
 								if (isDark) document.documentElement.classList.add('dark');

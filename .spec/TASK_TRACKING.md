@@ -8,7 +8,7 @@
   - [x] Implement RFC 0005: Remove mobile, chrome-extension, status apps (RFC 0005)
   - [x] Implement RFC 0007: Remove CLI remote auth (RFC 0007)
 - [x] Implement RFC 0006: Replace app icon (RFC 0006)
-- [x] Implement RFC 0008: Rename Cap to Scoopy (RFC 0008)
+- [x] Implement RFC 0008: Rename Scoopy to Scoopy (RFC 0008)
 - [x] Implement RFC 0009: Remove remote packages (RFC 0009)
 
 

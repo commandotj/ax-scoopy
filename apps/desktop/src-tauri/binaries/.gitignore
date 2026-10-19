@@ -1,4 +1,4 @@
-cap-muxer-*
-cap-exporter-*
-cap-*
+scoopy-muxer-*
+scoopy-exporter-*
+scoopy-*
 !.gitignore

@@ -1,4 +1,4 @@
-use cap_recording::PipelineHealthEvent;
+use scoopy_recording::PipelineHealthEvent;
 use std::{
     sync::{
         Arc,
@@ -169,18 +169,18 @@ fn update_max(cell: &AtomicU64, candidate: u64) {
     }
 }
 
-pub fn mode_label(mode: cap_recording::RecordingMode) -> &'static str {
+pub fn mode_label(mode: scoopy_recording::RecordingMode) -> &'static str {
     match mode {
-        cap_recording::RecordingMode::Studio => "studio",
-        cap_recording::RecordingMode::Instant => "instant",
-        cap_recording::RecordingMode::Screenshot => "screenshot",
+        scoopy_recording::RecordingMode::Studio => "studio",
+        scoopy_recording::RecordingMode::Instant => "instant",
+        scoopy_recording::RecordingMode::Screenshot => "screenshot",
     }
 }
 
 pub fn target_kind_label(
-    target: &cap_recording::sources::screen_capture::ScreenCaptureTarget,
+    target: &scoopy_recording::sources::screen_capture::ScreenCaptureTarget,
 ) -> &'static str {
-    use cap_recording::sources::screen_capture::ScreenCaptureTarget;
+    use scoopy_recording::sources::screen_capture::ScreenCaptureTarget;
     match target {
         ScreenCaptureTarget::Display { .. } => "display",
         ScreenCaptureTarget::Window { .. } => "window",

@@ -1,4 +1,4 @@
-//! `cap selftest` — diagnostics that verify Cap works correctly on this
+//! `scoopy selftest` — diagnostics that verify Scoopy works correctly on this
 //! machine, starting with an end-to-end A/V sync test: record a known
 //! flash+beep pattern through the real capture pipeline, then measure the
 //! flash-to-beep offset in both the raw recording and an export of it.
@@ -15,7 +15,7 @@ use std::{
     time::Duration,
 };
 
-use cap_project::{RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
+use scoopy_project::{RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
 use clap::{Args, Subcommand, ValueEnum};
 use serde::Serialize;
 
@@ -295,7 +295,7 @@ enum LegFailure {
     Failed(String),
 }
 
-/// Removes a temp `.cap` directory when a leg leaves without handing it over.
+/// Removes a temp `.scoopy` directory when a leg leaves without handing it over.
 ///
 /// Only the pattern-failure path used to clean up after itself, so a failed
 /// `stop()`, remux or instant finalize left a full screen recording behind in
@@ -613,7 +613,7 @@ async fn run_studio_leg(
 ) -> Result<StudioLeg, LegFailure> {
     // Every early return below leaves the directory to the guard.
     let mut temp = TempProject::new(
-        std::env::temp_dir().join(format!("cap-selftest-{}.cap", uuid::Uuid::new_v4())),
+        std::env::temp_dir().join(format!("scoopy-selftest-{}.scoopy", uuid::Uuid::new_v4())),
     );
     let project_path = temp.path().to_path_buf();
 
@@ -624,7 +624,7 @@ async fn run_studio_leg(
     let mic_name =
         if args.mic || args.mic_name.is_some() {
             match args.mic_name.clone().or_else(|| {
-                cap_recording::MicrophoneFeed::default_device().map(|(label, _, _)| label)
+                scoopy_recording::MicrophoneFeed::default_device().map(|(label, _, _)| label)
             }) {
                 Some(label) => {
                     reporter.log(&format!("Including microphone: {label}"));
@@ -682,7 +682,7 @@ async fn run_studio_leg(
     {
         let project_path = project_path.clone();
         tokio::task::spawn_blocking(move || {
-            cap_recording::recovery::RecoveryManager::remux_if_needed(&project_path)
+            scoopy_recording::recovery::RecoveryManager::remux_if_needed(&project_path)
         })
         .await
         .map_err(|e| LegFailure::Failed(format!("remux task join error: {e}")))?
@@ -724,7 +724,7 @@ async fn run_instant_leg(
     // `instant::finalize` is the fragment mux and the most failure-prone step
     // in this leg; the guard is what keeps its directory from leaking.
     let mut temp = TempProject::new(
-        std::env::temp_dir().join(format!("cap-selftest-instant-{}.cap", uuid::Uuid::new_v4())),
+        std::env::temp_dir().join(format!("scoopy-selftest-instant-{}.scoopy", uuid::Uuid::new_v4())),
     );
     let project_path = temp.path().to_path_buf();
 
@@ -824,8 +824,8 @@ async fn start_recording(
     path: &Path,
     fps: Option<u32>,
     mic_name: Option<String>,
-) -> Result<cap_recording::studio_recording::ActorHandle, String> {
-    use cap_recording::{
+) -> Result<scoopy_recording::studio_recording::ActorHandle, String> {
+    use scoopy_recording::{
         MicrophoneFeed, feeds::microphone, screen_capture::ScreenCaptureTarget, studio_recording,
     };
     use kameo::Actor as _;
@@ -858,7 +858,7 @@ async fn start_recording(
     }
 
     let builder =
-        cap_recording::RecordingDefaults::default().apply_to_studio_builder(builder, false, fps);
+        scoopy_recording::RecordingDefaults::default().apply_to_studio_builder(builder, false, fps);
 
     #[cfg(target_os = "macos")]
     let shareable_content = cidre::sc::ShareableContent::current()
@@ -869,7 +869,7 @@ async fn start_recording(
                  Grant Scoopy screen recording access in System Settings and retry."
             )
         })
-        .map(cap_recording::SendableShareableContent::from)?;
+        .map(scoopy_recording::SendableShareableContent::from)?;
 
     builder
         .build(
@@ -1380,17 +1380,17 @@ mod tests {
         );
     }
 
-    /// The guard removes the temp `.cap` unless the leg hands it over, which is
+    /// The guard removes the temp `.scoopy` unless the leg hands it over, which is
     /// what keeps a failed `stop()`/remux/finalize from leaking a recording.
     #[test]
     fn the_temp_project_guard_cleans_up_unless_kept() {
         let dropped =
-            std::env::temp_dir().join(format!("cap-selftest-test-{}", uuid::Uuid::new_v4()));
+            std::env::temp_dir().join(format!("scoopy-selftest-test-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dropped).unwrap();
         drop(TempProject::new(dropped.clone()));
         assert!(!dropped.exists());
 
-        let kept = std::env::temp_dir().join(format!("cap-selftest-test-{}", uuid::Uuid::new_v4()));
+        let kept = std::env::temp_dir().join(format!("scoopy-selftest-test-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&kept).unwrap();
         TempProject::new(kept.clone()).keep();
         assert!(kept.exists());
@@ -1399,9 +1399,9 @@ mod tests {
         // A directory the recording actor reported after `stop()` is covered
         // too, and tracking the one already held does not double up.
         let created =
-            std::env::temp_dir().join(format!("cap-selftest-test-{}", uuid::Uuid::new_v4()));
+            std::env::temp_dir().join(format!("scoopy-selftest-test-{}", uuid::Uuid::new_v4()));
         let reported =
-            std::env::temp_dir().join(format!("cap-selftest-test-{}", uuid::Uuid::new_v4()));
+            std::env::temp_dir().join(format!("scoopy-selftest-test-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&created).unwrap();
         std::fs::create_dir_all(&reported).unwrap();
         let mut guard = TempProject::new(created.clone());

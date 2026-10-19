@@ -9,7 +9,7 @@ fn main() {
 mod windows {
     use std::{ops::Deref, time::Duration};
 
-    use cap_camera_windows::*;
+    use scoopy_camera_windows::*;
 
     pub fn main() {
         let devices = get_devices()

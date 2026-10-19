@@ -6,7 +6,7 @@ use std::time::Duration;
 use crate::{OutputFormat, write_json};
 
 /// Version of the machine-readable JSON contracts the CLI emits. Bump on breaking changes so an
-/// agent can detect drift via `cap version`/`cap doctor`.
+/// agent can detect drift via `scoopy version`/`scoopy doctor`.
 pub const SCHEMA_VERSION: u32 = 2;
 
 #[cfg(windows)]
@@ -14,7 +14,7 @@ const BINARY_SUFFIX: &str = ".exe";
 #[cfg(not(windows))]
 const BINARY_SUFFIX: &str = "";
 
-const BUNDLED_BINARIES: [&str; 3] = ["cap-cli", "cap-exporter", "cap-muxer"];
+const BUNDLED_BINARIES: [&str; 3] = ["scoopy-cli", "scoopy-exporter", "scoopy-muxer"];
 
 #[derive(Serialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -154,8 +154,8 @@ fn distribution(exe: &Path) -> Distribution {
         return Distribution::Development;
     }
 
-    let bundled = sibling_path(exe, "cap-exporter").is_some_and(|p| p.exists())
-        || sibling_path(exe, "cap-muxer").is_some_and(|p| p.exists());
+    let bundled = sibling_path(exe, "scoopy-exporter").is_some_and(|p| p.exists())
+        || sibling_path(exe, "scoopy-muxer").is_some_and(|p| p.exists());
 
     if bundled {
         Distribution::Bundled
@@ -424,18 +424,18 @@ async fn screen_capture_kit_check(permissions: &Permissions) -> Check {
     }
 }
 
-fn install_check(install: &Result<cap_cli_install::CliInstallStatus, String>) -> Check {
+fn install_check(install: &Result<scoopy_cli_install::CliInstallStatus, String>) -> Check {
     match install {
         Ok(status) if status.installed && status.on_path => Check {
             id: CheckId::CliInstall,
             status: CheckStatus::Ok,
-            message: format!("`cap` is installed at {} and on PATH", status.shim_path),
+            message: format!("`scoopy` is installed at {} and on PATH", status.shim_path),
         },
         Ok(status) if status.installed => Check {
             id: CheckId::CliInstall,
             status: CheckStatus::Warn,
             message: format!(
-                "`cap` is installed at {} but its directory is not on PATH. Run: {}",
+                "`scoopy` is installed at {} but its directory is not on PATH. Run: {}",
                 status.shim_path, status.shell_command
             ),
         },
@@ -445,7 +445,7 @@ fn install_check(install: &Result<cap_cli_install::CliInstallStatus, String>) ->
             message: status
                 .conflict
                 .clone()
-                .unwrap_or_else(|| "`cap` shim is not installed".to_string()),
+                .unwrap_or_else(|| "`scoopy` shim is not installed".to_string()),
         },
         Err(e) => Check {
             id: CheckId::CliInstall,
@@ -487,7 +487,7 @@ pub struct Doctor {
     pub version: VersionInfo,
     pub permissions: Permissions,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub install: Option<cap_cli_install::CliInstallStatus>,
+    pub install: Option<scoopy_cli_install::CliInstallStatus>,
     pub checks: Vec<Check>,
     /// Overall health: false when a required check (e.g. ffmpeg) failed.
     pub ok: bool,
@@ -532,7 +532,7 @@ fn distribution_label(distribution: Distribution) -> &'static str {
 pub async fn run_doctor(format: OutputFormat) -> Result<(), String> {
     let version = VersionInfo::collect();
     let permissions = permissions();
-    let install = cap_cli_install::status();
+    let install = scoopy_cli_install::status();
 
     let mut checks = vec![ffmpeg_check(), permission_check(&permissions)];
 
@@ -560,7 +560,7 @@ pub async fn run_doctor(format: OutputFormat) -> Result<(), String> {
         OutputFormat::Json => write_json(&doctor)?,
         OutputFormat::Text => {
             println!(
-                "cap {} ({})",
+                "scoopy {} ({})",
                 doctor.version.version,
                 distribution_label(doctor.version.distribution)
             );

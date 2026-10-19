@@ -3,7 +3,7 @@ use crate::{
     output_pipeline::{AudioFrame, AudioSource, PipelineHealthEvent, emit_health},
     sources::audio_mixer::AudioMixer,
 };
-use cap_media_info::{AudioInfo, ffmpeg_sample_format_for};
+use scoopy_media_info::{AudioInfo, ffmpeg_sample_format_for};
 use cpal::SampleFormat;
 use futures::{SinkExt, channel::mpsc};
 use kameo::error::SendError;
@@ -167,7 +167,7 @@ impl MicResampler {
         source_rate: u32,
         source_channels: u16,
         source_format: SampleFormat,
-        timestamp: cap_timestamp::Timestamp,
+        timestamp: scoopy_timestamp::Timestamp,
     ) -> Option<AudioFrame> {
         let ffmpeg_fmt = ffmpeg_sample_format_for(source_format)?;
         let source_info = AudioInfo::new_raw(ffmpeg_fmt, source_rate, source_channels);
@@ -388,7 +388,7 @@ impl AudioSource for Microphone {
                     let reconnect_in_flight = Arc::new(AtomicBool::new(false));
                     let mut reconnect_attempts: u32 = 0;
                     let mut next_reconnect_after = MIC_RECONNECT_AFTER;
-                    let mut last_timestamp: Option<cap_timestamp::Timestamp> = None;
+                    let mut last_timestamp: Option<scoopy_timestamp::Timestamp> = None;
                     let mut last_frame_duration = SILENCE_CHUNK_DURATION;
                     let mut logged_current_source: Option<(u32, u16, SampleFormat)> = None;
 
@@ -893,7 +893,7 @@ fn silence_frame_payload(frame: &mut ffmpeg::frame::Audio) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cap_media_info::{Sample, Type};
+    use scoopy_media_info::{Sample, Type};
 
     #[tokio::test]
     async fn ready_success_without_frames_retries_only_after_existing_backoff() {
@@ -1040,7 +1040,7 @@ mod tests {
             sample_format: Sample::F32(Type::Packed),
             sample_rate: 32000,
             channels: 2,
-            time_base: cap_media_info::FFRational(1, 1_000_000),
+            time_base: scoopy_media_info::FFRational(1, 1_000_000),
             buffer_size: 1024,
             is_wireless_transport: false,
         };
@@ -1079,7 +1079,7 @@ mod tests {
 
     #[test]
     fn upsampling_preserves_total_duration() {
-        use cap_timestamp::Timestamp;
+        use scoopy_timestamp::Timestamp;
         use std::time::Instant;
 
         let target = AudioInfo::new_raw(Sample::F32(Type::Packed), 48000, 1);
@@ -1115,7 +1115,7 @@ mod tests {
 
     #[test]
     fn downsampling_preserves_total_duration() {
-        use cap_timestamp::Timestamp;
+        use scoopy_timestamp::Timestamp;
         use std::time::Instant;
 
         let target = AudioInfo::new_raw(Sample::F32(Type::Packed), 48000, 1);
@@ -1150,7 +1150,7 @@ mod tests {
 
     #[test]
     fn resampler_accepts_more_than_eight_input_channels() {
-        use cap_timestamp::Timestamp;
+        use scoopy_timestamp::Timestamp;
         use std::time::Instant;
 
         let target = AudioInfo::new_raw(Sample::F32(Type::Packed), 48000, 1);
@@ -1179,7 +1179,7 @@ mod tests {
 
     #[test]
     fn resampler_downmixes_surround_channel_counts_without_dropping() {
-        use cap_timestamp::Timestamp;
+        use scoopy_timestamp::Timestamp;
         use std::time::Instant;
 
         let target = AudioInfo::new_raw(Sample::F32(Type::Packed), 48000, 1);
@@ -1227,7 +1227,7 @@ mod tests {
 
     #[test]
     fn muted_frames_keep_geometry_but_zero_payload() {
-        use cap_timestamp::Timestamp;
+        use scoopy_timestamp::Timestamp;
         use std::time::Instant;
 
         let target = AudioInfo::new_raw(Sample::F32(Type::Packed), 48000, 1);
@@ -1291,7 +1291,7 @@ mod tests {
         // them backward, so consecutive frames overlapped and the muxer dropped ~0.8s of
         // a 32k→48k mic up front → badly out of sync. Output frames must carry the input
         // capture timestamp unchanged so the muxer timeline stays monotonic.
-        use cap_timestamp::Timestamp;
+        use scoopy_timestamp::Timestamp;
         use std::time::{Duration, Instant};
 
         let target = AudioInfo::new_raw(Sample::F32(Type::Packed), 48000, 1);

@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { useNavigate } from "@solidjs/router";
 import { createResource, For, onMount } from "solid-js";
 import IconLucideDatabase from "~icons/lucide/database";
@@ -113,7 +113,7 @@ export default function AppsTab() {
 	};
 
 	return (
-		<div class="cap-settings-page flex flex-col h-full custom-scroll">
+		<div class="scoopy-settings-page flex flex-col h-full custom-scroll">
 			<SettingsPageContent>
 				<Section
 					title="Integrations"

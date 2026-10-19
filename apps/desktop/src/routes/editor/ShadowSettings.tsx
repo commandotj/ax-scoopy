@@ -42,7 +42,7 @@ const ShadowSettings = (props: Props) => {
 				class="flex gap-1 items-center w-full text-left transition-colors duration-200 outline-hidden text-ed-text-2 hover:text-ed-text-1"
 			>
 				<span class="text-[12px] font-medium">Advanced shadow settings</span>
-				<IconCapChevronDown
+				<IconScoopyChevronDown
 					class={cx(
 						"size-3.5 text-ed-text-3 transition-transform duration-200",
 						isOpen() && "rotate-180",

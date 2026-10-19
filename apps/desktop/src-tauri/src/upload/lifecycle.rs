@@ -396,14 +396,14 @@ impl Session {
 
     pub(crate) fn persist_local_complete(
         &self,
-        recording: cap_project::InstantRecordingMeta,
-        sharing: cap_project::SharingMeta,
+        recording: scoopy_project::InstantRecordingMeta,
+        sharing: scoopy_project::SharingMeta,
     ) -> Result<(), AuthedApiError> {
         let _ledger = self.ledger.lock().unwrap_or_else(PoisonError::into_inner);
         self.check()?;
         let mut meta =
             RecordingMeta::load_for_project(&self.directory).map_err(|error| error.to_string())?;
-        meta.inner = cap_project::RecordingMetaInner::Instant(recording);
+        meta.inner = scoopy_project::RecordingMetaInner::Instant(recording);
         meta.sharing = Some(sharing);
         meta.save_for_project().map_err(|error| error.to_string())?;
         Ok(())
@@ -557,8 +557,8 @@ impl Session {
             RecordingMeta::load_for_project(&self.directory).map_err(|error| error.to_string())?;
         if !matches!(
             meta.inner,
-            cap_project::RecordingMetaInner::Instant(
-                cap_project::InstantRecordingMeta::Complete { .. }
+            scoopy_project::RecordingMetaInner::Instant(
+                scoopy_project::InstantRecordingMeta::Complete { .. }
             )
         ) || upload_video_id(&meta.upload).is_some_and(|id| id != self.video_id)
             || meta
@@ -605,7 +605,7 @@ fn verify_local_artifact(
     directory: &Path,
     verification: &UploadVerification,
 ) -> Result<(), AuthedApiError> {
-    use cap_recording::upload_verification::UploadArtifact;
+    use scoopy_recording::upload_verification::UploadArtifact;
     match &verification.artifact {
         UploadArtifact::Segments { manifest_sha256 } => {
             let events = resume::collect_segment_events(directory, verification.required_audio)?;
@@ -649,9 +649,9 @@ fn verify_local_artifact(
 }
 
 fn manifest_from_events(
-    events: &[cap_enc_ffmpeg::segmented_stream::SegmentCompletedEvent],
+    events: &[scoopy_enc_ffmpeg::segmented_stream::SegmentCompletedEvent],
 ) -> SegmentUploadManifest {
-    use cap_enc_ffmpeg::segmented_stream::SegmentMediaType;
+    use scoopy_enc_ffmpeg::segmented_stream::SegmentMediaType;
     let mut state = SegmentUploadState::new();
     for event in events {
         match (event.is_init, event.media_type) {
@@ -787,14 +787,14 @@ pub(crate) async fn resume_existing(
                     file_path,
                     screenshot_path,
                     meta.sharing.is_some()
-                        && matches!(meta.inner, cap_project::RecordingMetaInner::Studio(_)),
+                        && matches!(meta.inner, scoopy_project::RecordingMetaInner::Studio(_)),
                     None,
                 )
                 .await?;
                 if uploaded.id != video_id {
                     return Err("Server upload identity changed".into());
                 }
-                if matches!(meta.inner, cap_project::RecordingMetaInner::Instant(_)) {
+                if matches!(meta.inner, scoopy_project::RecordingMetaInner::Instant(_)) {
                     let verification = UploadVerification::mp4(file_size, duration, required_audio, uploaded.object_identity.ok_or("Server did not return the uploaded object identity; local recording retained")?)?;
                     await_upload_verification(&app, &video_id, &verification, &worker).await?;
                 } else {
@@ -805,7 +805,7 @@ pub(crate) async fn resume_existing(
                     }
                     worker.check()?;
                     current.upload = Some(UploadMeta::Complete);
-                    current.sharing = Some(cap_project::SharingMeta {
+                    current.sharing = Some(scoopy_project::SharingMeta {
                         id: uploaded.id,
                         link: uploaded.link,
                         content_hash: None,
@@ -884,7 +884,7 @@ fn verify_file_path(stored: &Path, expected: &Path) -> Result<(), AuthedApiError
 }
 
 fn pending_reupload(meta: &RecordingMeta, intent: &Intent) -> Result<UploadMeta, AuthedApiError> {
-    use cap_recording::upload_verification::UploadArtifact;
+    use scoopy_recording::upload_verification::UploadArtifact;
     let sharing = meta
         .sharing
         .as_ref()
@@ -958,8 +958,8 @@ pub(crate) fn reconcile_reupload(meta: &mut RecordingMeta) -> Result<(), AuthedA
     if !matches!(meta.upload, Some(UploadMeta::Complete))
         || !matches!(
             meta.inner,
-            cap_project::RecordingMetaInner::Instant(
-                cap_project::InstantRecordingMeta::Complete { .. }
+            scoopy_project::RecordingMetaInner::Instant(
+                scoopy_project::InstantRecordingMeta::Complete { .. }
             )
         )
     {
@@ -1006,8 +1006,8 @@ pub(crate) async fn retry_existing(
     let mut meta = RecordingMeta::load_for_project(directory).map_err(|error| error.to_string())?;
     if !matches!(
         meta.inner,
-        cap_project::RecordingMetaInner::Instant(
-            cap_project::InstantRecordingMeta::Complete { .. }
+        scoopy_project::RecordingMetaInner::Instant(
+            scoopy_project::InstantRecordingMeta::Complete { .. }
         )
     ) {
         return Err("Recording must finish locally before retry".into());
@@ -1262,8 +1262,8 @@ mod tests {
             project_path: directory.path().to_path_buf(),
             pretty_name: "retained".into(),
             sharing: None,
-            inner: cap_project::RecordingMetaInner::Instant(
-                cap_project::InstantRecordingMeta::InProgress { recording: true },
+            inner: scoopy_project::RecordingMetaInner::Instant(
+                scoopy_project::InstantRecordingMeta::InProgress { recording: true },
             ),
             upload: None,
         }
@@ -1323,7 +1323,7 @@ mod tests {
         session.record_failure(&AuthedApiError::Timeout);
         assert!(matches!(
             UploadLock::acquire(directory.path()),
-            Err(cap_recording::upload_resume::UploadLockError::Busy)
+            Err(scoopy_recording::upload_resume::UploadLockError::Busy)
         ));
         drop(session);
         let lock = UploadLock::acquire(directory.path()).unwrap();
@@ -1430,7 +1430,7 @@ mod tests {
         assert!(futures::poll!(joined.as_mut()).is_pending());
         assert!(matches!(
             UploadLock::acquire(directory.path()),
-            Err(cap_recording::upload_resume::UploadLockError::Busy)
+            Err(scoopy_recording::upload_resume::UploadLockError::Busy)
         ));
         release.send(()).unwrap();
         joined.await;
@@ -1485,11 +1485,11 @@ mod tests {
         barrier.wait();
         session
             .persist_local_complete(
-                cap_project::InstantRecordingMeta::Complete {
+                scoopy_project::InstantRecordingMeta::Complete {
                     fps: 30,
                     sample_rate: Some(48000),
                 },
-                cap_project::SharingMeta {
+                scoopy_project::SharingMeta {
                     id: "owned-video".into(),
                     link: "https://example.invalid/s/owned-video".into(),
                     content_hash: None,
@@ -1500,8 +1500,8 @@ mod tests {
         let meta = RecordingMeta::load_for_project(directory.path()).unwrap();
         assert!(matches!(
             meta.inner,
-            cap_project::RecordingMetaInner::Instant(
-                cap_project::InstantRecordingMeta::Complete { .. }
+            scoopy_project::RecordingMetaInner::Instant(
+                scoopy_project::InstantRecordingMeta::Complete { .. }
             )
         ));
         assert_eq!(upload_video_id(&meta.upload), Some("owned-video"));
@@ -1581,7 +1581,7 @@ mod tests {
         assert!(!closed.load(Ordering::Acquire));
         assert!(matches!(
             UploadLock::acquire(directory.path()),
-            Err(cap_recording::upload_resume::UploadLockError::Busy)
+            Err(scoopy_recording::upload_resume::UploadLockError::Busy)
         ));
         release.send(()).unwrap();
         assert!(
@@ -1640,11 +1640,11 @@ mod tests {
     ) -> (RecordingMeta, Intent) {
         session
             .persist_local_complete(
-                cap_project::InstantRecordingMeta::Complete {
+                scoopy_project::InstantRecordingMeta::Complete {
                     fps: 30,
                     sample_rate: Some(48000),
                 },
-                cap_project::SharingMeta {
+                scoopy_project::SharingMeta {
                     id: "owned-video".into(),
                     link: "https://example.invalid/s/owned-video".into(),
                     content_hash: None,

@@ -13,7 +13,7 @@ use std::{
     sync::Arc,
 };
 
-use cap_recording::sources::screen_capture::ScreenCaptureTarget;
+use scoopy_recording::sources::screen_capture::ScreenCaptureTarget;
 use gpui::{
     App, AppContext as _, Bounds, Entity, Global, Pixels, Size, WindowBounds, WindowHandle,
     WindowKind, WindowOptions, point, px, size,
@@ -228,14 +228,14 @@ pub struct AppWindows {
     /// One target-select overlay per display, keyed by display so a mode
     /// switch can keep the ones it still wants.
     pub overlays: Vec<(DisplayId, WindowHandle<OverlayWindow>)>,
-    /// One editor per `.cap` path, reused on re-open -- the gpui spelling of
+    /// One editor per `.scoopy` path, reused on re-open -- the gpui spelling of
     /// `EditorWindowIds { ids: Arc<Mutex<Vec<(PathBuf, u32)>>> }`
     /// (`windows.rs:3656-3659`). The Tauri app keys its label off an
     /// incrementing id; the path is the identity in both.
     pub editors: Vec<(PathBuf, WindowHandle<EditorWindow>)>,
     deleting_editors: HashSet<PathBuf>,
     preparing_cleanup: crate::editor_preparing::PreparingCleanupRegistry,
-    /// One screenshot editor per `.cap` bundle -- the gpui spelling of
+    /// One screenshot editor per `.scoopy` bundle -- the gpui spelling of
     /// `ScreenshotEditorWindowIds`, keyed by the bundle directory.
     pub screenshot_editors: Vec<(PathBuf, WindowHandle<ScreenshotEditorWindow>)>,
     /// `hasHiddenMainWindowForPicker` (`new-main/index.tsx:2016-2059`): the
@@ -592,7 +592,7 @@ pub fn init(main: WindowHandle<MainWindow>, session: Entity<RecordingSession>, c
                 // default): a cleanly-stopped studio recording goes straight
                 // to the editor, main window staying hidden --
                 // `editor_closed` brings it back once the last editor goes
-                // away. `doNothing` leaves it in the library with Cap out of
+                // away. `doNothing` leaves it in the library with Scoopy out of
                 // the way. Every other path (instant, failures, `showOverlay`
                 // until an overlay exists) reshows the main window as before.
                 let behaviour =
@@ -762,7 +762,7 @@ pub fn broadcast_theme(cx: &mut App) {
 /// `place_overlay_panel` rule).
 ///
 /// Public because the tray's "Open Main Window" is exactly this
-/// (`ShowCapWindow::Main { init_target_mode: None }`).
+/// (`ShowScoopyWindow::Main { init_target_mode: None }`).
 pub fn show_main_window(cx: &mut App) {
     #[cfg(target_os = "linux")]
     {
@@ -872,7 +872,7 @@ pub(crate) fn show_main_window_after_capture_pause(cx: &mut App) {
             })
             .ok();
         });
-        // `ShowCapWindow::show` ends with `sync_macos_dock_visibility` for
+        // `ShowScoopyWindow::show` ends with `sync_macos_dock_visibility` for
         // every window that `activates_dock()`, and Main is one. Scheduled
         // *after* the window is on screen, or the policy would be computed
         // from a still-hidden window. An Accessory app also has no menu bar,
@@ -1134,7 +1134,7 @@ pub fn open_settings(page: Page, cx: &mut App) {
         return;
     }
     if let Some(handle) = cx.global::<AppWindows>().settings {
-        // `ShowCapWindow::show` reuses a live window: show, focus, and let
+        // `ShowScoopyWindow::show` reuses a live window: show, focus, and let
         // the page argument re-target it.
         let native = handle
             .update(cx, |view, window, cx| {
@@ -1166,7 +1166,7 @@ pub fn open_settings(page: Page, cx: &mut App) {
             window_bounds: Some(WindowBounds::Windowed(bounds)),
             display_id,
             // A real titlebar this time, transparent with the buttons moved
-            // to (22, 22): `CapWindowId::Settings::traffic_lights_position` is
+            // to (22, 22): `ScoopyWindowId::Settings::traffic_lights_position` is
             // `Some(Some(...))`, which is what keeps the native lights and
             // repositions them. (The main window returns `None` there and
             // hand-draws its own.)
@@ -1280,7 +1280,7 @@ pub fn close_settings(cx: &mut App) {
     restore_after_settings(cx);
 }
 
-/// The settings window is going away on its own. `CapWindowId::Settings`'s
+/// The settings window is going away on its own. `ScoopyWindowId::Settings`'s
 /// `Destroyed` arm calls `restore_main_and_target_select_windows`, so the main
 /// window comes back -- otherwise closing settings from the gear flow would
 /// leave the app with no visible window at all.
@@ -1437,7 +1437,7 @@ fn restore_after_settings(cx: &mut App) {
 
 /// Open the 580x340 mode picker, and hide the main window.
 ///
-/// `ShowCapWindow::ModeSelect` hides Main first (`windows.rs:2083-2085`) and
+/// `ShowScoopyWindow::ModeSelect` hides Main first (`windows.rs:2083-2085`) and
 /// its `Destroyed` arm brings it back, exactly like Settings. Returns false if
 /// the window could not be opened, which is the main window's cue to fall back
 /// to its in-body mode-info panel.
@@ -1553,7 +1553,7 @@ pub fn mode_select_closed(cx: &mut App) {
 }
 
 /// Click a mode card in the open mode select window (harness path for
-/// `CAP_GPUI_AUTO_MODE_SELECT=<mode>`; synthetic clicks are dropped).
+/// `SCOOPY_GPUI_AUTO_MODE_SELECT=<mode>`; synthetic clicks are dropped).
 pub fn choose_mode_in_mode_select(mode: Mode, cx: &mut App) {
     let Some(handle) = cx.global::<AppWindows>().mode_select else {
         return;
@@ -1726,7 +1726,7 @@ pub fn open_teleprompter(cx: &mut App) {
 }
 
 /// Type into the open teleprompter (harness path for
-/// `CAP_GPUI_AUTO_TELEPROMPTER=<script>`; synthetic key events are dropped
+/// `SCOOPY_GPUI_AUTO_TELEPROMPTER=<script>`; synthetic key events are dropped
 /// without Accessibility, and this drives the same `edit_script` the key
 /// handler does, debounced write included).
 pub fn type_into_teleprompter(text: String, cx: &mut App) {
@@ -1742,7 +1742,7 @@ pub fn type_into_teleprompter(text: String, cx: &mut App) {
 }
 
 /// Drive the teleprompter's play button (harness path for
-/// `CAP_GPUI_AUTO_PLAY=1`). Only meaningful once the window has painted --
+/// `SCOOPY_GPUI_AUTO_PLAY=1`). Only meaningful once the window has painted --
 /// the scrollable height does not exist before that.
 pub fn play_teleprompter(cx: &mut App) {
     let Some(handle) = cx.global::<AppWindows>().teleprompter else {
@@ -2515,13 +2515,13 @@ fn close_overlay_windows(cx: &mut App) {
 // Window recording on macOS is *display* capture cropped to the target
 // window's bounds, with `excluded_windows` removed from the `SCContentFilter`:
 // anything overlapping the recorded window is in the frame unless it is
-// excluded by id or content-protected. The Tauri app keeps Cap's own windows
+// excluded by id or content-protected. The Tauri app keeps Scoopy's own windows
 // out with two mechanisms, ported below -- ids into the filter
 // (`window_exclusion::append_matching_webview_window_ids`) and
 // `NSWindowSharingType.None` on the windows themselves
 // (`windows::apply_content_protection`).
 
-/// `CapWindowId::title()` (`src-tauri/src/windows.rs:1030-1046`) for the
+/// `ScoopyWindowId::title()` (`src-tauri/src/windows.rs:1030-1046`) for the
 /// windows this app owns.
 ///
 /// The exclusion rules the user edits in Settings match on *window titles*, and
@@ -2529,7 +2529,7 @@ fn close_overlay_windows(cx: &mut App) {
 /// title at all -- so a `CGWindowList` walk (`resolve_excluded_window_ids`)
 /// cannot see one of our windows by name, and the rules could never match them.
 /// The Tauri app has the same gap and closes it the same way: it never asks the
-/// window list about its own windows, it asks `CapWindowId::title()` and takes
+/// window list about its own windows, it asks `ScoopyWindowId::title()` and takes
 /// the `NSWindow.windowNumber()` directly (`window_exclusion.rs:120-193`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OwnWindow {
@@ -2546,7 +2546,7 @@ pub enum OwnWindow {
 }
 
 impl OwnWindow {
-    /// Every kind [`own_windows`] can produce. `CapWindowId`'s other variants
+    /// Every kind [`own_windows`] can produce. `ScoopyWindowId`'s other variants
     /// (`WindowCaptureOccluder`, `CaptureArea`, `RecordingsOverlay`, `Upgrade`,
     /// `Debug`) have no counterpart in this app; their default rules are still
     /// honoured for *other* processes by `resolve_excluded_window_ids`.
@@ -2746,11 +2746,11 @@ fn append_own_excluded_window_ids(
             continue;
         }
         let Some(number) = window.number else {
-            tracing::warn!(title, "excluded Cap window has no native window id");
+            tracing::warn!(title, "excluded Scoopy window has no native window id");
             continue;
         };
         let Ok(id) = number.to_string().parse::<scap_targets::WindowId>() else {
-            tracing::warn!(title, number, "excluded Cap window has no usable window id");
+            tracing::warn!(title, number, "excluded Scoopy window has no usable window id");
             continue;
         };
         // `Window::from_id(&native_id).is_none()` (`:144-166`): a window that is
@@ -2763,18 +2763,18 @@ fn append_own_excluded_window_ids(
                 tracing::warn!(
                     title,
                     number,
-                    "excluded Cap window is not visible to CGWindowList"
+                    "excluded Scoopy window is not visible to CGWindowList"
                 );
             } else {
-                tracing::debug!(title, number, "skipping a hidden excluded Cap window");
+                tracing::debug!(title, number, "skipping a hidden excluded Scoopy window");
             }
             continue;
         }
         if excluded.contains(&id) {
-            tracing::debug!(title, number, "excluded Cap window id already resolved");
+            tracing::debug!(title, number, "excluded Scoopy window id already resolved");
             continue;
         }
-        tracing::info!(title, number, "excluding a Cap window from the capture");
+        tracing::info!(title, number, "excluding a Scoopy window from the capture");
         excluded.push(id);
     }
 }
@@ -2852,7 +2852,7 @@ fn clean_capture_supported(
 fn linux_capture_bounds(
     target: &ScreenCaptureTarget,
 ) -> anyhow::Result<camera_window::LinuxCameraPhysicalRect> {
-    let (display, crop) = cap_recording::target_to_display_and_crop(target)?;
+    let (display, crop) = scoopy_recording::target_to_display_and_crop(target)?;
     let position = display
         .raw_handle()
         .physical_position()
@@ -2869,7 +2869,7 @@ fn linux_capture_bounds(
     let size = display
         .physical_size()
         .ok_or_else(|| anyhow::anyhow!("Capture display size is unavailable"))?;
-    let (x, y, width, height) = cap_recording::sources::screen_capture::x11_capture_rect(
+    let (x, y, width, height) = scoopy_recording::sources::screen_capture::x11_capture_rect(
         position.x(),
         position.y(),
         size.width(),
@@ -2924,9 +2924,9 @@ fn linux_window_capture_bounds(
 fn linux_camera_presentation(
     snapshot: camera_window::LinuxCameraRecordingSnapshot,
     capture: camera_window::LinuxCameraPhysicalRect,
-) -> anyhow::Result<cap_recording::instant_recording::LinuxCameraPresentation> {
+) -> anyhow::Result<scoopy_recording::instant_recording::LinuxCameraPresentation> {
     use crate::store::{BlurMode, CameraShape};
-    use cap_recording::instant_recording::{
+    use scoopy_recording::instant_recording::{
         LinuxCameraEffect, LinuxCameraPresentation, LinuxCameraRect, LinuxCameraShape,
     };
 
@@ -2981,7 +2981,7 @@ pub(crate) fn refresh_linux_instant_camera(
     cx: &mut App,
 ) -> anyhow::Result<()> {
     use crate::{feeds::Feeds, recording::LinuxInstantCameraRequest, store::BlurMode};
-    use cap_recording::instant_recording::{LinuxCameraBlur, LinuxCameraProcessing};
+    use scoopy_recording::instant_recording::{LinuxCameraBlur, LinuxCameraProcessing};
 
     config.linux_instant_camera = None;
     if config.mode != RecordingMode::Instant
@@ -2991,7 +2991,7 @@ pub(crate) fn refresh_linux_instant_camera(
         return Ok(());
     }
     anyhow::ensure!(
-        !cap_recording::screenshot::uses_wayland_portal(),
+        !scoopy_recording::screenshot::uses_wayland_portal(),
         "Instant camera overlays require an X11 desktop on Linux"
     );
     let camera = cx.global::<AppWindows>().camera.ok_or_else(|| {
@@ -3166,7 +3166,7 @@ fn prepare_clean_capture(config: StartConfig, cx: &mut App) -> anyhow::Result<()
         anyhow::bail!("Close the previous recording controls before starting a clean capture.");
     }
     let main = cx.global::<AppWindows>().main;
-    let wayland = cap_recording::screenshot::uses_wayland_portal();
+    let wayland = scoopy_recording::screenshot::uses_wayland_portal();
     let main_was_visible = main.update(cx, |_, window, _| {
         if wayland {
             window.retained_visibility().ok_or_else(|| {
@@ -3300,7 +3300,7 @@ fn hide_retained_capture_windows(cx: &mut App) -> anyhow::Result<CleanVisibility
         let was_visible = handle
             .update(cx, |_, window, _| window.retained_visibility())?
             .ok_or_else(|| {
-                anyhow::anyhow!("A Cap window cannot acknowledge clean capture visibility")
+                anyhow::anyhow!("A Scoopy window cannot acknowledge clean capture visibility")
             })?;
         visible.push((handle, was_visible));
     }
@@ -3328,7 +3328,7 @@ fn hide_retained_capture_windows(cx: &mut App) -> anyhow::Result<CleanVisibility
                 let (_, visible) = receipt.await??;
                 anyhow::ensure!(
                     !visible,
-                    "The compositor did not acknowledge hiding a Cap window"
+                    "The compositor did not acknowledge hiding a Scoopy window"
                 );
             }
             Ok::<_, anyhow::Error>(())
@@ -3650,7 +3650,7 @@ pub fn begin_recording(mut config: StartConfig, cx: &mut App) {
             }
             return;
         }
-        let wayland = cap_recording::screenshot::uses_wayland_portal();
+        let wayland = scoopy_recording::screenshot::uses_wayland_portal();
         if clean_capture_supported(
             config.mode,
             &config.target,
@@ -3839,7 +3839,7 @@ pub fn open_camera_window(cx: &mut App) {
             #[cfg(not(target_os = "linux"))]
             kind: WindowKind::PopUp,
             #[cfg(target_os = "linux")]
-            kind: if cap_recording::screenshot::uses_wayland_portal() {
+            kind: if scoopy_recording::screenshot::uses_wayland_portal() {
                 WindowKind::Floating
             } else {
                 WindowKind::PopUp
@@ -3984,7 +3984,7 @@ fn update_camera_presentation(force: bool, cx: &mut App) {
                 return;
             }
             let result = handle.update(cx, |_, window, _| {
-                if cap_recording::screenshot::uses_wayland_portal() {
+                if scoopy_recording::screenshot::uses_wayland_portal() {
                     window.set_retained_visibility(!inline).map(|_| ())
                 } else {
                     platform::set_x11_window_visible(window, !inline)
@@ -4554,7 +4554,7 @@ fn revert_camera_park(cx: &mut App) {
 /// Hand a camera frame to the preview window. Returns false when no window is
 /// open (the pump drops the frame and keeps draining).
 pub fn deliver_camera_frame(
-    #[cfg(target_os = "macos")] frame: cap_recording::NativeCameraFrame,
+    #[cfg(target_os = "macos")] frame: scoopy_recording::NativeCameraFrame,
     #[cfg(not(target_os = "macos"))] frame: crate::camera_window::CameraPreviewFrame,
     cx: &mut App,
 ) -> bool {
@@ -4600,16 +4600,16 @@ fn evict_overlay_camera_image(image: Arc<gpui::RenderImage>, cx: &mut App) {
 
 // -- Editor -----------------------------------------------------------------
 
-/// The canonical form of a `.cap` path, so the same bundle reached by two
+/// The canonical form of a `.scoopy` path, so the same bundle reached by two
 /// spellings is one window. `EditorWindowIds` compares `PathBuf`s directly;
 /// canonicalising is strictly the safer version of the same rule.
 fn editor_key(path: &Path) -> PathBuf {
     path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
 }
 
-/// Open (or focus) the editor for a `.cap` bundle.
+/// Open (or focus) the editor for a `.scoopy` bundle.
 ///
-/// `ShowCapWindow::Editor` looks the path up in `EditorWindowIds` and reuses
+/// `ShowScoopyWindow::Editor` looks the path up in `EditorWindowIds` and reuses
 /// the window it finds (`windows.rs:1164-1181`), so opening the same project
 /// twice focuses the first one. It also calls `hide_recording_windows(app,
 /// false)` first (`windows.rs:1930`), which hides Main among others, and
@@ -4693,7 +4693,7 @@ fn open_editor_window(
             window_bounds: Some(WindowBounds::Windowed(bounds)),
             display_id,
             // Native traffic lights, inset to (20, 32):
-            // `CapWindowId::Editor::traffic_lights_position` is
+            // `ScoopyWindowId::Editor::traffic_lights_position` is
             // `Some(Some(LogicalPosition::new(20.0, 32.0)))`, and the header's
             // left group reserves an `h-full w-16` spacer for them.
             titlebar: Some(gpui::TitlebarOptions {
@@ -4770,7 +4770,7 @@ fn open_editor_window(
 }
 
 struct CachedWgpuDevice {
-    shared: cap_rendering::SharedWgpuDevice,
+    shared: scoopy_rendering::SharedWgpuDevice,
     lost: Arc<std::sync::atomic::AtomicBool>,
 }
 
@@ -4778,9 +4778,9 @@ static SHARED_WGPU_DEVICE: std::sync::LazyLock<tokio::sync::Mutex<Option<CachedW
     std::sync::LazyLock::new(|| tokio::sync::Mutex::new(None));
 
 fn clone_shared_wgpu_device(
-    shared: &cap_rendering::SharedWgpuDevice,
-) -> cap_rendering::SharedWgpuDevice {
-    cap_rendering::SharedWgpuDevice {
+    shared: &scoopy_rendering::SharedWgpuDevice,
+) -> scoopy_rendering::SharedWgpuDevice {
+    scoopy_rendering::SharedWgpuDevice {
         instance: shared.instance.clone(),
         adapter: shared.adapter.clone(),
         device: shared.device.clone(),
@@ -4789,7 +4789,7 @@ fn clone_shared_wgpu_device(
     }
 }
 
-pub(crate) async fn shared_wgpu_device() -> Option<cap_rendering::SharedWgpuDevice> {
+pub(crate) async fn shared_wgpu_device() -> Option<scoopy_rendering::SharedWgpuDevice> {
     let mut guard = SHARED_WGPU_DEVICE.lock().await;
     if let Some(cached) = guard.as_ref() {
         if !cached.lost.load(std::sync::atomic::Ordering::Acquire) {
@@ -4799,7 +4799,7 @@ pub(crate) async fn shared_wgpu_device() -> Option<cap_rendering::SharedWgpuDevi
         *guard = None;
     }
     let started = std::time::Instant::now();
-    match cap_rendering::create_shared_device().await {
+    match scoopy_rendering::create_shared_device().await {
         Ok(shared) => {
             let lost = Arc::new(std::sync::atomic::AtomicBool::new(false));
             let lost_flag = lost.clone();
@@ -4832,11 +4832,11 @@ pub(crate) fn prewarm_shared_wgpu_device(cx: &App) {
     .detach();
 }
 
-fn editor_audio_output() -> Arc<cap_editor::AudioOutput> {
-    if std::env::var("CAP_GPUI_MUTE_AUDIO").is_ok_and(|value| value == "1") {
-        Arc::new(cap_editor::AudioOutput::new_headless(Box::new(|_, _| {})))
+fn editor_audio_output() -> Arc<scoopy_editor::AudioOutput> {
+    if std::env::var("SCOOPY_GPUI_MUTE_AUDIO").is_ok_and(|value| value == "1") {
+        Arc::new(scoopy_editor::AudioOutput::new_headless(Box::new(|_, _| {})))
     } else {
-        Arc::new(cap_editor::AudioOutput::new())
+        Arc::new(scoopy_editor::AudioOutput::new())
     }
 }
 
@@ -4844,7 +4844,7 @@ fn start_preparing_editor(
     path: PathBuf,
     handle: WindowHandle<EditorWindow>,
     finalization: StudioFinalization,
-    audio_output: Arc<cap_editor::AudioOutput>,
+    audio_output: Arc<scoopy_editor::AudioOutput>,
     cx: &mut App,
 ) -> crate::editor_preparing::PreparingJoin {
     let resolution = editor_window::preview_resolution(
@@ -4901,7 +4901,7 @@ fn start_preparing_editor(
     cx.spawn(async move |cx| {
         while let Ok(preparing) = frames.recv_async().await {
             let frame = match preparing.output {
-                cap_editor::EditorFrameOutput::Rgba(frame) => {
+                scoopy_editor::EditorFrameOutput::Rgba(frame) => {
                     let image = cx
                         .background_executor()
                         .spawn(async move { editor_window::frame_image(&frame) })
@@ -4910,10 +4910,10 @@ fn start_preparing_editor(
                     editor_window::EditorPreviewFrame::Image(image)
                 }
                 #[cfg(target_os = "macos")]
-                cap_editor::EditorFrameOutput::Surface(surface) => {
+                scoopy_editor::EditorFrameOutput::Surface(surface) => {
                     editor_window::surface_preview_frame(surface)
                 }
-                cap_editor::EditorFrameOutput::Nv12(_) => continue,
+                scoopy_editor::EditorFrameOutput::Nv12(_) => continue,
             };
             let current_window = cx.update(|cx| {
                 cx.global::<AppWindows>()
@@ -4968,7 +4968,7 @@ fn load_editor_project(
 pub(crate) fn retry_preparing_editor(
     path: PathBuf,
     handle: WindowHandle<EditorWindow>,
-    previous: Arc<cap_editor::EditorInstance>,
+    previous: Arc<scoopy_editor::EditorInstance>,
     cx: &mut App,
 ) {
     load_editor_project_candidate(path, handle, None, Some(previous), cx);
@@ -4978,7 +4978,7 @@ fn load_editor_project_candidate(
     path: PathBuf,
     handle: WindowHandle<EditorWindow>,
     finalization: Option<StudioFinalization>,
-    previous: Option<Arc<cap_editor::EditorInstance>>,
+    previous: Option<Arc<scoopy_editor::EditorInstance>>,
     cx: &mut App,
 ) {
     let preparing_output = finalization.as_ref().map(|_| editor_audio_output());
@@ -5104,7 +5104,7 @@ fn load_editor_project_candidate(
         let (frame_tx, frame_rx) = flume::bounded(4);
         let stats = Arc::new(editor_window::PumpStats::default());
         // The playhead seam. `on_state_change` is called from the
-        // `cap-playback` OS thread and from tokio workers, so it may only
+        // `scoopy-playback` OS thread and from tokio workers, so it may only
         // store and poke; the drain below is what touches the entity.
         let (playhead, playhead_rx) = editor_window::PlayheadSignal::new();
         let instance_path = path.clone();
@@ -5114,7 +5114,7 @@ fn load_editor_project_candidate(
             gpui_tokio::Tokio::spawn(cx, async move {
                 // `EditorInstance::new`: the real constructor, exactly as the
                 // Tauri app calls it (`lib.rs:6592`) -- except under
-                // `CAP_GPUI_MUTE_AUDIO=1`, which swaps in the headless audio
+                // `SCOOPY_GPUI_MUTE_AUDIO=1`, which swaps in the headless audio
                 // output (the integration test's constructor) so playback
                 // stays silent: verification probes must be able to run while
                 // the user is on a call, and the editor otherwise plays the
@@ -5126,23 +5126,23 @@ fn load_editor_project_candidate(
                 let state_cb = editor_window::make_state_callback(playhead);
                 let frame_cb = editor_window::make_frame_callback(frame_tx, frame_stats);
                 #[cfg(target_os = "macos")]
-                let frame_format = cap_editor::EditorFrameFormat::BgraSurface;
+                let frame_format = scoopy_editor::EditorFrameFormat::BgraSurface;
                 #[cfg(not(target_os = "macos"))]
-                let frame_format = cap_editor::EditorFrameFormat::Rgba;
+                let frame_format = scoopy_editor::EditorFrameFormat::Rgba;
                 if let Some(previous) = previous {
                     return previous
                         .recreate_preparing_candidate(state_cb, frame_cb, frame_format)
                         .await;
                 }
                 let shared_device = shared_wgpu_device().await;
-                let instance = cap_editor::EditorInstance::new_with_startup_inputs(
+                let instance = scoopy_editor::EditorInstance::new_with_startup_inputs(
                     instance_path,
                     state_cb,
                     frame_cb,
                     shared_device,
                     frame_format,
                     preparing_output.unwrap_or_else(editor_audio_output),
-                    cap_editor::EditorStartupInputs {
+                    scoopy_editor::EditorStartupInputs {
                         recordings: Some(recordings),
                         completed_audio,
                     },
@@ -5221,7 +5221,7 @@ fn load_editor_project_candidate(
             async move |cx| {
                 while let Ok((output, layout)) = frame_rx.recv_async().await {
                     let (frame, number) = match output {
-                        cap_editor::EditorFrameOutput::Rgba(rgba) => {
+                        scoopy_editor::EditorFrameOutput::Rgba(rgba) => {
                             let stats = stats.clone();
                             let number = rgba.frame_number;
                             let image = cx
@@ -5238,7 +5238,7 @@ fn load_editor_project_candidate(
                             };
                             (editor_window::EditorPreviewFrame::Image(image), number)
                         }
-                        cap_editor::EditorFrameOutput::Nv12(frame) => {
+                        scoopy_editor::EditorFrameOutput::Nv12(frame) => {
                             tracing::warn!(
                                 number = frame.frame_number,
                                 "buffer-backed NV12 preview is unsupported"
@@ -5246,7 +5246,7 @@ fn load_editor_project_candidate(
                             continue;
                         }
                         #[cfg(target_os = "macos")]
-                        cap_editor::EditorFrameOutput::Surface(surface) => {
+                        scoopy_editor::EditorFrameOutput::Surface(surface) => {
                             let number = surface.frame_number;
                             (editor_window::surface_preview_frame(surface), number)
                         }
@@ -5350,7 +5350,7 @@ fn load_editor_project_candidate(
 }
 
 async fn drive_auto_export(handle: WindowHandle<EditorWindow>, cx: &mut gpui::AsyncApp) {
-    if let Ok(page) = std::env::var("CAP_GPUI_AUTO_EXPORT_PAGE") {
+    if let Ok(page) = std::env::var("SCOOPY_GPUI_AUTO_EXPORT_PAGE") {
         cx.background_executor()
             .timer(std::time::Duration::from_millis(300))
             .await;
@@ -5364,7 +5364,7 @@ async fn drive_auto_export(handle: WindowHandle<EditorWindow>, cx: &mut gpui::As
         });
         return;
     }
-    let Some(path) = std::env::var_os("CAP_GPUI_AUTO_EXPORT").map(PathBuf::from) else {
+    let Some(path) = std::env::var_os("SCOOPY_GPUI_AUTO_EXPORT").map(PathBuf::from) else {
         return;
     };
 
@@ -5428,7 +5428,7 @@ fn log_timeline_model(model: &editor_timeline::TimelineModel) {
 /// extraction itself is a per-sample loop over a whole track, which goes to the
 /// background executor rather than the UI thread.
 fn load_editor_waveforms(
-    instance: Arc<cap_editor::EditorInstance>,
+    instance: Arc<scoopy_editor::EditorInstance>,
     handle: WindowHandle<EditorWindow>,
     cx: &mut gpui::AsyncApp,
 ) {
@@ -5483,27 +5483,27 @@ fn load_editor_waveforms(
     .detach();
 }
 
-/// `CAP_GPUI_AUTO_SIDEBAR=<tab>[:<scroll>]` selects a config-sidebar tab and
-/// optionally scrolls its body, `CAP_GPUI_AUTO_CAMERA3D=add[:<time>]|auto`
-/// makes a 3D shot, and `CAP_GPUI_AUTO_SELECT=<track>:<i>[,<i>]` selects
+/// `SCOOPY_GPUI_AUTO_SIDEBAR=<tab>[:<scroll>]` selects a config-sidebar tab and
+/// optionally scrolls its body, `SCOOPY_GPUI_AUTO_CAMERA3D=add[:<time>]|auto`
+/// makes a 3D shot, and `SCOOPY_GPUI_AUTO_SELECT=<track>:<i>[,<i>]` selects
 /// timeline segments so their panel opens.
 ///
-/// They exist for the same reason as every other `CAP_GPUI_AUTO_*` hook, plus
+/// They exist for the same reason as every other `SCOOPY_GPUI_AUTO_*` hook, plus
 /// one specific to this pane: **a synthetic wheel does not scroll the sidebar's
 /// body.** A `CGEvent` scroll delivered over the sidebar reaches the app (the
 /// timeline's own wheel handler logs one when the pointer is over the strip)
 /// but moves nothing when it lands on the scroll body, so a tab taller than
 /// 470px cannot be photographed below the fold without this.
 async fn drive_auto_sidebar(handle: WindowHandle<EditorWindow>, cx: &mut gpui::AsyncApp) {
-    let tab = std::env::var("CAP_GPUI_AUTO_SIDEBAR").ok();
-    let select = std::env::var("CAP_GPUI_AUTO_SELECT").ok();
-    let canvas = std::env::var("CAP_GPUI_AUTO_CANVAS").ok();
-    let crop = std::env::var("CAP_GPUI_AUTO_CROP").ok();
-    let clip_menu = std::env::var("CAP_GPUI_AUTO_CLIP_MENU").ok();
-    let camera3d = std::env::var("CAP_GPUI_AUTO_CAMERA3D").ok();
-    let add_track = std::env::var("CAP_GPUI_AUTO_ADD_TRACK").ok();
+    let tab = std::env::var("SCOOPY_GPUI_AUTO_SIDEBAR").ok();
+    let select = std::env::var("SCOOPY_GPUI_AUTO_SELECT").ok();
+    let canvas = std::env::var("SCOOPY_GPUI_AUTO_CANVAS").ok();
+    let crop = std::env::var("SCOOPY_GPUI_AUTO_CROP").ok();
+    let clip_menu = std::env::var("SCOOPY_GPUI_AUTO_CLIP_MENU").ok();
+    let camera3d = std::env::var("SCOOPY_GPUI_AUTO_CAMERA3D").ok();
+    let add_track = std::env::var("SCOOPY_GPUI_AUTO_ADD_TRACK").ok();
     let generate_zoom =
-        std::env::var("CAP_GPUI_AUTO_GENERATE_ZOOM").is_ok_and(|value| value == "1");
+        std::env::var("SCOOPY_GPUI_AUTO_GENERATE_ZOOM").is_ok_and(|value| value == "1");
     if tab.is_none()
         && select.is_none()
         && canvas.is_none()
@@ -5531,7 +5531,7 @@ async fn drive_auto_sidebar(handle: WindowHandle<EditorWindow>, cx: &mut gpui::A
             .ok();
     }
 
-    // `CAP_GPUI_AUTO_CAMERA3D=add[:<time>]|auto`: make a 3D shot the way the
+    // `SCOOPY_GPUI_AUTO_CAMERA3D=add[:<time>]|auto`: make a 3D shot the way the
     // lane's own chips make one. Before the selection hook, so a probe can
     // create a shot and then photograph its panel.
     if let Some(spec) = camera3d {
@@ -5552,18 +5552,18 @@ async fn drive_auto_sidebar(handle: WindowHandle<EditorWindow>, cx: &mut gpui::A
             .ok();
     }
 
-    // `CAP_GPUI_AUTO_CANVAS=1`: select the on-canvas display box, which a
+    // `SCOOPY_GPUI_AUTO_CANVAS=1`: select the on-canvas display box, which a
     // click on it does. Before the crop hook, because opening the crop dialog
     // hides the overlay.
-    if std::env::var("CAP_GPUI_AUTO_CANVAS").is_ok_and(|value| value == "1") {
+    if std::env::var("SCOOPY_GPUI_AUTO_CANVAS").is_ok_and(|value| value == "1") {
         handle
             .update(cx, |view, window, cx| view.auto_canvas_select(window, cx))
             .ok();
     }
 
-    // `CAP_GPUI_AUTO_CROP=1[:16x9][:nosnap]`: open the crop dialog through the
+    // `SCOOPY_GPUI_AUTO_CROP=1[:16x9][:nosnap]`: open the crop dialog through the
     // toolbar's own handler.
-    if let Ok(spec) = std::env::var("CAP_GPUI_AUTO_CROP")
+    if let Ok(spec) = std::env::var("SCOOPY_GPUI_AUTO_CROP")
         && !spec.is_empty()
     {
         handle
@@ -5571,7 +5571,7 @@ async fn drive_auto_sidebar(handle: WindowHandle<EditorWindow>, cx: &mut gpui::A
             .ok();
     }
 
-    // `CAP_GPUI_AUTO_CLIP_MENU=<index>[:split]`: open clip `<index>`'s settings
+    // `SCOOPY_GPUI_AUTO_CLIP_MENU=<index>[:split]`: open clip `<index>`'s settings
     // menu the way a right-click on it does, optionally splitting the first
     // clip at 40% first so the merge rows have a neighbour to act on.
     if let Some(spec) = clip_menu {
@@ -5582,8 +5582,8 @@ async fn drive_auto_sidebar(handle: WindowHandle<EditorWindow>, cx: &mut gpui::A
             .ok();
     }
 
-    // `CAP_GPUI_AUTO_ADD_TRACK=1` opens the add-track tray;
-    // `CAP_GPUI_AUTO_ADD_TRACK=<text|mask|style|audio|...>` opens it and picks
+    // `SCOOPY_GPUI_AUTO_ADD_TRACK=1` opens the add-track tray;
+    // `SCOOPY_GPUI_AUTO_ADD_TRACK=<text|mask|style|audio|...>` opens it and picks
     // that tile, then treats the player as hovered so its overlay draws.
     if let Some(spec) = add_track {
         handle
@@ -5594,36 +5594,36 @@ async fn drive_auto_sidebar(handle: WindowHandle<EditorWindow>, cx: &mut gpui::A
     }
 }
 
-/// `CAP_GPUI_AUTO_PLAYBACK=<seconds>` presses play once the project is up and
-/// pauses N seconds later; `CAP_GPUI_AUTO_PLAYBACK_TORTURE=<cycles>` runs
+/// `SCOOPY_GPUI_AUTO_PLAYBACK=<seconds>` presses play once the project is up and
+/// pauses N seconds later; `SCOOPY_GPUI_AUTO_PLAYBACK_TORTURE=<cycles>` runs
 /// play/pause/seek cycles instead. Both exist for the same reason as every
-/// other `CAP_GPUI_AUTO_*` hook: unprivileged synthetic clicks are dropped, so
+/// other `SCOOPY_GPUI_AUTO_*` hook: unprivileged synthetic clicks are dropped, so
 /// a verification run needs a way to press the button.
 async fn drive_auto_playback(
     project_path: PathBuf,
     handle: WindowHandle<EditorWindow>,
     cx: &mut gpui::AsyncApp,
 ) {
-    let play_secs = std::env::var("CAP_GPUI_AUTO_PLAYBACK")
+    let play_secs = std::env::var("SCOOPY_GPUI_AUTO_PLAYBACK")
         .ok()
         .and_then(|value| value.parse::<f64>().ok());
-    let torture = std::env::var("CAP_GPUI_AUTO_PLAYBACK_TORTURE")
+    let torture = std::env::var("SCOOPY_GPUI_AUTO_PLAYBACK_TORTURE")
         .ok()
         .and_then(|value| value.parse::<u32>().ok());
-    // `CAP_GPUI_AUTO_SEEK=0.6`: a paused seek to 60% along the timeline, the
+    // `SCOOPY_GPUI_AUTO_SEEK=0.6`: a paused seek to 60% along the timeline, the
     // way a click on the ruler there does it.
-    let seek = std::env::var("CAP_GPUI_AUTO_SEEK")
+    let seek = std::env::var("SCOOPY_GPUI_AUTO_SEEK")
         .ok()
         .and_then(|value| value.parse::<f64>().ok());
-    let seek_time = std::env::var("CAP_GPUI_AUTO_SEEK_TIME")
+    let seek_time = std::env::var("SCOOPY_GPUI_AUTO_SEEK_TIME")
         .ok()
         .and_then(|value| value.parse::<f64>().ok())
         .filter(|seconds| seconds.is_finite() && *seconds >= 0.0);
-    // `CAP_GPUI_AUTO_SCRUB_PLAYING=<n>`: a synthetic ruler drag during
+    // `SCOOPY_GPUI_AUTO_SCRUB_PLAYING=<n>`: a synthetic ruler drag during
     // playback -- n seeks at 33ms intervals sweeping 20% to 70% of the
     // timeline. This is the live-seek path's perf gate: every seek lands on a
     // RUNNING engine through `seek_to_time`, exactly as a real drag does.
-    let scrub_playing = std::env::var("CAP_GPUI_AUTO_SCRUB_PLAYING")
+    let scrub_playing = std::env::var("SCOOPY_GPUI_AUTO_SCRUB_PLAYING")
         .ok()
         .and_then(|value| value.parse::<u32>().ok());
     if play_secs.is_none()
@@ -5724,7 +5724,7 @@ async fn drive_auto_playback(
             .ok();
     }
 
-    // `CAP_GPUI_AUTO_EDITOR_CLOSE=<secs>`: close the editor that many seconds
+    // `SCOOPY_GPUI_AUTO_EDITOR_CLOSE=<secs>`: close the editor that many seconds
     // into playback, through `performClose:` -- the traffic light's own path,
     // so the window's `on_window_should_close` handler and `editor_closed`
     // both run. Proof that a playing editor tears down cleanly.
@@ -5733,7 +5733,7 @@ async fn drive_auto_playback(
     // test.
     static CLOSE_SCENARIO_DONE: std::sync::atomic::AtomicBool =
         std::sync::atomic::AtomicBool::new(false);
-    let close_after = std::env::var("CAP_GPUI_AUTO_EDITOR_CLOSE")
+    let close_after = std::env::var("SCOOPY_GPUI_AUTO_EDITOR_CLOSE")
         .ok()
         .and_then(|value| value.parse::<f64>().ok())
         .filter(|_| !CLOSE_SCENARIO_DONE.swap(true, std::sync::atomic::Ordering::SeqCst));
@@ -5790,7 +5790,7 @@ async fn drive_auto_playback(
 /// `restore_main_windows_if_no_editors` (`lib.rs:6242-6262`), transcribed:
 /// the main window is reshown only once the last editor of either kind is
 /// gone **and no Settings window exists** -- the Tauri arm is
-/// `if CapWindowId::Settings.get(app).is_none() { main.show() }`. Closing an
+/// `if ScoopyWindowId::Settings.get(app).is_none() { main.show() }`. Closing an
 /// editor opened from the Settings recordings page therefore leaves Settings
 /// as the frontmost surface (AppKit hands it key status as the editor goes
 /// away) rather than revealing main over it. The idle gate is this port's
@@ -5800,7 +5800,7 @@ fn reveal_main_after_editor_close(editors_left: usize, settings_open: bool, idle
     editors_left == 0 && !settings_open && idle
 }
 
-/// An editor window is going away. `CapWindowId::Editor`'s `Destroyed` arm
+/// An editor window is going away. `ScoopyWindowId::Editor`'s `Destroyed` arm
 /// drops it from `EditorWindowIds`, disposes the instance, and calls
 /// `restore_main_windows_if_no_editors` (`lib.rs:5777-5792`) -- so the main
 /// window comes back only once the last editor has closed, and never over an
@@ -5842,7 +5842,7 @@ pub fn editor_closed(project_path: &Path, window_id: gpui::WindowId, cx: &mut Ap
     .detach();
 
     // `onCleanup(() => { clearTimeout(saveTimer); flushProjectConfig() })`
-    // (`ED/context.ts:1246-1252`): a `.cap` closed inside the 250ms save
+    // (`ED/context.ts:1246-1252`): a `.scoopy` closed inside the 250ms save
     // debounce still gets its last edit written.
     if let Ok(pending) = handle.update(cx, |view, _window, _cx| view.pending_save()) {
         pending.borrow_mut().flush();
@@ -5975,7 +5975,7 @@ pub(crate) fn request_editor_deletion(
         }
         let prepared = cx.update(|cx| {
             editor_deletion_allowed(&key, handle, cx)?;
-            let ownership = cap_recording::upload_resume::UploadLock::acquire(&key)
+            let ownership = scoopy_recording::upload_resume::UploadLock::acquire(&key)
                 .map_err(|error| format!("This recording is still in use. Close anything using it and try again: {error}"))?;
             let windows = cx.global_mut::<AppWindows>();
             windows.deleting_editors.insert(key.clone());
@@ -6097,7 +6097,7 @@ pub fn reload_editor(project_path: &Path, cx: &mut App) {
 }
 
 /// `editor_window_for_path` (`src-tauri/src/windows.rs:3699-3706`): the live
-/// editor window for a `.cap` bundle, by the same path identity the registry
+/// editor window for a `.scoopy` bundle, by the same path identity the registry
 /// keys on.
 fn editor_window_handle(project_path: &Path, cx: &App) -> Option<WindowHandle<EditorWindow>> {
     let key = editor_key(project_path);
@@ -6332,7 +6332,7 @@ fn window_logical_bounds_on_display(
 /// (48px up from its bottom edge), bottom-center of the recorded display
 /// otherwise (120px up).
 fn controls_origin(config: &StartConfig) -> (f64, f64) {
-    use cap_recording::sources::screen_capture::ScreenCaptureTarget;
+    use scoopy_recording::sources::screen_capture::ScreenCaptureTarget;
 
     let width = CONTROLS_WIDTH as f64;
     let height = CONTROLS_HEIGHT as f64;
@@ -6512,8 +6512,8 @@ pub fn screenshot_finished(captured: Option<PathBuf>, cx: &mut App) {
 }
 
 /// Open (or focus) the screenshot editor for a bundle -- the
-/// `ShowCapWindow::ScreenshotEditor` arm: 1240x800, min 800x600, centered,
-/// reused per path. Accepts the PNG or the `.cap` directory.
+/// `ShowScoopyWindow::ScreenshotEditor` arm: 1240x800, min 800x600, centered,
+/// reused per path. Accepts the PNG or the `.scoopy` directory.
 ///
 /// Must be reached through `cx.defer` from anything inside an entity update:
 /// opening a window paints it synchronously and would double-lease the caller.
@@ -6616,7 +6616,7 @@ pub fn open_screenshot_editor(path: PathBuf, cx: &mut App) {
     hide_main_window(cx);
     // A global shortcut fires while another app is frontmost, and a window
     // opened by an inactive app lands behind that app's windows: the editor
-    // only showed up once Cap was clicked.
+    // only showed up once Scoopy was clicked.
     cx.defer(move |cx| bring_screenshot_editor_forward(handle, cx));
     prewarm_shared_wgpu_device(cx);
     screenshot_editor::load_screenshot_project(key, handle, cx);
@@ -6902,11 +6902,11 @@ mod tests {
 
     #[test]
     fn old_editor_close_preserves_a_reopened_window_for_the_same_project() {
-        let path = PathBuf::from("recording.cap");
+        let path = PathBuf::from("recording.scoopy");
         let old = WindowHandle::<EditorWindow>::new(1_u64.into());
         let current = WindowHandle::<EditorWindow>::new(2_u64.into());
         let other = WindowHandle::<EditorWindow>::new(3_u64.into());
-        let mut editors = vec![(path.clone(), current), (PathBuf::from("other.cap"), other)];
+        let mut editors = vec![(path.clone(), current), (PathBuf::from("other.scoopy"), other)];
         assert_eq!(
             take_editor_window(&mut editors, &path, old.window_id()),
             None
@@ -6916,7 +6916,7 @@ mod tests {
             take_editor_window(&mut editors, &path, current.window_id()),
             Some(current)
         );
-        assert_eq!(editors, vec![(PathBuf::from("other.cap"), other)]);
+        assert_eq!(editors, vec![(PathBuf::from("other.scoopy"), other)]);
     }
 
     struct DeleteFixture(PathBuf);
@@ -6924,7 +6924,7 @@ mod tests {
     impl DeleteFixture {
         fn new() -> Self {
             let directory = std::env::temp_dir()
-                .join(format!("cap-editor-delete-{}", crate::store::new_uuid_v4()));
+                .join(format!("scoopy-editor-delete-{}", crate::store::new_uuid_v4()));
             std::fs::create_dir(&directory).unwrap();
             std::fs::write(directory.join("source.mp4"), b"retained recording bytes").unwrap();
             Self(directory)
@@ -7467,7 +7467,7 @@ mod tests {
         assert_eq!(presentation.rect.height, 230);
         assert_eq!(
             presentation.shape,
-            cap_recording::instant_recording::LinuxCameraShape::Round
+            scoopy_recording::instant_recording::LinuxCameraShape::Round
         );
     }
 
@@ -7476,7 +7476,7 @@ mod tests {
     fn instant_camera_keeps_live_full_shape_mirror_and_effect_request() {
         use crate::store::{BlurMode, CameraShape, CameraWindowState};
         use camera_window::{LinuxCameraPhysicalRect, LinuxCameraRecordingSnapshot};
-        use cap_recording::instant_recording::{LinuxCameraEffect, LinuxCameraShape};
+        use scoopy_recording::instant_recording::{LinuxCameraEffect, LinuxCameraShape};
         let capture = LinuxCameraPhysicalRect {
             x: 0,
             y: 0,
@@ -7560,7 +7560,7 @@ mod tests {
         assert_eq!(presentation.rect.height, 306);
         assert_eq!(
             presentation.shape,
-            cap_recording::instant_recording::LinuxCameraShape::RoundedRectangle {
+            scoopy_recording::instant_recording::LinuxCameraShape::RoundedRectangle {
                 radius_pixels: 153
             }
         );
@@ -7591,7 +7591,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn instant_camera_area_reference_uses_shared_capture_edge_rounding() {
-        let capture = cap_recording::sources::screen_capture::x11_capture_rect(
+        let capture = scoopy_recording::sources::screen_capture::x11_capture_rect(
             -1920.0,
             0.0,
             1920.0,
@@ -7657,7 +7657,7 @@ mod tests {
         }
     }
 
-    /// The canonical titles are `CapWindowId::title()`
+    /// The canonical titles are `ScoopyWindowId::title()`
     /// (`src-tauri/src/windows.rs:1030-1046`), verbatim. Getting one wrong is
     /// silent: the rule simply never matches and the window lands in the
     /// recording.
@@ -7666,7 +7666,7 @@ mod tests {
     /// compiler instead -- [`own_windows`] destructures the struct, so a new
     /// window field does not compile until it is walked or explicitly skipped.
     #[test]
-    fn own_window_titles_match_cap_window_id() {
+    fn own_window_titles_match_scoopy_window_id() {
         let expected = [
             (OwnWindow::Main, "Scoopy"),
             (OwnWindow::Settings, "Scoopy Settings"),
@@ -7779,15 +7779,15 @@ mod tests {
     #[test]
     fn the_teleprompter_rule_is_always_present_and_never_duplicated() {
         let from_nothing = own_window_exclusion_rules(Vec::new(), RecordingMode::Instant);
-        assert_eq!(from_nothing, vec![title_rule("Cap Teleprompter")]);
+        assert_eq!(from_nothing, vec![title_rule("Scoopy Teleprompter")]);
         assert_eq!(
             excluded_own_windows(&from_nothing),
             vec![OwnWindow::Teleprompter]
         );
 
         let already_configured =
-            own_window_exclusion_rules(vec![title_rule("Cap Teleprompter")], RecordingMode::Studio);
-        assert_eq!(already_configured, vec![title_rule("Cap Teleprompter")]);
+            own_window_exclusion_rules(vec![title_rule("Scoopy Teleprompter")], RecordingMode::Studio);
+        assert_eq!(already_configured, vec![title_rule("Scoopy Teleprompter")]);
     }
 
     /// Our own windows are matched on title *alone*
@@ -7798,16 +7798,16 @@ mod tests {
     fn rules_that_need_more_than_a_title_never_match_our_windows() {
         let by_identity = vec![
             WindowExclusion {
-                bundle_identifier: Some("so.cap.desktop".to_string()),
+                bundle_identifier: Some("me.systembug.scoopy".to_string()),
                 ..Default::default()
             },
             WindowExclusion {
-                owner_name: Some("Cap".to_string()),
+                owner_name: Some("Scoopy".to_string()),
                 ..Default::default()
             },
             WindowExclusion {
-                owner_name: Some("Cap".to_string()),
-                window_title: Some("Cap".to_string()),
+                owner_name: Some("Scoopy".to_string()),
+                window_title: Some("Scoopy".to_string()),
                 ..Default::default()
             },
         ];

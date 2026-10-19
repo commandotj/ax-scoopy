@@ -32,8 +32,8 @@ mod tests {
         recovery::RecoveryManager,
         sources::screen_capture::ScreenCaptureTarget,
     };
-    use cap_media_info::{AudioInfo, VideoInfo};
-    use cap_timestamp::{Timestamp, Timestamps};
+    use scoopy_media_info::{AudioInfo, VideoInfo};
+    use scoopy_timestamp::{Timestamp, Timestamps};
     use kameo::{Actor as _, prelude::ActorRef};
     use std::{
         ffi::OsString,
@@ -118,7 +118,7 @@ mod tests {
         #[cfg(target_os = "linux")]
         let lifetime = super::super::InstantLifetimeOwner::new();
         let timestamps = Timestamps::now();
-        let video_info = VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 4, 4, 30);
+        let video_info = VideoInfo::from_raw(scoopy_media_info::RawVideoFormat::Bgra, 4, 4, 30);
         let progressive = matches!(output, OutputFiles::Progressive);
         let segments_dir = project.join(if progressive {
             "content"
@@ -156,7 +156,7 @@ mod tests {
         let mut audio_sender = None;
         let audio = if with_audio {
             let info = AudioInfo::new_raw(
-                cap_media_info::Sample::F32(cap_media_info::Type::Packed),
+                scoopy_media_info::Sample::F32(scoopy_media_info::Type::Packed),
                 48_000,
                 2,
             );
@@ -312,8 +312,8 @@ mod tests {
     #[test]
     fn completion_for_another_project_does_not_touch_either_project() {
         let directory = tempfile::tempdir().unwrap();
-        let recorded = directory.path().join("recorded.cap");
-        let other = directory.path().join("other.cap");
+        let recorded = directory.path().join("recorded.scoopy");
+        let other = directory.path().join("other.scoopy");
         for project in [&recorded, &other] {
             fs::create_dir_all(project.join("content")).unwrap();
             fs::write(project.join("content/original.m4s"), b"original bytes").unwrap();

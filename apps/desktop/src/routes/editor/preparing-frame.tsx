@@ -26,7 +26,7 @@ export function PreparingFrame(props: { fallback?: boolean } = {}) {
 				}
 			>
 				<div class="flex flex-col gap-3 justify-center items-center w-full max-w-[85%] rounded-md aspect-video bg-ed-ctl">
-					<IconCapLogo class="size-12 text-ed-text-3 opacity-50" />
+					<IconScoopyLogo class="size-12 text-ed-text-3 opacity-50" />
 				</div>
 			</Show>
 		</div>

@@ -1,5 +1,5 @@
 [package]
-name = "cap-recording"
+name = "scoopy-recording"
 version = "0.1.0"
 edition = "2024"
 
@@ -12,23 +12,23 @@ test-utils = []
 memory-profiling = ["dep:dhat"]
 
 [dependencies]
-cap-audio = { path = "../audio" }
-cap-fail = { path = "../fail" }
-cap-project = { path = "../project" }
-cap-media = { path = "../media" }
-cap-rendering = { path = "../rendering" }
-cap-flags = { path = "../flags" }
-cap-utils = { path = "../utils" }
+scoopy-audio = { path = "../audio" }
+scoopy-fail = { path = "../fail" }
+scoopy-project = { path = "../project" }
+scoopy-media = { path = "../media" }
+scoopy-rendering = { path = "../rendering" }
+scoopy-flags = { path = "../flags" }
+scoopy-utils = { path = "../utils" }
 scap-targets = { path = "../scap-targets" }
-cap-cursor-capture = { path = "../cursor-capture" }
-cap-media-info = { path = "../media-info" }
-cap-cursor-info = { path = "../cursor-info" }
-cap-camera = { path = "../camera", features = ["serde", "specta"] }
-cap-camera-ffmpeg = { path = "../camera-ffmpeg" }
-cap-enc-ffmpeg = { path = "../enc-ffmpeg" }
-cap-frame-converter = { path = "../frame-converter" }
-cap-timestamp = { path = "../timestamp" }
-cap-muxer-protocol = { path = "../cap-muxer-protocol" }
+scoopy-cursor-capture = { path = "../cursor-capture" }
+scoopy-media-info = { path = "../media-info" }
+scoopy-cursor-info = { path = "../cursor-info" }
+scoopy-camera = { path = "../camera", features = ["serde", "specta"] }
+scoopy-camera-ffmpeg = { path = "../camera-ffmpeg" }
+scoopy-enc-ffmpeg = { path = "../enc-ffmpeg" }
+scoopy-frame-converter = { path = "../frame-converter" }
+scoopy-timestamp = { path = "../timestamp" }
+scoopy-muxer-protocol = { path = "../scoopy-muxer-protocol" }
 scap-ffmpeg = { path = "../scap-ffmpeg" }
 
 specta = { workspace = true }
@@ -79,7 +79,7 @@ coreaudio-rs = { version = "0.11.3", features = ["audio_unit"] }
 foreign-types-shared = "0.3"
 
 scap-screencapturekit = { path = "../scap-screencapturekit" }
-cap-enc-avfoundation = { path = "../enc-avfoundation" }
+scoopy-enc-avfoundation = { path = "../enc-avfoundation" }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { workspace = true, features = [
@@ -93,11 +93,11 @@ windows = { workspace = true, features = [
     "Win32_Storage_FileSystem",
 ] }
 
-cap-d3d-adapter = { path = "../d3d-adapter" }
-cap-enc-mediafoundation = { path = "../enc-mediafoundation" }
-cap-mediafoundation-ffmpeg = { path = "../mediafoundation-ffmpeg" }
-cap-mediafoundation-utils = { path = "../mediafoundation-utils" }
-cap-camera-windows = { path = "../camera-windows" }
+scoopy-d3d-adapter = { path = "../d3d-adapter" }
+scoopy-enc-mediafoundation = { path = "../enc-mediafoundation" }
+scoopy-mediafoundation-ffmpeg = { path = "../mediafoundation-ffmpeg" }
+scoopy-mediafoundation-utils = { path = "../mediafoundation-utils" }
+scoopy-camera-windows = { path = "../camera-windows" }
 scap-direct3d = { path = "../scap-direct3d" }
 scap-cpal = { path = "../scap-cpal" }
 

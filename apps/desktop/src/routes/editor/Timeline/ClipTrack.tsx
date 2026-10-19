@@ -470,13 +470,13 @@ function ClipMenuToggleRow(props: {
 			<span
 				aria-hidden
 				class={cx(
-					"cap-toggle relative h-5 w-9 shrink-0 rounded-full p-0.5 transition-colors",
+					"scoopy-toggle relative h-5 w-9 shrink-0 rounded-full p-0.5 transition-colors",
 					props.checked ? "bg-ed-accent" : "bg-ed-ctl-active",
 				)}
 			>
 				<span
 					class={cx(
-						"cap-toggle-thumb block size-4 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.22)] transition-transform",
+						"scoopy-toggle-thumb block size-4 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.22)] transition-transform",
 						props.checked && "translate-x-full",
 					)}
 				/>
@@ -1650,18 +1650,18 @@ export function ClipTrack(
 								<SegmentContent class="relative items-center">
 									<SegmentLabel
 										full={() => (
-											<div class="cap-seg-labels">
-												<span class="cap-seg-label truncate">{clipName()}</span>
-												<span class="cap-seg-sublabel">
+											<div class="scoopy-seg-labels">
+												<span class="scoopy-seg-label truncate">{clipName()}</span>
+												<span class="scoopy-seg-sublabel">
 													{formatTime(segment().end - segment().start)}
 												</span>
 												{speedControl("shrink-0")}
 											</div>
 										)}
 										compact={() => (
-											<div class="cap-seg-labels">
+											<div class="scoopy-seg-labels">
 												{speedControl("shrink-0")}
-												<span class="cap-seg-sublabel truncate">
+												<span class="scoopy-seg-sublabel truncate">
 													{formatTime(segment().end - segment().start)}
 												</span>
 											</div>
@@ -1878,7 +1878,7 @@ function CutOffsetButton(props: {
 		>
 			<Show
 				when={props.value !== 0}
-				fallback={<IconCapScissors class="size-3.5" />}
+				fallback={<IconScoopyScissors class="size-3.5" />}
 			>
 				{formatTime(props.value)}
 			</Show>

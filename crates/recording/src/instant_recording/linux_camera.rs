@@ -7,8 +7,8 @@ use crate::{
     sources::screen_capture,
 };
 use anyhow::{Context, anyhow};
-use cap_media_info::VideoInfo;
-use cap_timestamp::Timestamp;
+use scoopy_media_info::VideoInfo;
+use scoopy_timestamp::Timestamp;
 use ffmpeg::format::Pixel;
 use futures::{FutureExt, StreamExt, channel::mpsc};
 use std::{
@@ -466,7 +466,7 @@ impl PreparedCamera {
         processed: Option<LinuxProcessedCameraSource>,
         reference_size: Option<(u32, u32)>,
         info: VideoInfo,
-    ) -> anyhow::Result<(Self, cap_timestamp::Timestamps)> {
+    ) -> anyhow::Result<(Self, scoopy_timestamp::Timestamps)> {
         let mut presentation = presentation
             .unwrap_or_else(|| LinuxCameraPresentation::default_for(info.width, info.height));
         if let Some(reference) = reference_size {
@@ -515,12 +515,12 @@ async fn prepare_camera_frames(
     mut receiver: CameraReceiver,
     info: VideoInfo,
     presentation: LinuxCameraPresentation,
-) -> anyhow::Result<(PreparedCameraFrames, cap_timestamp::Timestamps)> {
+) -> anyhow::Result<(PreparedCameraFrames, scoopy_timestamp::Timestamps)> {
     presentation.validate(info.width, info.height)?;
     let first = receiver.first(&CancellationToken::new()).await?;
     Compositor::new(info, presentation).camera_overlay(&first.inner)?;
     // Separate Instant audio is epoch-anchored; camera readiness must not become head silence.
-    let timestamps = cap_timestamp::Timestamps::now();
+    let timestamps = scoopy_timestamp::Timestamps::now();
     Ok((
         PreparedCameraFrames {
             receiver,
@@ -1130,7 +1130,7 @@ mod tests {
             Duration::from_millis(25),
             Duration::from_millis(800),
         ] {
-            let previous_epoch = cap_timestamp::Timestamps::now();
+            let previous_epoch = scoopy_timestamp::Timestamps::now();
             let (sender, receiver) = flume::bounded(1);
             let prepare = prepare_camera_frames(
                 CameraReceiver::Raw(receiver),

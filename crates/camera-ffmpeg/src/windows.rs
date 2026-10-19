@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::VecDeque};
 
-use cap_camera::CapturedFrame;
-use cap_camera_windows::PixelFormat;
+use scoopy_camera::CapturedFrame;
+use scoopy_camera_windows::PixelFormat;
 use ffmpeg::{Packet, format::Pixel, frame::Video as FFVideo};
 
 use crate::CapturedFrameExt;

@@ -1,7 +1,7 @@
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
 
-use cap_desktop_lib::{App, web_api::ManagerExt};
+use scoopy_desktop_lib::{App, web_api::ManagerExt};
 use tauri::{Manager, test::mock_app};
 use tokio::sync::RwLock;
 
@@ -22,7 +22,7 @@ fn make_app_url_before_manage_does_not_panic_and_uses_default_server_url() {
         url,
         format!(
             "{}{}",
-            option_env!("VITE_SERVER_URL").unwrap_or("https://cap.so"),
+            option_env!("VITE_SERVER_URL").unwrap_or("https://example.com"),
             "/api/upload/multipart/initiate"
         )
     );

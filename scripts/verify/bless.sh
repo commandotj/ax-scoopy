@@ -36,11 +36,11 @@ case "${1:-}" in
       Linux) platform=linux ;;
       *) platform=windows ;;
     esac
-    export CAP_VERIFY_REPORT_DIR="${CAP_VERIFY_REPORT_DIR:-$root/target/verify-report/$platform-$tier}"
+    export SCOOPY_VERIFY_REPORT_DIR="${SCOOPY_VERIFY_REPORT_DIR:-$root/target/verify-report/$platform-$tier}"
     scripts/verify/run.sh "$@" || true
-    reports=("$CAP_VERIFY_REPORT_DIR")
+    reports=("$SCOOPY_VERIFY_REPORT_DIR")
     ;;
 esac
 
-cargo run -q -p cap-verify-expect -- bless "${reports[@]}"
+cargo run -q -p scoopy-verify-expect -- bless "${reports[@]}"
 git --no-pager diff --stat -- '*expectations*.toml'

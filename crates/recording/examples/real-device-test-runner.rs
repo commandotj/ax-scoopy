@@ -1,6 +1,6 @@
 use anyhow::{Context, bail};
-use cap_project::{Platform, RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
-use cap_recording::{
+use scoopy_project::{Platform, RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
+use scoopy_recording::{
     CameraFeed, MicrophoneFeed,
     feeds::{camera, microphone},
     screen_capture::ScreenCaptureTarget,
@@ -21,12 +21,12 @@ use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 #[cfg(windows)]
 fn default_output_dir() -> PathBuf {
-    std::env::temp_dir().join("cap-real-device-tests")
+    std::env::temp_dir().join("scoopy-real-device-tests")
 }
 
 #[cfg(not(windows))]
 fn default_output_dir() -> PathBuf {
-    PathBuf::from("/tmp/cap-real-device-tests")
+    PathBuf::from("/tmp/scoopy-real-device-tests")
 }
 
 #[derive(Parser)]
@@ -92,7 +92,7 @@ enum Commands {
 struct AvailableDevices {
     primary_display: Display,
     default_microphone: Option<String>,
-    cameras: Vec<cap_camera::CameraInfo>,
+    cameras: Vec<scoopy_camera::CameraInfo>,
 }
 
 impl AvailableDevices {
@@ -101,7 +101,7 @@ impl AvailableDevices {
 
         let default_microphone = MicrophoneFeed::default_device().map(|(label, _, _)| label);
 
-        let cameras: Vec<_> = cap_camera::list_cameras().collect();
+        let cameras: Vec<_> = scoopy_camera::list_cameras().collect();
 
         Ok(Self {
             primary_display,
@@ -1401,7 +1401,7 @@ async fn execute_recording(
     };
 
     #[cfg(target_os = "macos")]
-    let shareable_content = cap_recording::SendableShareableContent::from(
+    let shareable_content = scoopy_recording::SendableShareableContent::from(
         cidre::sc::ShareableContent::current().await?,
     );
 
@@ -1576,7 +1576,7 @@ async fn check_permissions() -> anyhow::Result<()> {
         println!("  Microphone: NO DEVICE FOUND");
     }
 
-    if cap_camera::list_cameras().next().is_some() {
+    if scoopy_camera::list_cameras().next().is_some() {
         println!("  Camera: AVAILABLE (permission will be requested on first use)");
     } else {
         println!("  Camera: NO DEVICE FOUND");
@@ -1598,7 +1598,7 @@ async fn check_permissions() -> anyhow::Result<()> {
         println!("  Microphone: NO DEVICE FOUND");
     }
 
-    if cap_camera::list_cameras().next().is_some() {
+    if scoopy_camera::list_cameras().next().is_some() {
         println!("  Camera: AVAILABLE");
     } else {
         println!("  Camera: NO DEVICE FOUND");
@@ -2290,7 +2290,7 @@ async fn main() -> anyhow::Result<()> {
 
     if cli.benchmark_output {
         let command = format!(
-            "cargo run -p cap-recording --example real-device-test-runner -- {} {}{}{}{}--fps {} --duration {}",
+            "cargo run -p scoopy-recording --example real-device-test-runner -- {} {}{}{}{}--fps {} --duration {}",
             match cli.command {
                 Some(Commands::Baseline) => "baseline",
                 Some(Commands::SinglePause) => "single-pause",

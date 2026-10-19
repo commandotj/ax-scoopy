@@ -13,7 +13,7 @@ export default [
 			IconsResolver({
 				prefix: "Icon",
 				extension: "jsx",
-				customCollections: ["cap"],
+				customCollections: ["scoopy"],
 			}),
 		],
 		dts: fileURLToPath(new URL("./src/auto-imports.d.ts", import.meta.url)),

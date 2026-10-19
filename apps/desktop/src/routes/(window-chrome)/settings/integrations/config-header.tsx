@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { useNavigate } from "@solidjs/router";
 import IconLucideArrowLeft from "~icons/lucide/arrow-left";
 

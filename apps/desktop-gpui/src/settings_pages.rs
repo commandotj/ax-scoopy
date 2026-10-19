@@ -1342,7 +1342,7 @@ impl SettingsWindow {
                             .line_height(px(16.))
                             .text_color(theme.settings_muted())
                             .child("The desktop app installs a local\u{a0}")
-                            .child(code_span("cap".into()).text_size(px(12.)))
+                            .child(code_span("scoopy".into()).text_size(px(12.)))
                             .child("\u{a0}command that points back to the bundled CLI."),
                     ),
             )
@@ -1456,7 +1456,7 @@ impl SettingsWindow {
                         .line_height(px(18.))
                         .text_color(theme.settings_muted())
                         .child(
-                            "Added cap to your PATH. Restart your terminal to use it, or run \
+                            "Added Scoopy to your PATH. Restart your terminal to use it, or run \
                              this now:",
                         )
                         .into_any_element()
@@ -1466,7 +1466,7 @@ impl SettingsWindow {
                         .line_height(px(18.))
                         .text_color(theme.settings_muted())
                         .child(format!(
-                            "Add {} to your PATH to use cap from a new terminal.",
+                            "Add {} to your PATH to use scoopy from a new terminal.",
                             status.path_entry
                         ))
                         .into_any_element()
@@ -1824,7 +1824,7 @@ fn takeover_frame(elapsed_ms: f32) -> (usize, f32, u32) {
     (index, alpha, remaining)
 }
 
-/// Cap ships as this app alone, so the classic Tauri app only exists inside
+/// Scoopy ships as this app alone, so the classic Tauri app only exists inside
 /// the `tauri dev` harness: a debug cargo build can hand the session back to
 /// it through the dev-session supervisor (`store::request_classic_reopen`),
 /// and nothing else has a classic app to switch to.
@@ -1862,7 +1862,7 @@ impl SettingsWindow {
                             Some(
                                 "Run the fragmented-MP4 muxer in an isolated subprocess so muxer \
                              crashes can't take down your recording. Requires the bundled \
-                             cap-muxer binary.",
+                             scoopy-muxer binary.",
                             ),
                             self.toggle(
                                 "out-of-process-muxer",
@@ -2161,19 +2161,19 @@ mod cli_install {
         path::{Path, PathBuf},
     };
 
-    const CAP_DIR_NAME: &str = ".cap";
+    const SCOOPY_DIR_NAME: &str = ".scoopy";
     const BIN_DIR_NAME: &str = "bin";
-    const CLI_BINARY_STEM: &str = "cap-cli";
+    const CLI_BINARY_STEM: &str = "scoopy-cli";
 
     #[cfg(windows)]
-    const SHIM_NAME: &str = "cap.cmd";
+    const SHIM_NAME: &str = "scoopy.cmd";
     #[cfg(not(windows))]
-    const SHIM_NAME: &str = "cap";
+    const SHIM_NAME: &str = "scoopy";
 
     #[cfg(windows)]
-    const CLI_BINARY_NAME: &str = "cap-cli.exe";
+    const CLI_BINARY_NAME: &str = "scoopy-cli.exe";
     #[cfg(not(windows))]
-    const CLI_BINARY_NAME: &str = "cap-cli";
+    const CLI_BINARY_NAME: &str = "scoopy-cli";
 
     /// `CliInstallStatus`, minus the serde/specta derives the commands need
     /// and minus `install_dir`, which neither cli.tsx nor this page displays
@@ -2196,13 +2196,13 @@ mod cli_install {
 
     fn install_dir() -> Result<PathBuf, String> {
         let home = home_dir()?;
-        let cap_bin = home.join(CAP_DIR_NAME).join(BIN_DIR_NAME);
+        let scoopy_bin = home.join(SCOOPY_DIR_NAME).join(BIN_DIR_NAME);
         let local_bin = home.join(".local/bin");
 
-        // Prefer whichever candidate already holds a Cap-managed shim, so
+        // Prefer whichever candidate already holds a Scoopy-managed shim, so
         // status and install agree regardless of the launching PATH.
         if let Ok(target) = target_path() {
-            for candidate in [&cap_bin, &local_bin] {
+            for candidate in [&scoopy_bin, &local_bin] {
                 let shim = candidate.join(SHIM_NAME);
                 if shim_points_to(&shim, &target).unwrap_or(false) || shim_is_cap_managed(&shim) {
                     return Ok(candidate.clone());
@@ -2210,15 +2210,15 @@ mod cli_install {
             }
         }
 
-        if path_is_present(&cap_bin.join(SHIM_NAME)) || cfg!(windows) {
-            return Ok(cap_bin);
+        if path_is_present(&scoopy_bin.join(SHIM_NAME)) || cfg!(windows) {
+            return Ok(scoopy_bin);
         }
 
         if path_contains_install_dir(&local_bin) {
             return Ok(local_bin);
         }
 
-        Ok(cap_bin)
+        Ok(scoopy_bin)
     }
 
     fn shim_path() -> Result<PathBuf, String> {
@@ -2427,9 +2427,9 @@ mod cli_install {
 
     #[cfg(windows)]
     fn windows_cli_binary_file_name_is_cap_managed(name: &[u8]) -> bool {
-        name.eq_ignore_ascii_case(b"cap-cli.exe")
-            || name.eq_ignore_ascii_case(b"cap-cli-x86_64-pc-windows-msvc.exe")
-            || name.eq_ignore_ascii_case(b"cap-cli-aarch64-pc-windows-msvc.exe")
+        name.eq_ignore_ascii_case(b"scoopy-cli.exe")
+            || name.eq_ignore_ascii_case(b"scoopy-cli-x86_64-pc-windows-msvc.exe")
+            || name.eq_ignore_ascii_case(b"scoopy-cli-aarch64-pc-windows-msvc.exe")
     }
 
     #[cfg(windows)]
@@ -2601,7 +2601,7 @@ mod cli_install {
             .map_err(|e| format!("Could not create CLI directory: {e}"))?;
 
         if path_is_present(&shim_path) {
-            // Repoint our own shim and any other Cap-managed one; only refuse
+            // Repoint our own shim and any other Scoopy-managed one; only refuse
             // to clobber a genuinely foreign file.
             if !shim_points_to(&shim_path, &target_path)? && !shim_is_cap_managed(&shim_path) {
                 return Err(format!(
@@ -2628,7 +2628,7 @@ mod cli_install {
 
     #[cfg(unix)]
     fn ensure_path_persisted(install_dir: &Path) -> bool {
-        if env::var_os("CAP_NO_MODIFY_PATH").is_some() {
+        if env::var_os("SCOOPY_NO_MODIFY_PATH").is_some() {
             return false;
         }
         let Some(home) = dirs::home_dir() else {
@@ -2648,7 +2648,7 @@ mod cli_install {
 
     #[cfg(windows)]
     fn ensure_path_persisted(install_dir: &Path) -> bool {
-        if env::var_os("CAP_NO_MODIFY_PATH").is_some() {
+        if env::var_os("SCOOPY_NO_MODIFY_PATH").is_some() {
             return false;
         }
         let dir = display_path(install_dir).replace('\'', "''");
@@ -2768,16 +2768,16 @@ mod cli_install {
         }
 
         #[test]
-        fn cap_managed_shim_detection() {
+        fn scoopy_managed_shim_detection() {
             let dir =
                 std::env::temp_dir().join(format!("scoopy-cli-test-{}", std::process::id()));
             let _ = fs::remove_dir_all(&dir);
             fs::create_dir_all(&dir).unwrap();
             let shim = dir.join(SHIM_NAME);
 
-            // A symlink to a cap-cli binary is Cap-managed even when it points
+            // A symlink to a scoopy-cli binary is Scoopy-managed even when it points
             // at a different install (the target need not exist).
-            std::os::unix::fs::symlink("/elsewhere/Cap.app/Contents/MacOS/cap-cli", &shim).unwrap();
+            std::os::unix::fs::symlink("/elsewhere/Scoopy.app/Contents/MacOS/scoopy-cli", &shim).unwrap();
             assert!(shim_is_cap_managed(&shim));
 
             // A symlink to anything else is not.

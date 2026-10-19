@@ -1,7 +1,7 @@
 //! E0 — editor dependency reconciliation, proved by rendering a real frame.
 //!
 //! This is the dependency spike for the editor units: it links the same stack
-//! the editor window will (`cap-editor` → `cap-rendering` → wgpu 25 + ffmpeg)
+//! the editor window will (`scoopy-editor` → `scoopy-rendering` → wgpu 25 + ffmpeg)
 //! and drives it end to end, headlessly, with no gpui window and no Tauri.
 //!
 //! What it exercises is the *production* seam, not a shortcut:
@@ -24,7 +24,7 @@
 //! synthesising, so pointing it at a user's library would mutate it.
 //!
 //! Run: `cargo test --test editor_frame0 -- --nocapture`
-//! Skips (rather than fails) when no studio `.cap` is available, so a checkout
+//! Skips (rather than fails) when no studio `.scoopy` is available, so a checkout
 //! without a recordings library still gets a green `cargo test`.
 
 use std::{
@@ -33,9 +33,9 @@ use std::{
     time::Duration,
 };
 
-use cap_editor::{AudioOutput, EditorFrameOutput, EditorInstance};
-use cap_project::{RecordingMeta, RecordingMetaInner, XY};
-use cap_rendering::{FrameLayout, ProjectUniforms, RenderedFrame};
+use scoopy_editor::{AudioOutput, EditorFrameOutput, EditorInstance};
+use scoopy_project::{RecordingMeta, RecordingMetaInner, XY};
+use scoopy_rendering::{FrameLayout, ProjectUniforms, RenderedFrame};
 
 /// The Tauri editor's own preview numbers, so the smoke renders at exactly the
 /// size the editor window will: `EDITOR_PREVIEW_FPS` / `EDITOR_OUTPUT_SIZE` at
@@ -56,11 +56,11 @@ fn preview_resolution_base() -> XY<u32> {
 /// test, so they take turns.
 static E0_SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
-/// A studio `.cap` to render. `CAP_GPUI_E0_PROJECT` wins; otherwise the newest
+/// A studio `.scoopy` to render. `SCOOPY_GPUI_E0_PROJECT` wins; otherwise the newest
 /// bundle on the Desktop that has a baked `screenshots/display.jpg` (i.e. one
 /// the shipping app finished normally) and parses as a studio recording.
 fn locate_project() -> Option<PathBuf> {
-    if let Some(explicit) = std::env::var_os("CAP_GPUI_E0_PROJECT") {
+    if let Some(explicit) = std::env::var_os("SCOOPY_GPUI_E0_PROJECT") {
         let path = PathBuf::from(explicit);
         return path.is_dir().then_some(path);
     }
@@ -71,7 +71,7 @@ fn locate_project() -> Option<PathBuf> {
         .filter_map(Result::ok)
         .map(|entry| entry.path())
         .filter(|path| {
-            path.extension().is_some_and(|ext| ext == "cap")
+            path.extension().is_some_and(|ext| ext == "scoopy")
                 && path.join("screenshots/display.jpg").is_file()
                 && is_studio(path)
         })
@@ -132,13 +132,13 @@ fn renders_frame_zero_of_a_real_studio_project() {
 
     let Some(source) = locate_project() else {
         eprintln!(
-            "skipping: no studio .cap with screenshots/display.jpg found \
-             (set CAP_GPUI_E0_PROJECT to point at one)"
+            "skipping: no studio .scoopy with screenshots/display.jpg found \
+             (set SCOOPY_GPUI_E0_PROJECT to point at one)"
         );
         return;
     };
 
-    let out_dir = std::env::var_os("CAP_GPUI_E0_OUT_DIR")
+    let out_dir = std::env::var_os("SCOOPY_GPUI_E0_OUT_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(env!("CARGO_TARGET_TMPDIR")));
     std::fs::create_dir_all(&out_dir).expect("create output dir");
@@ -146,9 +146,9 @@ fn renders_frame_zero_of_a_real_studio_project() {
 
     // Work on a copy: instance construction persists a synthesised timeline and
     // clip offsets into the bundle.
-    let work_dir = out_dir.join("e0-project.cap");
+    let work_dir = out_dir.join("e0-project.scoopy");
     let _ = std::fs::remove_dir_all(&work_dir);
-    copy_dir(&source, &work_dir).expect("copy .cap bundle");
+    copy_dir(&source, &work_dir).expect("copy .scoopy bundle");
 
     eprintln!("e0: source project {}", source.display());
     eprintln!("e0: working copy   {}", work_dir.display());
@@ -180,7 +180,7 @@ fn renders_frame_zero_of_a_real_studio_project() {
                     let _ = frame_tx.send((frame, layout));
                 }
             }),
-            // `None` = let cap-rendering create its own wgpu device. gpui on
+            // `None` = let scoopy-rendering create its own wgpu device. gpui on
             // macOS is Metal-direct and exposes no wgpu device to share, so
             // two GPU contexts in-process is the expected shape (the Tauri app
             // has the same two).
@@ -299,8 +299,8 @@ fn renders_frame_zero_of_a_real_studio_project() {
 #[cfg(target_os = "macos")]
 #[test]
 fn the_bgra_surface_frame_matches_the_rgba_render() {
-    use cap_editor::EditorFrameFormat;
-    use cap_rendering::SurfaceFrame;
+    use scoopy_editor::EditorFrameFormat;
+    use scoopy_rendering::SurfaceFrame;
     use cidre::cv::pixel_buffer::LockFlags;
 
     let _serial = E0_SERIAL
@@ -314,19 +314,19 @@ fn the_bgra_surface_frame_matches_the_rgba_render() {
 
     let Some(source) = locate_project() else {
         eprintln!(
-            "skipping: no studio .cap with screenshots/display.jpg found \
-             (set CAP_GPUI_E0_PROJECT to point at one)"
+            "skipping: no studio .scoopy with screenshots/display.jpg found \
+             (set SCOOPY_GPUI_E0_PROJECT to point at one)"
         );
         return;
     };
 
-    let out_dir = std::env::var_os("CAP_GPUI_E0_OUT_DIR")
+    let out_dir = std::env::var_os("SCOOPY_GPUI_E0_OUT_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(env!("CARGO_TARGET_TMPDIR")));
     std::fs::create_dir_all(&out_dir).expect("create output dir");
-    let work_dir = out_dir.join("e0-bgra-project.cap");
+    let work_dir = out_dir.join("e0-bgra-project.scoopy");
     let _ = std::fs::remove_dir_all(&work_dir);
-    copy_dir(&source, &work_dir).expect("copy .cap bundle");
+    copy_dir(&source, &work_dir).expect("copy .scoopy bundle");
 
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()

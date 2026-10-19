@@ -27,7 +27,7 @@ export const PARAKEET_DIR_MODELS = new Set(["best", "best-max"]);
 
 // Transcription can stretch a trailing word's end across a following silence,
 // which both keeps the rendered caption stuck on screen and duplicates the word
-// across timeline cuts once projected. Cap each spoken word so the projected
+// across timeline cuts once projected. Scoopy each spoken word so the projected
 // track reflects speech; this also repairs already-transcribed recordings when
 // the track is re-derived. Kept in sync with MAX_CAPTION_WORD_DURATION in the
 // Rust transcription and rendering layers.
@@ -863,14 +863,14 @@ if (import.meta.vitest) {
 	describe("deriveCaptionTrackSegments", () => {
 		const sourceSegments: CaptionSegment[] = [
 			{
-				id: "capA",
+				id: "scoopyA",
 				start: 1,
 				end: 2,
 				text: "a",
 				words: [{ text: "a", start: 1, end: 2 }],
 			},
 			{
-				id: "capB",
+				id: "scoopyB",
 				start: 6,
 				end: 7,
 				text: "b",
@@ -891,7 +891,7 @@ if (import.meta.vitest) {
 				recordings,
 			);
 
-			expect(track.map((s) => s.id)).toEqual(["capB", "capA"]);
+			expect(track.map((s) => s.id)).toEqual(["scoopyB", "scoopyA"]);
 			expect(track[0]?.start).toBeCloseTo(1);
 			expect(track[0]?.end).toBeCloseTo(2);
 			expect(track[1]?.start).toBeCloseTo(4);
@@ -905,7 +905,7 @@ if (import.meta.vitest) {
 
 			const track = deriveCaptionTrackSegments(sourceSegments, cut, recordings);
 
-			expect(track.map((s) => s.id)).toEqual(["capA"]);
+			expect(track.map((s) => s.id)).toEqual(["scoopyA"]);
 		});
 
 		it("carries style overrides across re-derivation by source id", () => {
@@ -918,7 +918,7 @@ if (import.meta.vitest) {
 				identity,
 				recordings,
 			).map((segment) =>
-				segment.id === "capA" ? { ...segment, fontSizeOverride: 42 } : segment,
+				segment.id === "scoopyA" ? { ...segment, fontSizeOverride: 42 } : segment,
 			);
 
 			const rederived = deriveCaptionTrackSegments(
@@ -928,7 +928,7 @@ if (import.meta.vitest) {
 				previous,
 			);
 
-			expect(rederived.find((s) => s.id === "capA")?.fontSizeOverride).toBe(42);
+			expect(rederived.find((s) => s.id === "scoopyA")?.fontSizeOverride).toBe(42);
 		});
 
 		it("derives the render track in hold-extended output time", () => {
@@ -952,9 +952,9 @@ if (import.meta.vitest) {
 				],
 			);
 
-			expect(track.find((s) => s.id === "capA")?.start).toBeCloseTo(1);
-			expect(track.find((s) => s.id === "capB")?.start).toBeCloseTo(8);
-			expect(track.find((s) => s.id === "capB")?.end).toBeCloseTo(9);
+			expect(track.find((s) => s.id === "scoopyA")?.start).toBeCloseTo(1);
+			expect(track.find((s) => s.id === "scoopyB")?.start).toBeCloseTo(8);
+			expect(track.find((s) => s.id === "scoopyB")?.end).toBeCloseTo(9);
 		});
 	});
 

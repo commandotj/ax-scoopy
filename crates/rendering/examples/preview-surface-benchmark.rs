@@ -19,7 +19,7 @@
 //! * paint — sampling the converted surface into a BGRA target, simulating
 //!   gpui's `draw_surfaces` fragment work.
 //!
-//! Run: `cargo run -p cap-rendering --example preview-surface-benchmark --release`
+//! Run: `cargo run -p scoopy-rendering --example preview-surface-benchmark --release`
 
 #[cfg(not(target_os = "macos"))]
 fn main() {
@@ -39,8 +39,8 @@ mod macos {
     };
     use std::time::Instant;
 
-    use cap_rendering::RgbaToBgraSurfaceConverter;
-    use cap_rendering::iosurface_texture::{
+    use scoopy_rendering::RgbaToBgraSurfaceConverter;
+    use scoopy_rendering::iosurface_texture::{
         IOSurfaceTextureCache, import_metal_texture_to_wgpu_with_usage,
     };
     use cidre::{arc, cf, cv, mtl};

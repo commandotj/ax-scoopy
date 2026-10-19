@@ -1,7 +1,7 @@
-use cap_project::{
+use scoopy_project::{
     InstantRecordingMeta, Platform, ProjectConfiguration, RecordingMeta, RecordingMetaInner,
 };
-use cap_recording::{
+use scoopy_recording::{
     CameraFeed, DoneFut, MicrophoneFeed, PipelineStoppedByUser,
     feeds::{camera, microphone},
     instant_recording,
@@ -42,10 +42,10 @@ pub struct RecordParams {
     /// Recording mode to use
     #[arg(long, value_enum, default_value_t = RecordMode::Studio)]
     mode: RecordMode,
-    /// Capture from the camera with this device id (see `cap targets cameras`)
+    /// Capture from the camera with this device id (see `scoopy targets cameras`)
     #[arg(long)]
     camera: Option<String>,
-    /// Capture from the microphone with this device name (see `cap targets mics`)
+    /// Capture from the microphone with this device name (see `scoopy targets mics`)
     #[arg(long)]
     mic: Option<String>,
     /// Whether to capture system audio
@@ -136,7 +136,7 @@ impl std::fmt::Display for RecordMode {
 pub struct RecordStart {
     #[command(flatten)]
     params: RecordParams,
-    /// Record in the background and return immediately; stop later with `cap record stop`
+    /// Record in the background and return immediately; stop later with `scoopy record stop`
     #[arg(long)]
     detach: bool,
     /// Output format for status events
@@ -144,8 +144,8 @@ pub struct RecordStart {
     format: OutputFormat,
 }
 
-/// Hidden worker entrypoint. `cap record start --detach` re-execs the binary as
-/// `cap record __session-run` so the recording outlives the parent process.
+/// Hidden worker entrypoint. `scoopy record start --detach` re-execs the binary as
+/// `scoopy record __session-run` so the recording outlives the parent process.
 #[derive(Args)]
 pub struct SessionRunArgs {
     #[command(flatten)]
@@ -156,7 +156,7 @@ pub struct SessionRunArgs {
 
 #[derive(Args)]
 pub struct RecordStopArgs {
-    /// recordingId returned by `cap record start --detach`
+    /// recordingId returned by `scoopy record start --detach`
     #[arg(long)]
     id: Option<String>,
     /// The '.scoopy' project path of the recording to stop (alternative to --id)
@@ -203,7 +203,7 @@ async fn foreground_inner(params: RecordParams, format: OutputFormat) -> Result<
     if params.duration.is_none() && !interactive {
         return Err(
             "Recording without --duration requires an interactive terminal; pass --duration <seconds>, \
-             or use `cap record start --detach` and stop it later with `cap record stop`"
+             or use `scoopy record start --detach` and stop it later with `scoopy record stop`"
                 .to_string(),
         );
     }
@@ -265,7 +265,7 @@ async fn detached_inner(params: RecordParams, format: OutputFormat) -> Result<()
     };
 
     let exe =
-        std::env::current_exe().map_err(|e| format!("Could not locate the cap executable: {e}"))?;
+        std::env::current_exe().map_err(|e| format!("Could not locate the scoopy executable: {e}"))?;
 
     let sessions_dir = session::sessions_dir()?;
     std::fs::create_dir_all(&sessions_dir)
@@ -591,7 +591,7 @@ fn resolve_session(id: Option<&str>, path: Option<&Path>) -> Result<Session, Str
         .collect();
     match active.len() {
         0 => Err(
-            "No active recording sessions. Start one with `cap record start --detach`".to_string(),
+            "No active recording sessions. Start one with `scoopy record start --detach`".to_string(),
         ),
         1 => Ok(active.remove(0)),
         _ => {
@@ -757,15 +757,15 @@ async fn start_recording(
     }
 
     if let Some(device_id) = params.camera.as_deref().filter(|_| camera_recorded) {
-        let info = cap_camera::list_cameras()
+        let info = scoopy_camera::list_cameras()
             .find(|c| c.device_id() == device_id)
             .ok_or_else(|| {
-                let available: Vec<String> = cap_camera::list_cameras()
+                let available: Vec<String> = scoopy_camera::list_cameras()
                     .map(|c| c.device_id().to_string())
                     .collect();
                 format!(
                     "Camera with id '{device_id}' not found. Available device ids: {available:?} \
-                     (see `cap targets cameras`)"
+                     (see `scoopy targets cameras`)"
                 )
             })?;
         let id = camera::DeviceOrModelID::from_info(&info);
@@ -792,7 +792,7 @@ async fn start_recording(
         if !available.contains_key(mic_name) {
             let names: Vec<&str> = available.keys().map(String::as_str).collect();
             return Err(format!(
-                "Microphone '{mic_name}' not found. Available: {names:?} (see `cap targets mics`)"
+                "Microphone '{mic_name}' not found. Available: {names:?} (see `scoopy targets mics`)"
             ));
         }
 
@@ -820,7 +820,7 @@ async fn start_recording(
 
     match params.mode {
         RecordMode::Studio => {
-            let builder = cap_recording::RecordingDefaults::default().apply_to_studio_builder(
+            let builder = scoopy_recording::RecordingDefaults::default().apply_to_studio_builder(
                 studio_builder,
                 camera_active,
                 params.fps,
@@ -846,7 +846,7 @@ async fn start_recording(
                 builder = builder.with_linux_camera_composition();
             }
             builder = builder.with_max_output_size(
-                cap_recording::RecordingDefaults::default().instant_mode_max_resolution,
+                scoopy_recording::RecordingDefaults::default().instant_mode_max_resolution,
             );
             if let Some(fps) = params.fps {
                 builder = builder.with_max_fps(fps);
@@ -854,7 +854,7 @@ async fn start_recording(
             // As in the desktop app: the screen and audio tracks both start at
             // the gate's arm time, so a microphone that is ready late does not
             // move all audio early. The CLI has no start cue to wait for.
-            let start_gate = cap_recording::RecordingStartGate::new();
+            let start_gate = scoopy_recording::RecordingStartGate::new();
             builder = builder.with_start_gate(start_gate.clone());
 
             let actor = builder
@@ -878,7 +878,7 @@ async fn start_recording(
 #[cfg(target_os = "macos")]
 async fn acquire_shareable_content_for_target(
     target: &ScreenCaptureTarget,
-) -> Result<cap_recording::SendableShareableContent, String> {
+) -> Result<scoopy_recording::SendableShareableContent, String> {
     let mut available_display_ids = Vec::new();
 
     for attempt in 0..3 {
@@ -904,30 +904,30 @@ async fn acquire_shareable_content_for_target(
 }
 
 #[cfg(target_os = "macos")]
-async fn read_shareable_content() -> Result<cap_recording::SendableShareableContent, String> {
+async fn read_shareable_content() -> Result<scoopy_recording::SendableShareableContent, String> {
     let content = cidre::sc::ShareableContent::current()
         .await
         .map_err(|e| format!("Failed to read shareable content: {e}"))?;
     if !content.displays().is_empty() {
-        return Ok(cap_recording::SendableShareableContent::from(content));
+        return Ok(scoopy_recording::SendableShareableContent::from(content));
     }
 
     let process_content = cidre::sc::ShareableContent::current_process()
         .await
         .map_err(|e| format!("Failed to read current-process shareable content: {e}"))?;
     if !process_content.displays().is_empty() {
-        return Ok(cap_recording::SendableShareableContent::from(
+        return Ok(scoopy_recording::SendableShareableContent::from(
             process_content,
         ));
     }
 
-    Ok(cap_recording::SendableShareableContent::from(content))
+    Ok(scoopy_recording::SendableShareableContent::from(content))
 }
 
 #[cfg(target_os = "macos")]
 fn shareable_content_missing_target_display(
     target: &ScreenCaptureTarget,
-    shareable_content: &cap_recording::SendableShareableContent,
+    shareable_content: &scoopy_recording::SendableShareableContent,
 ) -> bool {
     match target.display() {
         Some(display) => display
@@ -940,7 +940,7 @@ fn shareable_content_missing_target_display(
 
 #[cfg(target_os = "macos")]
 fn shareable_content_display_ids(
-    shareable_content: &cap_recording::SendableShareableContent,
+    shareable_content: &scoopy_recording::SendableShareableContent,
 ) -> Vec<String> {
     shareable_content
         .retained()
@@ -952,10 +952,10 @@ fn shareable_content_display_ids(
 
 /// Wait for the stop trigger, then finalize the recording. A panic between start and stop would
 /// otherwise drop the actor without writing recording-meta.json (`ActorHandle` has no `Drop`),
-/// leaving an unrecoverable .cap; catch it and best-effort finalize so the recording is recoverable.
+/// leaving an unrecoverable .scoopy; catch it and best-effort finalize so the recording is recoverable.
 ///
 /// Studio recordings are fragmented while recording, so a graceful stop finalizes those fragments
-/// before the `.cap` is returned.
+/// before the `.scoopy` is returned.
 async fn finalize(
     actor: ActorHandle,
     duration: Option<f64>,
@@ -1010,7 +1010,7 @@ async fn finalize_completed(
         CompletedRecording::Studio(recording) => {
             let project_path = recording.project_path.clone();
             tokio::task::spawn_blocking(move || {
-                cap_recording::recovery::RecoveryManager::remux_if_needed(&project_path)
+                scoopy_recording::recovery::RecoveryManager::remux_if_needed(&project_path)
             })
             .await
             .map_err(|e| format!("recording finalize task failed: {e}"))?
@@ -1043,14 +1043,14 @@ async fn finalize_instant_output(
     let display_dir = project_path.join("content/display");
     tokio::task::spawn_blocking(move || match completion {
         Some(completion) => {
-            cap_recording::recovery::RecoveryManager::finalize_completed_instant_output(
+            scoopy_recording::recovery::RecoveryManager::finalize_completed_instant_output(
                 &display_dir,
                 &audio_dir,
                 &output_path,
                 completion,
             )
         }
-        None => cap_recording::recovery::RecoveryManager::finalize_instant_output(
+        None => scoopy_recording::recovery::RecoveryManager::finalize_instant_output(
             &display_dir,
             &audio_dir,
             &output_path,
@@ -1177,31 +1177,31 @@ fn resolve_path(params: &RecordParams, recording_id: &str) -> Result<PathBuf, St
 
 fn resolve_target(params: &RecordParams) -> Result<ScreenCaptureTarget, String> {
     match (&params.target.screen, &params.target.window) {
-        (Some(id), _) => cap_recording::screen_capture::list_displays()
+        (Some(id), _) => scoopy_recording::screen_capture::list_displays()
             .into_iter()
             .find(|s| &s.0.id == id)
             .map(|(s, _)| ScreenCaptureTarget::Display { id: s.id })
             .ok_or_else(|| {
-                let available: Vec<String> = cap_recording::screen_capture::list_displays()
+                let available: Vec<String> = scoopy_recording::screen_capture::list_displays()
                     .into_iter()
                     .map(|(s, _)| s.id.to_string())
                     .collect();
                 format!(
                     "Screen with id '{id}' not found. Available screen ids: {available:?} \
-                     (see `cap targets screens`)"
+                     (see `scoopy targets screens`)"
                 )
             }),
-        (_, Some(id)) => cap_recording::screen_capture::list_windows()
+        (_, Some(id)) => scoopy_recording::screen_capture::list_windows()
             .into_iter()
             .find(|s| &s.0.id == id)
             .map(|(s, _)| ScreenCaptureTarget::Window { id: s.id })
             .ok_or_else(|| {
                 format!(
-                    "Window with id '{id}' not found. Run `cap targets windows` to list window ids"
+                    "Window with id '{id}' not found. Run `scoopy targets windows` to list window ids"
                 )
             }),
         _ => Err(
-            "No target specified; pass --screen <id> or --window <id> (see `cap targets`)"
+            "No target specified; pass --screen <id> or --window <id> (see `scoopy targets`)"
                 .to_string(),
         ),
     }
@@ -1324,7 +1324,7 @@ mod tests {
             let project = root
                 .path()
                 .join("nested")
-                .join(format!("{required_audio}.cap"));
+                .join(format!("{required_audio}.scoopy"));
             let _ownership =
                 prepare_recording_project(&project, RecordMode::Instant, required_audio).unwrap();
 
@@ -1349,7 +1349,7 @@ mod tests {
     fn recording_project_reservation_preserves_existing_recording_bytes_in_both_modes() {
         let root = tempfile::tempdir().unwrap();
         for mode in [RecordMode::Studio, RecordMode::Instant] {
-            let project = root.path().join(format!("{mode}.cap"));
+            let project = root.path().join(format!("{mode}.scoopy"));
             let _ownership =
                 prepare_recording_project(&project, RecordMode::Instant, false).unwrap();
             let mut meta = RecordingMeta::load_for_project(&project).unwrap();
@@ -1378,7 +1378,7 @@ mod tests {
     #[test]
     fn studio_project_is_reserved_before_engine_initialization() {
         let root = tempfile::tempdir().unwrap();
-        let project = root.path().join("nested/recording.cap");
+        let project = root.path().join("nested/recording.scoopy");
         assert!(
             prepare_recording_project(&project, RecordMode::Studio, true)
                 .unwrap()
@@ -1391,7 +1391,7 @@ mod tests {
     #[test]
     fn recording_project_reservation_rejects_existing_empty_directory_and_file() {
         let root = tempfile::tempdir().unwrap();
-        let directory = root.path().join("empty.cap");
+        let directory = root.path().join("empty.scoopy");
         std::fs::create_dir(&directory).unwrap();
         for mode in [RecordMode::Studio, RecordMode::Instant] {
             assert!(prepare_recording_project(&directory, mode, false).is_err());
@@ -1399,7 +1399,7 @@ mod tests {
         }
         assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 0);
 
-        let file = root.path().join("file.cap");
+        let file = root.path().join("file.scoopy");
         std::fs::write(&file, b"preserve this file").unwrap();
         for mode in [RecordMode::Studio, RecordMode::Instant] {
             assert!(prepare_recording_project(&file, mode, false).is_err());
@@ -1417,7 +1417,7 @@ mod tests {
                 std::fs::create_dir(&target).unwrap();
                 std::fs::write(target.join("original"), b"original media").unwrap();
             }
-            let project = root.path().join(format!("link-{dangling}.cap"));
+            let project = root.path().join(format!("link-{dangling}.scoopy"));
             std::os::unix::fs::symlink(&target, &project).unwrap();
 
             for mode in [RecordMode::Studio, RecordMode::Instant] {
@@ -1439,7 +1439,7 @@ mod tests {
     #[test]
     fn concurrent_instant_project_reservations_have_one_owner() {
         let root = tempfile::tempdir().unwrap();
-        let project = root.path().join("recording.cap");
+        let project = root.path().join("recording.scoopy");
         let barrier = Arc::new(std::sync::Barrier::new(8));
         let handles: Vec<_> = (0..8)
             .map(|_| {
@@ -1469,7 +1469,7 @@ mod tests {
     #[test]
     fn incomplete_instant_project_never_validates_as_stopped_with_existing_output() {
         let root = tempfile::tempdir().unwrap();
-        let project = root.path().join("recording.cap");
+        let project = root.path().join("recording.scoopy");
         let _ownership = prepare_recording_project(&project, RecordMode::Instant, false).unwrap();
         std::fs::write(project.join("content/output.mp4"), b"unvalidated media").unwrap();
         let mut meta = RecordingMeta::load_for_project(&project).unwrap();
@@ -1489,14 +1489,14 @@ mod tests {
     #[test]
     fn live_instant_project_excludes_repair_until_ownership_is_released() {
         let root = tempfile::tempdir().unwrap();
-        let project = root.path().join("recording.cap");
+        let project = root.path().join("recording.scoopy");
         let ownership = prepare_recording_project(&project, RecordMode::Instant, false)
             .unwrap()
             .unwrap();
         assert!(RecordingMeta::load_for_project(&project).is_ok());
         assert!(matches!(
             UploadLock::acquire(&project),
-            Err(cap_recording::upload_resume::UploadLockError::Busy)
+            Err(scoopy_recording::upload_resume::UploadLockError::Busy)
         ));
 
         drop(ownership);
@@ -1585,7 +1585,7 @@ mod tests {
             Session {
                 recording_id: "abc".to_string(),
                 pid: 123,
-                path: PathBuf::from("recording.cap"),
+                path: PathBuf::from("recording.scoopy"),
                 status: SessionStatus::Recording,
                 started_at: Some(1),
                 recording_meta_exists: None,

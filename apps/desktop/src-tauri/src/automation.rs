@@ -1,9 +1,9 @@
-use cap_automation::{
+use scoopy_automation::{
     AutomationExportCompression, AutomationHost, AutomationRecordingMode, AutomationsStore,
     Capability, CaptureTargetKind, ClipboardSource, ExportDestination, ExportFormat, ExportProfile,
     Trigger, TriggerContext, sanitize_filename_component,
 };
-use cap_recording::sources::screen_capture::ScreenCaptureTarget;
+use scoopy_recording::sources::screen_capture::ScreenCaptureTarget;
 #[cfg(not(target_os = "linux"))]
 use clipboard_rs::Clipboard;
 use clipboard_rs::common::RustImage;
@@ -193,7 +193,7 @@ impl AutomationHost for DesktopAutomationHost {
             }
         };
 
-        let mut builder = cap_export::ExporterBase::builder(project_path.clone());
+        let mut builder = scoopy_export::ExporterBase::builder(project_path.clone());
 
         if let Some(ref out) = output_path {
             builder = builder.with_output_path(out.clone());
@@ -332,7 +332,7 @@ impl AutomationHost for DesktopAutomationHost {
         info!(program, "Automation: running command");
 
         let mut cmd = if use_shell {
-            let shell_line = cap_automation::shell_command_line(program, args);
+            let shell_line = scoopy_automation::shell_command_line(program, args);
 
             #[cfg(target_os = "windows")]
             let mut c = tokio::process::Command::new("cmd");
@@ -360,16 +360,16 @@ impl AutomationHost for DesktopAutomationHost {
         }
 
         if let Some(ref p) = ctx.project_path {
-            cmd.env("CAP_PROJECT_PATH", p);
+            cmd.env("SCOOPY_PROJECT_PATH", p);
         }
         if let Some(ref p) = ctx.image_path {
-            cmd.env("CAP_IMAGE_PATH", p);
+            cmd.env("SCOOPY_IMAGE_PATH", p);
         }
         if let Some(ref p) = ctx.output_path {
-            cmd.env("CAP_OUTPUT_PATH", p);
+            cmd.env("SCOOPY_OUTPUT_PATH", p);
         }
         if let Some(ref l) = ctx.share_link {
-            cmd.env("CAP_SHARE_LINK", l);
+            cmd.env("SCOOPY_SHARE_LINK", l);
         }
 
         // Kill the child if the timeout drops the future, so a hung command can't outlive the run.
@@ -495,7 +495,7 @@ impl AutomationHost for DesktopAutomationHost {
 
     async fn open_editor(&self, ctx: &TriggerContext) -> Result<(), String> {
         if let Some(image_path) = ctx.image_path.as_ref() {
-            let _ = crate::windows::ShowCapWindow::ScreenshotEditor {
+            let _ = crate::windows::ShowScoopyWindow::ScreenshotEditor {
                 path: image_path.clone(),
             }
             .show(&self.app)
@@ -508,7 +508,7 @@ impl AutomationHost for DesktopAutomationHost {
             .as_ref()
             .ok_or("No project path for editor")?;
 
-        let _ = crate::windows::ShowCapWindow::Editor {
+        let _ = crate::windows::ShowScoopyWindow::Editor {
             project_path: path.clone(),
         }
         .show(&self.app)
@@ -528,7 +528,7 @@ impl AutomationHost for DesktopAutomationHost {
 
         info!(preset = name, project = %project_path.display(), "Automation: applying preset");
 
-        let existing_timeline = cap_project::ProjectConfiguration::load(project_path)
+        let existing_timeline = scoopy_project::ProjectConfiguration::load(project_path)
             .ok()
             .and_then(|c| c.timeline);
 
@@ -595,16 +595,16 @@ fn build_desktop_export_settings(profile: &ExportProfile) -> crate::export::Expo
     let compression = profile
         .compression
         .map(|c| match c {
-            AutomationExportCompression::Maximum => cap_export::mp4::ExportCompression::Maximum,
-            AutomationExportCompression::Social => cap_export::mp4::ExportCompression::Social,
-            AutomationExportCompression::Web => cap_export::mp4::ExportCompression::Web,
-            AutomationExportCompression::Potato => cap_export::mp4::ExportCompression::Potato,
+            AutomationExportCompression::Maximum => scoopy_export::mp4::ExportCompression::Maximum,
+            AutomationExportCompression::Social => scoopy_export::mp4::ExportCompression::Social,
+            AutomationExportCompression::Web => scoopy_export::mp4::ExportCompression::Web,
+            AutomationExportCompression::Potato => scoopy_export::mp4::ExportCompression::Potato,
         })
-        .unwrap_or(cap_export::mp4::ExportCompression::Web);
+        .unwrap_or(scoopy_export::mp4::ExportCompression::Web);
 
     match profile.format {
         ExportFormat::Mp4 => {
-            crate::export::ExportSettings::Mp4(cap_export::mp4::Mp4ExportSettings {
+            crate::export::ExportSettings::Mp4(scoopy_export::mp4::Mp4ExportSettings {
                 fps: profile.fps,
                 resolution_base: profile.resolution_base,
                 compression,
@@ -614,14 +614,14 @@ fn build_desktop_export_settings(profile: &ExportProfile) -> crate::export::Expo
             })
         }
         ExportFormat::Gif => {
-            crate::export::ExportSettings::Gif(cap_export::gif::GifExportSettings {
+            crate::export::ExportSettings::Gif(scoopy_export::gif::GifExportSettings {
                 fps: profile.fps,
                 resolution_base: profile.resolution_base,
                 quality: None,
             })
         }
         ExportFormat::Mov => {
-            crate::export::ExportSettings::Mov(cap_export::mov::MovExportSettings {
+            crate::export::ExportSettings::Mov(scoopy_export::mov::MovExportSettings {
                 fps: profile.fps,
                 resolution_base: profile.resolution_base,
                 cursor_only: false,
@@ -694,7 +694,7 @@ pub async fn run_trigger(app: &AppHandle, trigger: Trigger, ctx: TriggerContext)
         return;
     };
 
-    let results = cap_automation::run(&host, &store, &trigger, &ctx).await;
+    let results = scoopy_automation::run(&host, &store, &trigger, &ctx).await;
     for result in &results {
         for action in &result.action_results {
             if let Some(error) = &action.error {
@@ -726,7 +726,7 @@ pub fn should_open_screenshot_editor(app: &AppHandle, target: &ScreenCaptureTarg
         ctx = ctx.with_window_title(title);
     }
 
-    !cap_automation::has_skip_editor(&store, &Trigger::ScreenshotTaken, &ctx)
+    !scoopy_automation::has_skip_editor(&store, &Trigger::ScreenshotTaken, &ctx)
 }
 
 // `None` means a matching `SkipEditor` rule asked for a headless flow, so the caller must suppress
@@ -749,9 +749,9 @@ pub fn studio_recording_editor_behaviour(
         ctx = ctx.with_duration(duration_secs);
     }
 
-    if cap_automation::has_skip_editor(&store, &Trigger::StudioRecordingFinished, &ctx) {
+    if scoopy_automation::has_skip_editor(&store, &Trigger::StudioRecordingFinished, &ctx) {
         None
-    } else if cap_automation::has_open_editor(&store, &Trigger::StudioRecordingFinished, &ctx) {
+    } else if scoopy_automation::has_open_editor(&store, &Trigger::StudioRecordingFinished, &ctx) {
         Some(PostStudioRecordingBehaviour::OpenEditor)
     } else {
         Some(default)
@@ -980,13 +980,13 @@ mod tests {
     #[test]
     fn rendered_screenshot_uses_project_instead_of_raw_capture() {
         let ctx = TriggerContext::new()
-            .with_project_path(PathBuf::from("capture.cap"))
-            .with_image_path(PathBuf::from("capture.cap/original.png"));
+            .with_project_path(PathBuf::from("capture.scoopy"))
+            .with_image_path(PathBuf::from("capture.scoopy/original.png"));
 
         assert_eq!(
             resolve_clipboard_image_source(&ctx, ClipboardSource::Rendered),
             Ok(ClipboardImageSource::ScreenshotProject(PathBuf::from(
-                "capture.cap"
+                "capture.scoopy"
             )))
         );
     }
@@ -994,8 +994,8 @@ mod tests {
     #[test]
     fn rendered_output_takes_priority_over_screenshot_project() {
         let ctx = TriggerContext::new()
-            .with_project_path(PathBuf::from("capture.cap"))
-            .with_image_path(PathBuf::from("capture.cap/original.png"))
+            .with_project_path(PathBuf::from("capture.scoopy"))
+            .with_image_path(PathBuf::from("capture.scoopy/original.png"))
             .with_output_path(PathBuf::from("capture-rendered.png"));
 
         assert_eq!(
@@ -1009,13 +1009,13 @@ mod tests {
     #[test]
     fn raw_screenshot_keeps_original_capture() {
         let ctx = TriggerContext::new()
-            .with_project_path(PathBuf::from("capture.cap"))
-            .with_image_path(PathBuf::from("capture.cap/original.png"));
+            .with_project_path(PathBuf::from("capture.scoopy"))
+            .with_image_path(PathBuf::from("capture.scoopy/original.png"));
 
         assert_eq!(
             resolve_clipboard_image_source(&ctx, ClipboardSource::Raw),
             Ok(ClipboardImageSource::File(PathBuf::from(
-                "capture.cap/original.png"
+                "capture.scoopy/original.png"
             )))
         );
     }

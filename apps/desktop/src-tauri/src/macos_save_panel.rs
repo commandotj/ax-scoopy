@@ -28,7 +28,7 @@ pub fn show(
         return;
     };
 
-    // AppKit can return nil here even when the bundle signature is valid (Cap #2163).
+    // AppKit can return nil here even when the bundle signature is valid (Scoopy #2163).
     let panel: Option<Retained<NSSavePanel>> =
         unsafe { msg_send![NSSavePanel::class(), savePanel] };
     let Some(panel) = panel else {

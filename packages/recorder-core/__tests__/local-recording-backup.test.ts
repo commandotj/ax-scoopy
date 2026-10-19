@@ -2,7 +2,7 @@ import {
 	appendLocalRecordingChunk,
 	finalizeLocalRecording,
 	initialLocalRecordingState,
-} from "@cap/recorder-core/local-recording-backup";
+} from "@scoopy/recorder-core/local-recording-backup";
 import { describe, expect, it } from "vitest";
 
 const makeBlob = (size: number, type = "video/webm;codecs=vp9,opus") =>

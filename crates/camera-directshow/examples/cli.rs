@@ -7,7 +7,7 @@ fn main() {
 
 #[cfg(windows)]
 mod windows {
-    use cap_camera_directshow::*;
+    use scoopy_camera_directshow::*;
     use std::{fmt::Display, time::Duration};
     use tracing::error;
     use windows::{

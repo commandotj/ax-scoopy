@@ -46,7 +46,7 @@ pub fn fitted_dimensions(width: u32, height: u32, max: (u32, u32)) -> Option<(u3
 pub struct PortableCameraBlur {
     device: wgpu::Device,
     queue: wgpu::Queue,
-    processor: cap_camera_effects::BlurProcessor,
+    processor: scoopy_camera_effects::BlurProcessor,
     source: Option<wgpu::Texture>,
     readback: Option<wgpu::Buffer>,
     dimensions: Option<(u32, u32)>,
@@ -61,11 +61,11 @@ impl PortableCameraBlur {
             .build()
             .context("camera blur runtime")?;
         let (device, queue) = runtime.block_on(async {
-            let instance = cap_rendering::create_wgpu_instance_sync();
+            let instance = scoopy_rendering::create_wgpu_instance_sync();
             let adapter = instance
                 .request_adapter(&wgpu::RequestAdapterOptions {
                     power_preference: wgpu::PowerPreference::LowPower,
-                    force_fallback_adapter: cap_rendering::force_software_wgpu_adapter(),
+                    force_fallback_adapter: scoopy_rendering::force_software_wgpu_adapter(),
                     compatible_surface: None,
                 })
                 .await
@@ -83,7 +83,7 @@ impl PortableCameraBlur {
                 .map_err(|error| anyhow!("camera blur device: {error}"))
         })?;
         let mut processor =
-            cap_camera_effects::BlurProcessor::new(&device, wgpu::TextureFormat::Rgba8Unorm)
+            scoopy_camera_effects::BlurProcessor::new(&device, wgpu::TextureFormat::Rgba8Unorm)
                 .context("camera blur processor")?;
         processor.set_inference_interval(INFERENCE_INTERVAL);
 
@@ -103,7 +103,7 @@ impl PortableCameraBlur {
         &mut self,
         image: &gpui::RenderImage,
         dimensions: (usize, usize),
-        mode: cap_camera_effects::BlurMode,
+        mode: scoopy_camera_effects::BlurMode,
     ) -> anyhow::Result<Arc<gpui::RenderImage>> {
         self.process_with_status(image, dimensions, mode)
             .map(|(image, _)| image)
@@ -113,8 +113,8 @@ impl PortableCameraBlur {
         &mut self,
         image: &gpui::RenderImage,
         dimensions: (usize, usize),
-        mode: cap_camera_effects::BlurMode,
-    ) -> anyhow::Result<(Arc<gpui::RenderImage>, cap_camera_effects::BlurOutputStatus)> {
+        mode: scoopy_camera_effects::BlurMode,
+    ) -> anyhow::Result<(Arc<gpui::RenderImage>, scoopy_camera_effects::BlurOutputStatus)> {
         let width = u32::try_from(dimensions.0).context("camera frame width")?;
         let height = u32::try_from(dimensions.1).context("camera frame height")?;
         let row_bytes = width.checked_mul(4).context("camera frame row size")?;
@@ -130,7 +130,7 @@ impl PortableCameraBlur {
         }
 
         self.ensure_resources(width, height)?;
-        cap_gpui_kernels::frame::swap_red_blue_into(bgra, &mut self.rgba);
+        scoopy_gpui_kernels::frame::swap_red_blue_into(bgra, &mut self.rgba);
 
         let source = self.source.as_ref().context("camera blur source missing")?;
         self.queue.write_texture(
@@ -207,7 +207,7 @@ impl PortableCameraBlur {
 
         let pixels = {
             let mapped = readback.slice(..).get_mapped_range();
-            cap_gpui_kernels::frame::unpad_rgba_to_bgra(
+            scoopy_gpui_kernels::frame::unpad_rgba_to_bgra(
                 &mapped,
                 width as usize,
                 self.padded_bytes_per_row as usize,
@@ -297,7 +297,7 @@ mod tests {
     #[test]
     fn portable_blur_processes_bgra_frames_without_changing_dimensions() {
         #[cfg(not(target_os = "macos"))]
-        if std::env::var_os("CAP_GPUI_TEST_PORTABLE_BLUR").is_none() {
+        if std::env::var_os("SCOOPY_GPUI_TEST_PORTABLE_BLUR").is_none() {
             return;
         }
 
@@ -311,10 +311,10 @@ mod tests {
         let input = gpui::RenderImage::new(smallvec::smallvec![image::Frame::new(image)]);
         let mut processor = PortableCameraBlur::new().expect("portable camera blur initialized");
         let (output, status) = processor
-            .process_with_status(&input, (64, 32), cap_camera_effects::BlurMode::Heavy)
+            .process_with_status(&input, (64, 32), scoopy_camera_effects::BlurMode::Heavy)
             .expect("portable camera blur processed a frame");
 
-        assert_eq!(status.mode, cap_camera_effects::BlurMode::Heavy);
+        assert_eq!(status.mode, scoopy_camera_effects::BlurMode::Heavy);
         assert_eq!(status.output_sequence, 1);
         assert_eq!(status.output_dimensions, (64, 32));
         assert_eq!(output.size(0).width.0, 64);
@@ -330,7 +330,7 @@ mod tests {
 
         let staging = processor.rgba.as_ptr();
         processor
-            .process(&input, (64, 32), cap_camera_effects::BlurMode::Light)
+            .process(&input, (64, 32), scoopy_camera_effects::BlurMode::Light)
             .expect("portable camera blur reuses GPU resources");
         assert_eq!(processor.rgba.as_ptr(), staging);
         assert_eq!(processor.dimensions, Some((64, 32)));
@@ -340,7 +340,7 @@ mod tests {
         let started = std::time::Instant::now();
         for _ in 0..12 {
             let output = processor
-                .process(&preview, (640, 360), cap_camera_effects::BlurMode::Heavy)
+                .process(&preview, (640, 360), scoopy_camera_effects::BlurMode::Heavy)
                 .expect("portable camera blur processed a full-size preview frame");
             assert_eq!(output.as_bytes(0).unwrap().len(), 640 * 360 * 4);
         }
@@ -358,16 +358,16 @@ mod tests {
     #[cfg(target_os = "macos")]
     #[test]
     fn portable_blur_processes_real_webcam_frames_when_requested() {
-        if std::env::var_os("CAP_GPUI_TEST_REAL_CAMERA").is_none() {
+        if std::env::var_os("SCOOPY_GPUI_TEST_REAL_CAMERA").is_none() {
             return;
         }
 
-        use cap_recording::feeds::camera::{
+        use scoopy_recording::feeds::camera::{
             AddSender, CameraFeed, DeviceOrModelID, RemoveInput, SetInput,
         };
         use kameo::Actor as _;
 
-        let camera = cap_camera::list_cameras().next().expect("connected webcam");
+        let camera = scoopy_camera::list_cameras().next().expect("connected webcam");
         let camera_name = camera.display_name().to_string();
         let camera_id = DeviceOrModelID::from_info(&camera);
         let mut processor = PortableCameraBlur::new().expect("portable camera blur initialized");
@@ -407,7 +407,7 @@ mod tests {
                 assert!(dimensions.0 <= MAX_DIMS.0 as usize);
                 assert!(dimensions.1 <= MAX_DIMS.1 as usize);
                 let blurred = processor
-                    .process(&preview, dimensions, cap_camera_effects::BlurMode::Heavy)
+                    .process(&preview, dimensions, scoopy_camera_effects::BlurMode::Heavy)
                     .expect("real camera frame blurred");
                 assert_eq!(blurred.as_bytes(0).unwrap().len(), dimensions.0 * dimensions.1 * 4);
                 frames += 1;

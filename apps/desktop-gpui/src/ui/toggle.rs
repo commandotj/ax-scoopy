@@ -1,6 +1,6 @@
 //! `Toggle` -- `apps/desktop/src/components/Toggle.tsx`, a Kobalte `Switch`.
 //!
-//! The `.cap-toggle` / `.cap-toggle-thumb` class names exist in the Solid app
+//! The `.scoopy-toggle` / `.scoopy-toggle-thumb` class names exist in the Solid app
 //! *solely* so the macOS material layer can re-skin the track, which is why
 //! this has one constructor per surface rather than one palette.
 
@@ -73,7 +73,7 @@ impl Toggle {
     }
 
     /// The settings window: `[data-macos-native-material="settings"]
-    /// .cap-toggle { background: var(--macos-settings-control-fill) }`, checked
+    /// .scoopy-toggle { background: var(--macos-settings-control-fill) }`, checked
     /// `var(--macos-settings-accent)`. The `inset 0 1px 2px rgba(0,0,0,.16)`
     /// bevel the same rule adds has no gpui equivalent (README deviation).
     pub fn settings(theme: &Theme, id: impl Into<ElementId>, checked: bool) -> Self {

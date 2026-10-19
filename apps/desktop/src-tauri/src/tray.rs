@@ -2,11 +2,11 @@ use crate::{
     NewScreenshotAdded, NewStudioRecordingAdded, RecordingStarted, RecordingStopped,
     RequestOpenSettings, recording,
     recording_settings::{RecordingSettingsStore, RecordingTargetMode},
-    windows::ShowCapWindow,
+    windows::ShowScoopyWindow,
 };
-use cap_recording::RecordingMode;
+use scoopy_recording::RecordingMode;
 
-use cap_project::{RecordingMeta, RecordingMetaInner};
+use scoopy_project::{RecordingMeta, RecordingMetaInner};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{
     path::PathBuf,
@@ -42,23 +42,23 @@ enum LinuxTrayIcon {
 impl LinuxTrayIcon {
     fn name(self) -> &'static str {
         match self {
-            Self::Instant => "so.cap.desktop-tray-instant-symbolic",
-            Self::Screenshot => "so.cap.desktop-tray-screenshot-symbolic",
-            Self::Studio => "so.cap.desktop-tray-studio-symbolic",
-            Self::Stop => "so.cap.desktop-tray-stop-symbolic",
+            Self::Instant => "me.systembug.scoopy-tray-instant-symbolic",
+            Self::Screenshot => "me.systembug.scoopy-tray-screenshot-symbolic",
+            Self::Studio => "me.systembug.scoopy-tray-studio-symbolic",
+            Self::Stop => "me.systembug.scoopy-tray-stop-symbolic",
         }
     }
 
     fn svg(self) -> &'static str {
         match self {
             Self::Instant => {
-                include_str!("../icons/linux/so.cap.desktop-tray-instant-symbolic.svg")
+                include_str!("../icons/linux/me.systembug.scoopy-tray-instant-symbolic.svg")
             }
             Self::Screenshot => {
-                include_str!("../icons/linux/so.cap.desktop-tray-screenshot-symbolic.svg")
+                include_str!("../icons/linux/me.systembug.scoopy-tray-screenshot-symbolic.svg")
             }
-            Self::Studio => include_str!("../icons/linux/so.cap.desktop-tray-studio-symbolic.svg"),
-            Self::Stop => include_str!("../icons/linux/so.cap.desktop-tray-stop-symbolic.svg"),
+            Self::Studio => include_str!("../icons/linux/me.systembug.scoopy-tray-studio-symbolic.svg"),
+            Self::Stop => include_str!("../icons/linux/me.systembug.scoopy-tray-stop-symbolic.svg"),
         }
     }
 }
@@ -246,7 +246,7 @@ fn load_single_item(
     }
 
     let meta = RecordingMeta::load_for_project(path).ok()?;
-    let is_screenshot = path.extension().and_then(|s| s.to_str()) == Some("cap")
+    let is_screenshot = path.extension().and_then(|s| s.to_str()) == Some("scoopy")
         && path.parent().map(|p| p == screenshots_dir).unwrap_or(false);
 
     let (thumbnail_path, item_type) = if is_screenshot {
@@ -306,7 +306,7 @@ fn load_all_previous_items(app: &AppHandle, load_thumbnails: bool) -> Vec<Cached
     {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("cap") {
+            if path.extension().and_then(|s| s.to_str()) == Some("scoopy") {
                 paths.push(path);
             }
         }
@@ -659,14 +659,14 @@ fn handle_previous_item_click(app: &AppHandle, path_str: &str) {
     let path = PathBuf::from(path_str);
 
     let screenshots_dir = screenshots_path(app);
-    let is_screenshot = path.extension().and_then(|s| s.to_str()) == Some("cap")
+    let is_screenshot = path.extension().and_then(|s| s.to_str()) == Some("scoopy")
         && path.parent().map(|p| p == screenshots_dir).unwrap_or(false);
 
     if is_screenshot {
         let app = app.clone();
         let screenshot_path = path;
         tokio::spawn(async move {
-            let _ = ShowCapWindow::ScreenshotEditor {
+            let _ = ShowScoopyWindow::ScreenshotEditor {
                 path: screenshot_path,
             }
             .show(&app)
@@ -688,7 +688,7 @@ fn handle_previous_item_click(app: &AppHandle, path_str: &str) {
             let app = app.clone();
             let project_path = path.clone();
             tokio::spawn(async move {
-                let _ = ShowCapWindow::Editor { project_path }.show(&app).await;
+                let _ = ShowScoopyWindow::Editor { project_path }.show(&app).await;
             });
         }
         RecordingMetaInner::Instant(_) => {
@@ -734,7 +734,7 @@ fn linux_tray_icon_for_mode(mode: RecordingMode) -> LinuxTrayIcon {
 fn write_linux_tray_symbolic_icon(icon: LinuxTrayIcon) -> std::io::Result<PathBuf> {
     let dir = dirs::runtime_dir()
         .unwrap_or_else(std::env::temp_dir)
-        .join("cap-tray-icons");
+        .join("scoopy-tray-icons");
     std::fs::create_dir_all(&dir)?;
 
     let path = dir.join(format!("{}.svg", icon.name()));
@@ -845,7 +845,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 Ok(TrayItem::OpenCap) => {
                     let app = app.clone();
                     tauri::async_runtime::spawn(async move {
-                        let _ = ShowCapWindow::Main {
+                        let _ = ShowScoopyWindow::Main {
                             init_target_mode: None,
                         }
                         .show(&app)
@@ -873,7 +873,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 Ok(TrayItem::TakeScreenshot) => {
                     let app = app.clone();
                     tokio::spawn(async move {
-                        use cap_recording::screen_capture::ScreenCaptureTarget;
+                        use scoopy_recording::screen_capture::ScreenCaptureTarget;
                         use scap_targets::Display;
 
                         let display =
@@ -884,7 +884,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                             Ok(path) => {
                                 if crate::automation::should_open_screenshot_editor(&app, &target) {
                                     let _ =
-                                        ShowCapWindow::ScreenshotEditor { path }.show(&app).await;
+                                        ShowScoopyWindow::ScreenshotEditor { path }.show(&app).await;
                                 }
                             }
                             Err(e) => {
@@ -929,7 +929,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                                 match crate::import::start_video_import(app.clone(), path).await {
                                     Ok(project_path) => {
                                         let _ =
-                                            ShowCapWindow::Editor { project_path }.show(&app).await;
+                                            ShowScoopyWindow::Editor { project_path }.show(&app).await;
                                     }
                                     Err(e) => {
                                         tracing::error!("Failed to import video: {e}");
@@ -943,7 +943,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                             } else if crate::import::is_supported_image_import_path(&path) {
                                 match crate::import::start_image_import(app.clone(), path).await {
                                     Ok(path) => {
-                                        let _ = ShowCapWindow::ScreenshotEditor { path }
+                                        let _ = ShowScoopyWindow::ScreenshotEditor { path }
                                             .show(&app)
                                             .await;
                                     }
@@ -982,7 +982,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 Ok(TrayItem::OpenSettings) => {
                     let app = app.clone();
                     tokio::spawn(
-                        async move { ShowCapWindow::Settings { page: None }.show(&app).await },
+                        async move { ShowScoopyWindow::Settings { page: None }.show(&app).await },
                     );
                 }
                 Ok(TrayItem::UploadLogs) => {
@@ -1023,7 +1023,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 Ok(TrayItem::RequestPermissions) => {
                     let app = app.clone();
                     tokio::spawn(async move {
-                        let _ = ShowCapWindow::Onboarding.show(&app).await;
+                        let _ = ShowScoopyWindow::Onboarding.show(&app).await;
                     });
                 }
                 _ => {}
@@ -1157,12 +1157,12 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
 }
 
 #[cfg(target_os = "linux")]
-pub(crate) fn clean_stop_icon() -> Result<cap_utils::linux_recording_stop::StopTrayIcon, String> {
+pub(crate) fn clean_stop_icon() -> Result<scoopy_utils::linux_recording_stop::StopTrayIcon, String> {
     let image = image::load_from_memory(include_bytes!("../icons/tray-stop-icon.png"))
         .map_err(|error| error.to_string())?
         .resize_exact(32, 32, image::imageops::FilterType::Triangle)
         .into_rgba8();
-    cap_utils::linux_recording_stop::StopTrayIcon::from_rgba(32, 32, image.as_raw())
+    scoopy_utils::linux_recording_stop::StopTrayIcon::from_rgba(32, 32, image.as_raw())
 }
 
 #[cfg(test)]
@@ -1174,7 +1174,7 @@ mod startup_history_tests {
         let directory = tempfile::tempdir().unwrap();
         let paths = (0..100)
             .map(|index| {
-                let path = directory.path().join(format!("{index}.cap"));
+                let path = directory.path().join(format!("{index}.scoopy"));
                 std::fs::create_dir(&path).unwrap();
                 path
             })

@@ -219,7 +219,7 @@ export function ThreeDTrack(props: {
 			}}
 		>
 			<Show when={!hasCamera3DSegments()}>
-				<div class="cap-empty-lane relative z-1 isolate pointer-events-auto">
+				<div class="scoopy-empty-lane relative z-1 isolate pointer-events-auto">
 					<Show
 						when={pickerOpen()}
 						fallback={
@@ -231,14 +231,14 @@ export function ThreeDTrack(props: {
 								>
 									<button
 										type="button"
-										class="cap-lane-chip outline-hidden"
+										class="scoopy-lane-chip outline-hidden"
 										onClick={() => setPickerOpen(true)}
 									>
 										Auto scene
 									</button>
 									<button
 										type="button"
-										class="cap-lane-chip cap-lane-chip-ghost outline-hidden"
+										class="scoopy-lane-chip scoopy-lane-chip-ghost outline-hidden"
 										onClick={() => projectActions.addCamera3DShot()}
 									>
 										+ Add shot
@@ -267,7 +267,7 @@ export function ThreeDTrack(props: {
 							</button>
 							<button
 								type="button"
-								class="ml-1 cap-lane-chip cap-lane-chip-ghost outline-hidden"
+								class="ml-1 scoopy-lane-chip scoopy-lane-chip-ghost outline-hidden"
 								onClick={() => projectActions.addCamera3DShot()}
 							>
 								+ Add shot
@@ -569,24 +569,24 @@ export function ThreeDTrack(props: {
 									return (
 										<SegmentLabel
 											full={() => (
-												<div class="cap-seg-labels animate-in fade-in">
-													<span class="cap-seg-label truncate">
+												<div class="scoopy-seg-labels animate-in fade-in">
+													<span class="scoopy-seg-label truncate">
 														{visibleBox().width >= 140
 															? shotLabel()
 															: shotLabel().split(" ")[0]}
 													</span>
-													<span class="cap-seg-sublabel">{shotDuration()}</span>
+													<span class="scoopy-seg-sublabel">{shotDuration()}</span>
 												</div>
 											)}
 											compact={() => (
-												<div class="cap-seg-labels">
-													<span class="cap-seg-label">
+												<div class="scoopy-seg-labels">
+													<span class="scoopy-seg-label">
 														{shotLabel().split(" ")[0]}
 													</span>
 												</div>
 											)}
 											glyph={() => (
-												<div class="cap-seg-label flex justify-center items-center">
+												<div class="scoopy-seg-label flex justify-center items-center">
 													<IconLucideRotate3d class="size-3.5" />
 												</div>
 											)}
@@ -660,7 +660,7 @@ export function ThreeDTrack(props: {
 												end ? "Edit the end pose" : "Edit the start pose"
 											}
 											title={end ? "End pose" : "Start pose"}
-											class="cap-pose-dot"
+											class="scoopy-pose-dot"
 											data-active={
 												(editorState.timeline.camera3dPose === "end") === end
 											}
@@ -716,7 +716,7 @@ function AddShotGhost(props: {
 
 	return (
 		<div
-			class="cap-add-shot-ghost"
+			class="scoopy-add-shot-ghost"
 			style={{
 				transform: `translateX(${translateX()}px)`,
 				width: `${width()}px`,

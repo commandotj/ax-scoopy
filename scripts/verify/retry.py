@@ -7,13 +7,13 @@ failed, and the failure is one that wall-clock timing can cause:
 
 - every case it failed is `inconclusive` (a wall-clock class such as
   real-time playback `dropped`, under a sentinel wake gap of 100 ms or more
-  during that case, judged in cap_verify::report::settle), or
+  during that case, judged in scoopy_verify::report::settle), or
 - nextest killed it at its timeout and its sentinel log shows the process
   stalled for at least STALLED_MS in total (wake gaps of 100 ms or more) in
   the TIMEOUT_WINDOW_SECS before it was killed, or
 - it panicked in wgpu-core's queue drop ("We timed out while waiting on the
   last successful submission", a 6.3 s limit) or on a lost GPU device
-  ("Device with 'cap-rendering-device' label is invalid") and its sentinel
+  ("Device with 'scoopy-rendering-device' label is invalid") and its sentinel
   log shows such stalls in the PANIC_WINDOW_SECS before the panic.
 
 A gap anywhere else in a test's life is not evidence (an intermittent hang
@@ -22,7 +22,7 @@ retried per job; beyond that the job fails as an unusable machine.
 
 A test with any FAIL or XPASS case, or that crashed or timed out without
 starvation evidence, is not retried: it fails the run as before. The retry
-runs with CAP_VERIFY_RETRY=1, so a case that is inconclusive again fails as
+runs with SCOOPY_VERIFY_RETRY=1, so a case that is inconclusive again fails as
 `environment`.
 
 Usage: retry.py <junit.xml> <report dir>   (retry.py test: self-test)
@@ -46,7 +46,7 @@ MAX_RETRIES = 3
 QUEUE_DRAIN_PANIC = "We timed out while waiting on the last successful submission"
 # The GPU device was lost (WARP gives up on work that takes too long) and the
 # next wgpu call on it panics instead of reporting an error.
-DEVICE_LOST_PANIC = "Device with 'cap-rendering-device' label is invalid"
+DEVICE_LOST_PANIC = "Device with 'scoopy-rendering-device' label is invalid"
 
 
 def records(report_dir):
@@ -134,7 +134,7 @@ def self_test():
                 body = '<failure type="test timeout">killed</failure>'
             else:
                 body = f"<failure>{DEVICE_LOST_PANIC}</failure>"
-            tests.append(f'<testcase classname="cap-verify::export" name="{name}">{body}</testcase>')
+            tests.append(f'<testcase classname="scoopy-verify::export" name="{name}">{body}</testcase>')
         write("junit.xml", "<testsuites><testsuite>" + "".join(tests) + "</testsuite></testsuites>")
         import contextlib
         import io

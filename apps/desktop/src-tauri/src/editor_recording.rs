@@ -1,13 +1,13 @@
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use cap_project::RecordingMeta;
-use cap_recording::RecordingMode;
+use scoopy_project::RecordingMeta;
+use scoopy_recording::RecordingMode;
 use tauri::{AppHandle, Manager};
 use tauri_specta::Event;
 
 use crate::recording_settings::RecordingSettingsStore;
-use crate::windows::{EditorRecordingTarget, ShowCapWindow, editor_window_for_path};
+use crate::windows::{EditorRecordingTarget, ShowScoopyWindow, editor_window_for_path};
 use crate::{App, ArcLock, tray};
 
 #[derive(serde::Serialize, serde::Deserialize, specta::Type, Debug, Clone, PartialEq, Eq)]
@@ -138,7 +138,7 @@ pub async fn open_editor_recording_main(
     }
     begin(&app, project_path.clone())?;
 
-    if let Err(error) = (ShowCapWindow::Main {
+    if let Err(error) = (ShowScoopyWindow::Main {
         init_target_mode: None,
     })
     .show(&app)

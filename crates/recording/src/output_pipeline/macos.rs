@@ -7,10 +7,10 @@ use crate::{
     sources::screen_capture,
 };
 use anyhow::anyhow;
-use cap_enc_avfoundation::QueueFrameError;
-use cap_media_info::{AudioInfo, VideoInfo};
-use cap_timestamp::Timestamp;
-use cap_utils::macos_qos::{MacOsQosClass, set_current_thread_qos};
+use scoopy_enc_avfoundation::QueueFrameError;
+use scoopy_media_info::{AudioInfo, VideoInfo};
+use scoopy_timestamp::Timestamp;
+use scoopy_utils::macos_qos::{MacOsQosClass, set_current_thread_qos};
 use cidre::arc;
 use std::{
     path::PathBuf,
@@ -42,7 +42,7 @@ fn boost_encoder_thread_qos() {
 // without headroom: a writer that dies on a failed async write mid-recording
 // loses its moov, so the clean refusal up front is strictly better.
 fn check_disk_space_to_start(output_path: &std::path::Path) -> anyhow::Result<()> {
-    match cap_utils::disk_space::free_bytes_for_path(output_path) {
+    match scoopy_utils::disk_space::free_bytes_for_path(output_path) {
         Ok(available) => {
             info!(
                 available_mb = available / (1024 * 1024),
@@ -64,7 +64,7 @@ fn check_disk_space_to_start(output_path: &std::path::Path) -> anyhow::Result<()
 }
 
 fn get_mp4_muxer_buffer_size(instant_mode: bool) -> usize {
-    std::env::var("CAP_MP4_MUXER_BUFFER_SIZE")
+    std::env::var("SCOOPY_MP4_MUXER_BUFFER_SIZE")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(if instant_mode {
@@ -298,7 +298,7 @@ enum AudioFrameMessage {
 struct Mp4EncoderState {
     video_tx: SyncSender<Option<VideoFrameMessage>>,
     audio_tx: Option<SyncSender<Option<AudioFrameMessage>>>,
-    encoder: Arc<Mutex<cap_enc_avfoundation::MP4Encoder>>,
+    encoder: Arc<Mutex<scoopy_enc_avfoundation::MP4Encoder>>,
     encoder_handle: Option<JoinHandle<anyhow::Result<()>>>,
     audio_handle: Option<JoinHandle<anyhow::Result<()>>>,
     video_frame_count: Arc<AtomicU64>,
@@ -353,28 +353,28 @@ impl Muxer for AVFoundationMp4Muxer {
         let (ready_tx, ready_rx) = sync_channel::<anyhow::Result<()>>(1);
 
         let encoder = if config.instant_mode {
-            cap_enc_avfoundation::MP4Encoder::init_instant_mode(
+            scoopy_enc_avfoundation::MP4Encoder::init_instant_mode(
                 output_path.clone(),
                 video_config,
                 audio_config,
                 config.output_height,
             )
         } else if config.ultra_quality {
-            cap_enc_avfoundation::MP4Encoder::init_ultra(
+            scoopy_enc_avfoundation::MP4Encoder::init_ultra(
                 output_path.clone(),
                 video_config,
                 audio_config,
                 config.output_height,
             )
         } else if config.compatibility_quality {
-            cap_enc_avfoundation::MP4Encoder::init_compatibility(
+            scoopy_enc_avfoundation::MP4Encoder::init_compatibility(
                 output_path.clone(),
                 video_config,
                 audio_config,
                 config.output_height,
             )
         } else {
-            cap_enc_avfoundation::MP4Encoder::init(
+            scoopy_enc_avfoundation::MP4Encoder::init(
                 output_path.clone(),
                 video_config,
                 audio_config,
@@ -949,7 +949,7 @@ enum CameraFrameMessage {
 struct CameraEncoderState {
     video_tx: SyncSender<Option<CameraFrameMessage>>,
     audio_tx: Option<SyncSender<Option<AudioFrameMessage>>>,
-    encoder: Arc<Mutex<cap_enc_avfoundation::MP4Encoder>>,
+    encoder: Arc<Mutex<scoopy_enc_avfoundation::MP4Encoder>>,
     encoder_handle: Option<JoinHandle<anyhow::Result<()>>>,
     audio_handle: Option<JoinHandle<anyhow::Result<()>>>,
     audio_channel_depth: Option<Arc<AtomicUsize>>,
@@ -1001,21 +1001,21 @@ impl Muxer for AVFoundationCameraMuxer {
         let (ready_tx, ready_rx) = sync_channel::<anyhow::Result<()>>(1);
 
         let encoder = if is_instant {
-            cap_enc_avfoundation::MP4Encoder::init_instant_mode(
+            scoopy_enc_avfoundation::MP4Encoder::init_instant_mode(
                 output_path.clone(),
                 video_config,
                 audio_config,
                 config.output_height,
             )
         } else if config.compatibility_quality {
-            cap_enc_avfoundation::MP4Encoder::init_compatibility(
+            scoopy_enc_avfoundation::MP4Encoder::init_compatibility(
                 output_path.clone(),
                 video_config,
                 audio_config,
                 config.output_height,
             )
         } else {
-            cap_enc_avfoundation::MP4Encoder::init(
+            scoopy_enc_avfoundation::MP4Encoder::init(
                 output_path.clone(),
                 video_config,
                 audio_config,
@@ -1552,12 +1552,12 @@ mod tests {
         #[test]
         fn env_override_takes_precedence() {
             unsafe {
-                std::env::set_var("CAP_MP4_MUXER_BUFFER_SIZE", "500");
+                std::env::set_var("SCOOPY_MP4_MUXER_BUFFER_SIZE", "500");
             }
             let normal = get_mp4_muxer_buffer_size(false);
             let instant = get_mp4_muxer_buffer_size(true);
             unsafe {
-                std::env::remove_var("CAP_MP4_MUXER_BUFFER_SIZE");
+                std::env::remove_var("SCOOPY_MP4_MUXER_BUFFER_SIZE");
             }
             assert_eq!(normal, 500);
             assert_eq!(instant, 500);
@@ -1566,12 +1566,12 @@ mod tests {
         #[test]
         fn invalid_env_falls_back_to_defaults() {
             unsafe {
-                std::env::set_var("CAP_MP4_MUXER_BUFFER_SIZE", "not_a_number");
+                std::env::set_var("SCOOPY_MP4_MUXER_BUFFER_SIZE", "not_a_number");
             }
             let normal = get_mp4_muxer_buffer_size(false);
             let instant = get_mp4_muxer_buffer_size(true);
             unsafe {
-                std::env::remove_var("CAP_MP4_MUXER_BUFFER_SIZE");
+                std::env::remove_var("SCOOPY_MP4_MUXER_BUFFER_SIZE");
             }
             assert_eq!(normal, DEFAULT_MP4_MUXER_BUFFER_SIZE);
             assert_eq!(instant, DEFAULT_MP4_MUXER_BUFFER_SIZE_INSTANT);

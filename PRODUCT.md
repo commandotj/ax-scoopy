@@ -13,7 +13,7 @@ Assumed, not confirmed: people who record their screen, camera and microphone an
 A local-only screen recorder with a built-in editor. Record, trim and polish (zoom, background, captions), then export a video. Success: a recording becomes a finished file with no account, no upload and no network.
 
 ## Positioning
-Scoopy is inspired by Cap and designed for local only: no server, no account, no network. Every remote feature is removed (see `.spec/rfc/0001-remove-remote-features.md`).
+Scoopy is designed for local only: no server, no account, no network. Every remote feature is removed (see `.spec/rfc/0001-remove-remote-features.md`).
 
 ## Capabilities and Constraints
 - Recording: screen, camera, microphone. Studio Mode only; Instant Mode needs upload and is removed.

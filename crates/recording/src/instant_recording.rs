@@ -22,10 +22,10 @@ use crate::{
     sources::screen_capture::{ScreenCaptureConfig, ScreenCaptureTarget},
 };
 use anyhow::Context as _;
-use cap_media_info::VideoInfo;
-use cap_project::InstantRecordingMeta;
-use cap_timestamp::Timestamps;
-use cap_utils::ensure_dir;
+use scoopy_media_info::VideoInfo;
+use scoopy_project::InstantRecordingMeta;
+use scoopy_timestamp::Timestamps;
+use scoopy_utils::ensure_dir;
 #[cfg(target_os = "linux")]
 use futures::FutureExt as _;
 use kameo::{Actor as _, prelude::*};
@@ -272,7 +272,7 @@ struct Pipeline {
     video_info: VideoInfo,
     segments_dir: PathBuf,
     segment_rx:
-        Option<std::sync::mpsc::Receiver<cap_enc_ffmpeg::segmented_stream::SegmentCompletedEvent>>,
+        Option<std::sync::mpsc::Receiver<scoopy_enc_ffmpeg::segmented_stream::SegmentCompletedEvent>>,
 }
 
 enum ActorState {
@@ -299,7 +299,7 @@ pub struct ActorHandle {
     segment_rx: Option<
         std::sync::Mutex<
             Option<
-                std::sync::mpsc::Receiver<cap_enc_ffmpeg::segmented_stream::SegmentCompletedEvent>,
+                std::sync::mpsc::Receiver<scoopy_enc_ffmpeg::segmented_stream::SegmentCompletedEvent>,
             >,
         >,
     >,
@@ -342,7 +342,7 @@ impl ActorHandle {
 
     pub fn take_segment_rx(
         &self,
-    ) -> Option<std::sync::mpsc::Receiver<cap_enc_ffmpeg::segmented_stream::SegmentCompletedEvent>>
+    ) -> Option<std::sync::mpsc::Receiver<scoopy_enc_ffmpeg::segmented_stream::SegmentCompletedEvent>>
     {
         self.segment_rx
             .as_ref()
@@ -378,7 +378,7 @@ impl Drop for ActorHandle {
 
 #[derive(kameo::Actor)]
 pub struct Actor {
-    diagnostic: Option<cap_utils::operation_diagnostics::Operation>,
+    diagnostic: Option<scoopy_utils::operation_diagnostics::Operation>,
     recording_dir: PathBuf,
     output_dir: PathBuf,
     capture_target: ScreenCaptureTarget,
@@ -494,7 +494,7 @@ impl Message<Stop> for Actor {
         let result = self.complete_recording().await;
         if let Some(mut diagnostic) = self.diagnostic.take() {
             if let Ok(recording) = &result {
-                diagnostic.field(cap_utils::operation_diagnostics::Field::label(
+                diagnostic.field(scoopy_utils::operation_diagnostics::Field::label(
                     "output_health",
                     match recording.health {
                         crate::RecordingHealth::Healthy => "healthy",
@@ -742,7 +742,7 @@ async fn create_pipeline(
 
     let segment_channel = {
         let (tx, rx) =
-            std::sync::mpsc::channel::<cap_enc_ffmpeg::segmented_stream::SegmentCompletedEvent>();
+            std::sync::mpsc::channel::<scoopy_enc_ffmpeg::segmented_stream::SegmentCompletedEvent>();
         Some((tx, rx))
     };
 
@@ -771,7 +771,7 @@ async fn create_pipeline(
             .build::<crate::ffmpeg::SegmentedVideoMuxer>(crate::ffmpeg::SegmentedVideoMuxerConfig {
                 timed_fragments: false,
                 segment_duration: std::time::Duration::from_secs(2),
-                preset: cap_enc_ffmpeg::h264::H264Preset::Ultrafast,
+                preset: scoopy_enc_ffmpeg::h264::H264Preset::Ultrafast,
                 output_size: Some(output_resolution),
                 shared_pause_state: None,
                 segment_tx: segment_tx_for_video,
@@ -1143,13 +1143,13 @@ async fn build_instant_recording_actor(
     #[cfg(target_os = "linux")] camera: LinuxCameraConfig,
     #[cfg(target_os = "linux")] lifecycle: InstantLifecycle,
 ) -> anyhow::Result<ActorHandle> {
-    use cap_utils::operation_diagnostics::{Field, Operation};
+    use scoopy_utils::operation_diagnostics::{Field, Operation};
     let mut diagnostic = Operation::start(
         "instant_recording",
         &[
             Field::identifier(
                 "resource",
-                cap_utils::operation_diagnostics::resource_id(&recording_dir),
+                scoopy_utils::operation_diagnostics::resource_id(&recording_dir),
             ),
             Field::number("requested_fps", max_fps as u64),
             Field::flag("system_audio", inputs.capture_system_audio),
@@ -1216,7 +1216,7 @@ async fn build_instant_recording_actor(
     let content_dir = ensure_dir(&recording_dir.join("content"))?;
 
     #[cfg(windows)]
-    cap_mediafoundation_utils::thread_init();
+    scoopy_mediafoundation_utils::thread_init();
 
     let (mut pipeline, video_info) = match inputs.capture_target {
         ScreenCaptureTarget::CameraOnly => {
@@ -1781,7 +1781,7 @@ mod quiescence_tests {
         ChannelVideoSource, ChannelVideoSourceConfig, Muxer, SetupCtx, TaskPool, VideoFrame,
         VideoMuxer,
     };
-    use cap_timestamp::Timestamp;
+    use scoopy_timestamp::Timestamp;
     use std::{
         sync::{
             Mutex,
@@ -1822,7 +1822,7 @@ mod quiescence_tests {
             config: Finalizer,
             _: PathBuf,
             _: Option<VideoInfo>,
-            _: Option<cap_media_info::AudioInfo>,
+            _: Option<scoopy_media_info::AudioInfo>,
             _: Arc<AtomicBool>,
             _: &mut TaskPool,
         ) -> anyhow::Result<Self> {
@@ -1868,7 +1868,7 @@ mod quiescence_tests {
         let owner = InstantLifetimeOwner::new();
         let lifecycle = owner.lifecycle.clone();
         *lifecycle.0.runtime.lock().unwrap() = Some(tokio::runtime::Handle::current());
-        let info = VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 4, 4, 30);
+        let info = VideoInfo::from_raw(scoopy_media_info::RawVideoFormat::Bgra, 4, 4, 30);
         let timestamps = Timestamps::now();
         let (video_sender, video_receiver) = flume::bounded(4);
         let video = lifecycle
@@ -1891,8 +1891,8 @@ mod quiescence_tests {
         let mut audio_sender = None;
         let audio = if let Some(finalizer) = audio_finish {
             let (mut sender, receiver) = futures::channel::mpsc::channel(4);
-            let info = cap_media_info::AudioInfo::new_raw(
-                cap_media_info::Sample::F32(cap_media_info::Type::Packed),
+            let info = scoopy_media_info::AudioInfo::new_raw(
+                scoopy_media_info::Sample::F32(scoopy_media_info::Type::Packed),
                 48_000,
                 2,
             );
@@ -1999,7 +1999,7 @@ mod quiescence_tests {
             config: Self::Config,
             output: PathBuf,
             _: Option<VideoInfo>,
-            _: Option<cap_media_info::AudioInfo>,
+            _: Option<scoopy_media_info::AudioInfo>,
             _: Arc<AtomicBool>,
             _: &mut TaskPool,
         ) -> anyhow::Result<Self> {
@@ -2060,7 +2060,7 @@ mod quiescence_tests {
             })
         }
 
-        fn audio_info(&self) -> cap_media_info::AudioInfo {
+        fn audio_info(&self) -> scoopy_media_info::AudioInfo {
             combined_audio_info()
         }
 
@@ -2070,9 +2070,9 @@ mod quiescence_tests {
         }
     }
 
-    fn combined_audio_info() -> cap_media_info::AudioInfo {
-        cap_media_info::AudioInfo::new_raw(
-            cap_media_info::Sample::F32(cap_media_info::Type::Packed),
+    fn combined_audio_info() -> scoopy_media_info::AudioInfo {
+        scoopy_media_info::AudioInfo::new_raw(
+            scoopy_media_info::Sample::F32(scoopy_media_info::Type::Packed),
             48_000,
             2,
         )
@@ -2112,7 +2112,7 @@ mod quiescence_tests {
         let owner = InstantLifetimeOwner::new();
         let lifecycle = owner.lifecycle.clone();
         *lifecycle.0.runtime.lock().unwrap() = Some(tokio::runtime::Handle::current());
-        let info = VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 4, 4, 30);
+        let info = VideoInfo::from_raw(scoopy_media_info::RawVideoFormat::Bgra, 4, 4, 30);
         let timestamps = Timestamps::now();
         let (video_sender, video_receiver) = flume::bounded(4);
         let output = directory.join("output.mp4");
@@ -2213,7 +2213,7 @@ mod quiescence_tests {
     #[tokio::test]
     async fn camera_only_system_request_fails_inside_joined_startup_without_capture() {
         let directory = tempfile::tempdir().unwrap();
-        let output = directory.path().join("unsupported.cap");
+        let output = directory.path().join("unsupported.scoopy");
         let builder =
             Actor::builder(output.clone(), ScreenCaptureTarget::CameraOnly).with_system_audio(true);
         let lifecycle = builder.lifecycle();
@@ -2240,7 +2240,7 @@ mod quiescence_tests {
                 .contains("System audio is not supported")
         );
         let supported = Actor::builder(
-            directory.path().join("camera.cap"),
+            directory.path().join("camera.scoopy"),
             ScreenCaptureTarget::CameraOnly,
         );
         let lifecycle = supported.lifecycle();
@@ -2790,7 +2790,7 @@ mod non_linux_stop_tests {
         AudioFrame, AudioMuxer, ChannelAudioSource, ChannelAudioSourceConfig, ChannelVideoSource,
         ChannelVideoSourceConfig, Muxer, TaskPool, VideoFrame, VideoMuxer,
     };
-    use cap_timestamp::Timestamp;
+    use scoopy_timestamp::Timestamp;
     use std::{
         sync::atomic::{AtomicBool, Ordering},
         time::Duration,
@@ -2821,7 +2821,7 @@ mod non_linux_stop_tests {
             config: Self::Config,
             _: PathBuf,
             _: Option<VideoInfo>,
-            _: Option<cap_media_info::AudioInfo>,
+            _: Option<scoopy_media_info::AudioInfo>,
             _: Arc<AtomicBool>,
             _: &mut TaskPool,
         ) -> anyhow::Result<Self> {
@@ -2897,7 +2897,7 @@ mod non_linux_stop_tests {
     async fn audio_failure_waits_for_video_and_remains_visible(cancel: bool) {
         let directory = tempfile::tempdir().unwrap();
         let timestamps = Timestamps::now();
-        let video_info = VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 4, 4, 30);
+        let video_info = VideoInfo::from_raw(scoopy_media_info::RawVideoFormat::Bgra, 4, 4, 30);
         let video_entered = Arc::new(tokio::sync::Notify::new());
         let video_finished = Arc::new(AtomicBool::new(false));
         let audio_finished = Arc::new(AtomicBool::new(false));
@@ -2922,8 +2922,8 @@ mod non_linux_stop_tests {
             .unwrap();
         let video_cancel = video.cancel_token();
 
-        let audio_info = cap_media_info::AudioInfo::new_raw(
-            cap_media_info::Sample::F32(cap_media_info::Type::Packed),
+        let audio_info = scoopy_media_info::AudioInfo::new_raw(
+            scoopy_media_info::Sample::F32(scoopy_media_info::Type::Packed),
             48_000,
             2,
         );

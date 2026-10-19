@@ -166,7 +166,7 @@ impl StopItem {
 
     #[zbus(property)]
     fn id(&self) -> &str {
-        "cap-recording-stop"
+        "scoopy-recording-stop"
     }
 
     #[zbus(property)]

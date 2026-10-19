@@ -3,14 +3,14 @@
 
 use std::sync::Arc;
 
-use cap_desktop_lib::DynLoggingLayer;
+use scoopy_desktop_lib::DynLoggingLayer;
 use tracing_subscriber::{Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 const TOKIO_WORKER_THREAD_STACK_SIZE: usize = 16 * 1024 * 1024;
 
 fn main() {
     #[cfg(target_os = "linux")]
-    if let Some(threads) = cap_utils::linux_runtime::llvmpipe_thread_count() {
+    if let Some(threads) = scoopy_utils::linux_runtime::llvmpipe_thread_count() {
         // Mesa counts host CPUs inside containers; configure it before spawning threads or bundled children.
         unsafe {
             std::env::set_var("LP_NUM_THREADS", threads.to_string());
@@ -18,7 +18,7 @@ fn main() {
     }
 
     #[cfg(target_os = "linux")]
-    if let Some(config) = cap_utils::linux_package::appimage_alsa_config_path() {
+    if let Some(config) = scoopy_utils::linux_package::appimage_alsa_config_path() {
         // Configure ALSA before starting threads or handing off to a bundled child process.
         unsafe {
             std::env::set_var("ALSA_CONFIG_PATH", config);
@@ -26,14 +26,14 @@ fn main() {
     }
 
     #[cfg(target_os = "linux")]
-    if let Err(error) = cap_cli_install::appimage::dispatch_cli() {
+    if let Err(error) = scoopy_cli_install::appimage::dispatch_cli() {
         eprintln!("{error}");
         std::process::exit(1);
     }
 
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     if std::env::var_os("ORT_DYLIB_PATH").is_none()
-        && let Some(path) = cap_camera_effects::onnx_runtime_library_path()
+        && let Some(path) = scoopy_camera_effects::onnx_runtime_library_path()
     {
         unsafe {
             std::env::set_var("ORT_DYLIB_PATH", path);
@@ -51,7 +51,7 @@ fn main() {
     }
 
     // We have to hold onto the ClientInitGuard until the very end
-    let _sentry_guard = std::option_env!("CAP_DESKTOP_SENTRY_URL").map(|url| {
+    let _sentry_guard = std::option_env!("SCOOPY_DESKTOP_SENTRY_URL").map(|url| {
         // Crashpad minidump initialization is intentionally disabled. Its process-wide SEH
         // handler terminates through TerminateProcess, bypassing panic hooks, Tauri exit
         // events, and Windows Error Reporting. Re-enable it by binding this guard and
@@ -98,7 +98,7 @@ fn main() {
 
         #[cfg(debug_assertions)]
         let path =
-            match cap_desktop_lib::initialize_stop_editor_benchmark(create_benchmark_log_directory)
+            match scoopy_desktop_lib::initialize_stop_editor_benchmark(create_benchmark_log_directory)
             {
                 Ok(directory) => directory.or(path),
                 Err(error) => {
@@ -118,28 +118,28 @@ fn main() {
 
     let (info_file_writer, _info_logger_guard) = match (
         logs_dir.as_deref(),
-        create_log_appender(logs_dir.as_deref(), "cap-desktop.log"),
+        create_log_appender(logs_dir.as_deref(), "scoopy-desktop.log"),
     ) {
         (Some(logs_dir), Some(appender)) => {
             let (writer, guard) = tracing_appender::non_blocking(
-                cap_utils::diagnostic_writer::DiagnosticWriter::new(
+                scoopy_utils::diagnostic_writer::DiagnosticWriter::new(
                     appender,
                     logs_dir,
-                    "cap-desktop.log",
+                    "scoopy-desktop.log",
                 ),
             );
             let queue_errors = writer.error_counter();
-            cap_utils::operation_diagnostics::install_queue_loss_counter(move || {
+            scoopy_utils::operation_diagnostics::install_queue_loss_counter(move || {
                 queue_errors.dropped_lines()
             });
             let diagnostic_writer = writer.clone();
-            cap_utils::operation_diagnostics::install_sink(
-                cap_utils::operation_diagnostics::AppInfo {
+            scoopy_utils::operation_diagnostics::install_sink(
+                scoopy_utils::operation_diagnostics::AppInfo {
                     flavor: "tauri",
                     version: env!("CARGO_PKG_VERSION"),
-                    source_revision: option_env!("CAP_BUILD_REVISION"),
+                    source_revision: option_env!("SCOOPY_BUILD_REVISION"),
                     debug_build: cfg!(debug_assertions),
-                    source_dirty: option_env!("CAP_BUILD_DIRTY").map(|value| value == "true"),
+                    source_dirty: option_env!("SCOOPY_BUILD_DIRTY").map(|value| value == "true"),
                 },
                 move |bytes| {
                     use std::io::Write;
@@ -151,7 +151,7 @@ fn main() {
         _ => (None, None),
     };
 
-    let errors_file_appender = create_log_appender(logs_dir.as_deref(), "cap-desktop-errors.log");
+    let errors_file_appender = create_log_appender(logs_dir.as_deref(), "scoopy-desktop-errors.log");
 
     let (otel_layer, _tracer) = if cfg!(debug_assertions) {
         use opentelemetry::trace::TracerProvider;
@@ -168,13 +168,13 @@ fn main() {
             )
             .with_resource(
                 opentelemetry_sdk::Resource::builder()
-                    .with_service_name("cap-desktop")
+                    .with_service_name("scoopy-desktop")
                     .build(),
             )
             .build();
 
         let layer = tracing_opentelemetry::layer()
-            .with_tracer(tracer.tracer("cap-desktop"))
+            .with_tracer(tracer.tracer("scoopy-desktop"))
             .boxed();
 
         opentelemetry::global::set_tracer_provider(tracer.clone());
@@ -190,7 +190,7 @@ fn main() {
 
     tracing_subscriber::registry()
         .with(tracing_subscriber::filter::filter_fn(
-            (|v| v.target().starts_with("cap_")) as fn(&tracing::Metadata) -> bool,
+            (|v| v.target().starts_with("scoopy_")) as fn(&tracing::Metadata) -> bool,
         ))
         .with(reload_layer)
         .with(level_filter)
@@ -232,18 +232,18 @@ fn main() {
         .expect("Failed to build multi threaded tokio runtime")
         .block_on(async move {
             drop(tokio::spawn(
-                cap_utils::operation_diagnostics::run_checkpoints(),
+                scoopy_utils::operation_diagnostics::run_checkpoints(),
             ));
-            cap_desktop_lib::run(handle, logs_dir).await;
+            scoopy_desktop_lib::run(handle, logs_dir).await;
         });
 }
 
 fn resolve_log_directory(base_directory: Option<std::path::PathBuf>) -> Option<std::path::PathBuf> {
     base_directory.map(|directory| {
         #[cfg(target_os = "macos")]
-        let directory = directory.join("Library/Logs").join("so.cap.desktop");
+        let directory = directory.join("Library/Logs").join("me.systembug.scoopy");
         #[cfg(not(target_os = "macos"))]
-        let directory = directory.join("so.cap.desktop").join("logs");
+        let directory = directory.join("me.systembug.scoopy").join("logs");
         directory
     })
 }
@@ -363,7 +363,7 @@ fn install_panic_hook(logs_dir: Option<std::path::PathBuf>) {
         );
 
         tracing::error!(
-            target: "cap_desktop_panic",
+            target: "scoopy_desktop_panic",
             location = %location,
             thread = %thread_name,
             message = %message,
@@ -371,7 +371,7 @@ fn install_panic_hook(logs_dir: Option<std::path::PathBuf>) {
             "panic"
         );
         eprintln!(
-            "[cap-desktop panic] thread '{thread_name}' at {location}: {message}\nbacktrace:\n{backtrace}"
+            "[scoopy-desktop panic] thread '{thread_name}' at {location}: {message}\nbacktrace:\n{backtrace}"
         );
         prev(info);
     }));
@@ -418,7 +418,7 @@ mod logging_tests {
                 .unwrap()
                 .as_nanos();
             let directory = std::env::temp_dir().join(format!(
-                "cap-desktop-logging-{}-{nonce}",
+                "scoopy-desktop-logging-{}-{nonce}",
                 std::process::id()
             ));
             std::fs::create_dir_all(&directory).unwrap();
@@ -436,8 +436,8 @@ mod logging_tests {
     fn missing_base_directory_disables_file_logging_without_a_fallback() {
         let directory = resolve_log_directory(None);
         assert!(directory.is_none());
-        assert!(create_log_appender(directory.as_deref(), "cap-desktop.log").is_none());
-        assert!(create_log_appender(directory.as_deref(), "cap-desktop-errors.log").is_none());
+        assert!(create_log_appender(directory.as_deref(), "scoopy-desktop.log").is_none());
+        assert!(create_log_appender(directory.as_deref(), "scoopy-desktop-errors.log").is_none());
         write_panic_record(
             None,
             "timestamp",
@@ -453,9 +453,9 @@ mod logging_tests {
     fn available_base_directory_preserves_the_platform_log_path() {
         let base = LogDirectory::new();
         #[cfg(target_os = "macos")]
-        let expected = base.0.join("Library/Logs/so.cap.desktop");
+        let expected = base.0.join("Library/Logs/me.systembug.scoopy");
         #[cfg(not(target_os = "macos"))]
-        let expected = base.0.join("so.cap.desktop/logs");
+        let expected = base.0.join("me.systembug.scoopy/logs");
         assert_eq!(resolve_log_directory(Some(base.0.clone())), Some(expected));
         assert!(std::fs::read_dir(&base.0).unwrap().next().is_none());
     }
@@ -484,7 +484,7 @@ mod logging_tests {
         let directory = LogDirectory::new();
         let destination = directory.0.join("nested");
         for record in ["first\n", "second\n"] {
-            let mut appender = create_log_appender(Some(&destination), "cap.log").unwrap();
+            let mut appender = create_log_appender(Some(&destination), "scoopy.log").unwrap();
             appender.write_all(record.as_bytes()).unwrap();
             appender.flush().unwrap();
         }
@@ -501,7 +501,7 @@ mod logging_tests {
         let directory = LogDirectory::new();
         let destination = directory.0.join("blocked");
         std::fs::write(&destination, "existing file").unwrap();
-        assert!(create_log_appender(Some(&destination), "cap.log").is_none());
+        assert!(create_log_appender(Some(&destination), "scoopy.log").is_none());
         assert_eq!(
             std::fs::read_to_string(destination).unwrap(),
             "existing file"
@@ -514,9 +514,9 @@ mod logging_tests {
         let today = chrono::Utc::now().date_naive();
         for days in [-1, 0, 1] {
             let date = today + chrono::Duration::days(days);
-            std::fs::create_dir(directory.0.join(format!("cap.log.{date}"))).unwrap();
+            std::fs::create_dir(directory.0.join(format!("scoopy.log.{date}"))).unwrap();
         }
-        assert!(create_log_appender(Some(&directory.0), "cap.log").is_none());
+        assert!(create_log_appender(Some(&directory.0), "scoopy.log").is_none());
         assert!(create_log_appender(Some(&directory.0), "other.log").is_some());
     }
 }

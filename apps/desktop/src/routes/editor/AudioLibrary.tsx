@@ -64,7 +64,7 @@ function EqualizerBars() {
 						class="w-[2px] h-full rounded-full bg-gray-11"
 						style={{
 							"transform-origin": "bottom",
-							animation: `cap-audio-eq ${bar.duration}s ease-in-out ${bar.delay}s infinite`,
+							animation: `scoopy-audio-eq ${bar.duration}s ease-in-out ${bar.delay}s infinite`,
 						}}
 					/>
 				)}

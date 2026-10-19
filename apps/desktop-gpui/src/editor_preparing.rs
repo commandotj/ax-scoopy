@@ -9,21 +9,21 @@ use std::{
     time::Instant,
 };
 
-use cap_editor::{
+use scoopy_editor::{
     EditorFrameFormat, EditorFrameOutput, PreparingFrameRequest, PreparingPlaybackExit,
     PreparingPlaybackOptions, PreparingPlaybackSession, PreparingPlaybackStopHandle,
     PreparingPreviewInput, PreparingPreviewOptions, PreparingPreviewSegment,
 };
-use cap_project::{CursorEvents, XY};
+use scoopy_project::{CursorEvents, XY};
 
 mod audio;
 pub(crate) mod presentation;
 
-use cap_recording::recovery::{
+use scoopy_recording::recovery::{
     PreparingSidecarKind, PreparingStudioIdentity, PreparingStudioSources, PreparingStudioState,
     PreparingVideoTrack,
 };
-use cap_rendering::{
+use scoopy_rendering::{
     FrameLayout, FrozenRecordedCursorAssets, ManagedSegmentVideoInput, ManagedVideoTrackInput,
 };
 use futures_util::{
@@ -53,11 +53,11 @@ struct ConsumerControl {
     accepts_frames: AtomicBool,
     started: Instant,
     updates: watch::Sender<Option<PreparingUpdate>>,
-    commands: tokio::sync::mpsc::Sender<(PreparingCommand, cap_editor::PreparingPlaybackIntent)>,
+    commands: tokio::sync::mpsc::Sender<(PreparingCommand, scoopy_editor::PreparingPlaybackIntent)>,
     completed: Mutex<Option<PreparingPlaybackExit>>,
     discarded: AtomicBool,
     admitted_identity: Mutex<Option<PreparingStudioIdentity>>,
-    handoff: watch::Sender<Option<cap_editor::PreparingPlaybackHandoff>>,
+    handoff: watch::Sender<Option<scoopy_editor::PreparingPlaybackHandoff>>,
 }
 
 impl ConsumerControl {
@@ -105,8 +105,8 @@ pub(crate) struct PreparingUpdate {
     pub(crate) identity: PreparingStudioIdentity,
     pub(crate) sequence: u64,
     pub(crate) seed: Arc<PreparingTimelineSeed>,
-    pub(crate) progress: cap_editor::PreparingEditorProgress,
-    pub(crate) playback: cap_editor::PreparingPlaybackState,
+    pub(crate) progress: scoopy_editor::PreparingEditorProgress,
+    pub(crate) playback: scoopy_editor::PreparingPlaybackState,
 }
 
 #[derive(Clone, Copy)]
@@ -152,7 +152,7 @@ impl PreparingConsumer {
 
     pub(crate) fn accepts_status(&self, update: &PreparingUpdate) -> bool {
         self.control.accepts_status(&update.epoch, &update.identity)
-            || (update.progress.phase == cap_editor::PreparingEditorPhase::Unavailable
+            || (update.progress.phase == scoopy_editor::PreparingEditorPhase::Unavailable
                 && !self.control.discarded.load(Ordering::Acquire)
                 && self.control.epoch.same(&update.epoch)
                 && self
@@ -198,7 +198,7 @@ impl PreparingJoined {
         self.epoch.same(&consumer.control.epoch)
     }
 
-    pub(crate) fn take_audio(&self) -> Option<cap_editor::CompletedAudioHandoff> {
+    pub(crate) fn take_audio(&self) -> Option<scoopy_editor::CompletedAudioHandoff> {
         self.exit
             .as_ref()
             .and_then(PreparingPlaybackExit::take_completed_audio)
@@ -234,7 +234,7 @@ impl PreparingJoin {
         }
     }
 
-    pub(crate) async fn continuing_handoff(&self) -> Option<cap_editor::PreparingPlaybackHandoff> {
+    pub(crate) async fn continuing_handoff(&self) -> Option<scoopy_editor::PreparingPlaybackHandoff> {
         let control = self.control.upgrade()?;
         let mut handoff = control.handoff.subscribe();
         loop {
@@ -311,9 +311,9 @@ struct PreparingRunner {
     frames: flume::Sender<PreparingFrame>,
     stop: Option<PreparingPlaybackStopHandle>,
     resolution: XY<u32>,
-    audio_output: Arc<cap_editor::AudioOutput>,
+    audio_output: Arc<scoopy_editor::AudioOutput>,
     commands: Option<
-        tokio::sync::mpsc::Receiver<(PreparingCommand, cap_editor::PreparingPlaybackIntent)>,
+        tokio::sync::mpsc::Receiver<(PreparingCommand, scoopy_editor::PreparingPlaybackIntent)>,
     >,
     command_task: Option<tokio::task::JoinHandle<()>>,
     frame_discard: flume::Receiver<PreparingFrame>,
@@ -322,7 +322,7 @@ struct PreparingRunner {
 pub(crate) fn spawn(
     finalization: StudioFinalization,
     resolution: XY<u32>,
-    audio_output: Arc<cap_editor::AudioOutput>,
+    audio_output: Arc<scoopy_editor::AudioOutput>,
     runtime: &tokio::runtime::Handle,
 ) -> (
     PreparingConsumer,
@@ -394,7 +394,7 @@ impl PreparingRunner {
             None
         };
         if let Some(exit) = &exit {
-            if exit.snapshot.progress.phase == cap_editor::PreparingEditorPhase::Unavailable {
+            if exit.snapshot.progress.phase == scoopy_editor::PreparingEditorPhase::Unavailable {
                 let latest = self.control.updates.borrow().clone();
                 if let Some(mut update) = latest {
                     update.sequence = progress_sequence(exit.snapshot.sequence)?;
@@ -491,10 +491,10 @@ impl PreparingRunner {
                 .recording_meta
                 .studio_meta()
                 .is_some_and(|studio| match studio {
-                    cap_project::StudioRecordingMeta::SingleSegment { segment } => {
+                    scoopy_project::StudioRecordingMeta::SingleSegment { segment } => {
                         segment.camera.is_some()
                     }
-                    cap_project::StudioRecordingMeta::MultipleSegments { inner, .. } => inner
+                    scoopy_project::StudioRecordingMeta::MultipleSegments { inner, .. } => inner
                         .segments
                         .iter()
                         .any(|segment| segment.camera.is_some()),
@@ -512,11 +512,11 @@ impl PreparingRunner {
             identity: observer.identity().clone(),
             sequence: 1,
             seed: seed.clone(),
-            progress: cap_editor::PreparingEditorProgress {
+            progress: scoopy_editor::PreparingEditorProgress {
                 total_duration,
                 ..Default::default()
             },
-            playback: cap_editor::PreparingPlaybackState::default(),
+            playback: scoopy_editor::PreparingPlaybackState::default(),
         }));
         let control = self.control.clone();
         let identity = observer.identity().clone();
@@ -672,7 +672,7 @@ fn adapt(
     )?;
     if project.clips.is_empty() {
         project.clips =
-            cap_editor::initial_clip_configuration(&recording_meta.project_path, studio);
+            scoopy_editor::initial_clip_configuration(&recording_meta.project_path, studio);
     }
     let descriptors = live.segments().ok_or_else(ended)?;
     let pointer_ids = studio.pointer_cursor_ids();
@@ -711,7 +711,7 @@ fn adapt(
                 is_live: || !*control.cancelled.borrow() && sources.live().is_some(),
                 remaining: cursor_budget,
             };
-            let cursor = cap_gpui_kernels::codec::read_cursor_events(&mut reader)?;
+            let cursor = scoopy_gpui_kernels::codec::read_cursor_events(&mut reader)?;
             cursor_budget = reader.remaining;
             cursor
         } else {
@@ -719,7 +719,7 @@ fn adapt(
         };
         cursor.stabilize_short_lived_cursor_shapes(
             (!pointer_ids.is_empty()).then_some(&pointer_ids),
-            cap_project::cursor::SHORT_CURSOR_SHAPE_DEBOUNCE_MS,
+            scoopy_project::cursor::SHORT_CURSOR_SHAPE_DEBOUNCE_MS,
         );
         segments.push(PreparingPreviewSegment {
             video: ManagedSegmentVideoInput::new(
@@ -855,7 +855,7 @@ mod tests {
                 is_live: || true,
                 remaining,
             };
-            let result = cap_gpui_kernels::codec::read_cursor_events(&mut reader);
+            let result = scoopy_gpui_kernels::codec::read_cursor_events(&mut reader);
             assert_eq!(result.is_ok(), remaining == bytes.len() as u64);
         }
     }
@@ -877,11 +877,11 @@ mod tests {
 
     #[tokio::test]
     async fn close_before_admission_joins_even_when_first_waiter_is_dropped() {
-        let (_publisher, finalization) = StudioFinalization::channel("test.cap".into(), 7);
+        let (_publisher, finalization) = StudioFinalization::channel("test.scoopy".into(), 7);
         let (consumer, joined, _frames) = spawn(
             finalization,
             XY::new(320, 240),
-            Arc::new(cap_editor::AudioOutput::new_headless(Box::new(|_, _| {}))),
+            Arc::new(scoopy_editor::AudioOutput::new_headless(Box::new(|_, _| {}))),
             &tokio::runtime::Handle::current(),
         );
         let retained = joined.clone();
@@ -912,15 +912,15 @@ mod tests {
         );
         let new = PreparingJoin::from_task(&runtime, runtime.spawn(async { Ok(joined()) }));
         let mut registry = PreparingCleanupRegistry::default();
-        registry.register("recording.cap".into(), old.clone());
-        registry.register("recording.cap".into(), new.clone());
+        registry.register("recording.scoopy".into(), old.clone());
+        registry.register("recording.scoopy".into(), new.clone());
         new.wait().await.unwrap();
-        let pending = registry.pending(Path::new("recording.cap"));
+        let pending = registry.pending(Path::new("recording.scoopy"));
         assert_eq!(pending.len(), 1);
         assert!(pending[0].wait().now_or_never().is_none());
         release.send(()).unwrap();
         pending[0].wait().await.unwrap();
-        assert!(registry.pending(Path::new("recording.cap")).is_empty());
+        assert!(registry.pending(Path::new("recording.scoopy")).is_empty());
     }
 
     #[tokio::test]
@@ -932,9 +932,9 @@ mod tests {
         );
         assert!(failed.wait().await.is_err());
         let mut registry = PreparingCleanupRegistry::default();
-        registry.register("failed.cap".into(), failed);
-        assert!(registry.pending(Path::new("other.cap")).is_empty());
-        let pending = registry.pending(Path::new("failed.cap"));
+        registry.register("failed.scoopy".into(), failed);
+        assert!(registry.pending(Path::new("other.scoopy")).is_empty());
+        let pending = registry.pending(Path::new("failed.scoopy"));
         assert_eq!(pending.len(), 1);
         assert!(pending[0].wait().await.is_err());
     }
@@ -955,11 +955,11 @@ mod tests {
 
     #[tokio::test]
     async fn queued_commands_are_bounded_and_close_joins_without_admission() {
-        let (_publisher, finalization) = StudioFinalization::channel("test.cap".into(), 9);
+        let (_publisher, finalization) = StudioFinalization::channel("test.scoopy".into(), 9);
         let (consumer, joined, _frames) = spawn(
             finalization,
             XY::new(320, 240),
-            Arc::new(cap_editor::AudioOutput::new_headless(Box::new(|_, _| {}))),
+            Arc::new(scoopy_editor::AudioOutput::new_headless(Box::new(|_, _| {}))),
             &tokio::runtime::Handle::current(),
         );
         assert!(!consumer.command(PreparingCommand {

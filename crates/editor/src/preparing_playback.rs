@@ -3,8 +3,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use cap_audio::{ManagedAudioInput, ManagedAudioStopHandle, ManagedProgressiveAudio};
-use cap_project::{StudioRecordingMeta, XY};
+use scoopy_audio::{ManagedAudioInput, ManagedAudioStopHandle, ManagedProgressiveAudio};
+use scoopy_project::{StudioRecordingMeta, XY};
 use futures::{
     FutureExt,
     future::{BoxFuture, Shared},
@@ -164,7 +164,7 @@ impl PreparingPlaybackSession {
         options: PreparingPlaybackOptions,
         audio_output: Arc<crate::AudioOutput>,
         callback: crate::PreparingPreviewCallback,
-        expected_finalized_metadata: cap_project::RecordingMeta,
+        expected_finalized_metadata: scoopy_project::RecordingMeta,
     ) -> Result<Self, String> {
         validate_expected_metadata(&input.recording_meta, &expected_finalized_metadata)?;
         crate::preparing_preview::validate_input(&input).map_err(|error| error.to_string())?;
@@ -277,11 +277,11 @@ impl PreparingPlaybackSession {
 }
 
 fn validate_expected_metadata(
-    source: &cap_project::RecordingMeta,
-    expected: &cap_project::RecordingMeta,
+    source: &scoopy_project::RecordingMeta,
+    expected: &scoopy_project::RecordingMeta,
 ) -> Result<(), String> {
     let mut cleared = source.clone();
-    if let cap_project::RecordingMetaInner::Studio(studio) = &mut cleared.inner
+    if let scoopy_project::RecordingMetaInner::Studio(studio) = &mut cleared.inner
         && let StudioRecordingMeta::MultipleSegments { inner } = studio.as_mut()
     {
         for segment in &mut inner.segments {
@@ -293,7 +293,7 @@ fn validate_expected_metadata(
             }
         }
     }
-    let serialize = |meta: &cap_project::RecordingMeta| {
+    let serialize = |meta: &scoopy_project::RecordingMeta| {
         serde_json::to_value(meta).map_err(|error| error.to_string())
     };
     let expected_value = serialize(expected)?;
@@ -341,18 +341,18 @@ pub(crate) async fn join_preparing_task(
 
 struct PreparingPlaybackRunner {
     handoff: Arc<crate::preparing_handoff::HandoffState>,
-    source_metadata: cap_project::RecordingMeta,
+    source_metadata: scoopy_project::RecordingMeta,
     clock: PreparingPlaybackClock,
     options: PreparingPlaybackOptions,
-    project: cap_project::ProjectConfiguration,
-    expected_finalized_metadata: cap_project::RecordingMeta,
+    project: scoopy_project::ProjectConfiguration,
+    expected_finalized_metadata: scoopy_project::RecordingMeta,
     audio_output: Arc<crate::AudioOutput>,
     audio_ticket: Option<crate::audio_output::PreparingAudioPlayTicket>,
     audio_sources: Option<crate::preparing_audio::PreparingAudioSources>,
     audio: Vec<[Option<ManagedProgressiveAudio>; 2]>,
     audio_stops: Vec<ManagedAudioStopHandle>,
     required_audio: Vec<[bool; 2]>,
-    completed_audio: Vec<[Option<Arc<cap_audio::DecodedAudio>>; 2]>,
+    completed_audio: Vec<[Option<Arc<scoopy_audio::DecodedAudio>>; 2]>,
     repairs: Vec<crate::SegmentAudioTimingRepair>,
     preview: Option<crate::PreparingPreview>,
     preview_cleanup_failed: bool,
@@ -601,7 +601,7 @@ impl PreparingPlaybackRunner {
         &mut self,
         request: crate::PreparingFrameRequest,
         output: crate::EditorFrameOutput,
-        layout: cap_rendering::FrameLayout,
+        layout: scoopy_rendering::FrameLayout,
     ) -> Result<(), String> {
         if self
             .pending
@@ -704,7 +704,7 @@ impl PreparingPlaybackRunner {
                 let exit = stop.wait().await;
                 if !matches!(
                     exit.terminal,
-                    cap_audio::ManagedAudioTerminal::Complete { .. }
+                    scoopy_audio::ManagedAudioTerminal::Complete { .. }
                 ) {
                     return Err(exit.terminal.to_string());
                 }
@@ -1223,7 +1223,7 @@ mod tests {
 
     #[test]
     fn expected_audio_metadata_only_allows_gap_summary_clearing() {
-        let source: cap_project::RecordingMeta = serde_json::from_value(serde_json::json!({
+        let source: scoopy_project::RecordingMeta = serde_json::from_value(serde_json::json!({
             "pretty_name": "Stopped capture",
             "segments": [{
                 "display": { "path": "display", "fps": 30 },
@@ -1245,7 +1245,7 @@ mod tests {
             .as_object_mut()
             .unwrap()
             .remove("gap_summary");
-        let expected: cap_project::RecordingMeta = serde_json::from_value(cleared.clone()).unwrap();
+        let expected: scoopy_project::RecordingMeta = serde_json::from_value(cleared.clone()).unwrap();
         validate_expected_metadata(&source, &expected).unwrap();
         for field in ["path", "start_time", "device_id"] {
             let mut changed = cleared.clone();
@@ -1258,7 +1258,7 @@ mod tests {
             assert!(validate_expected_metadata(&source, &changed).is_err());
         }
         let mut changed = expected;
-        changed.project_path = "another.cap".into();
+        changed.project_path = "another.scoopy".into();
         assert!(validate_expected_metadata(&source, &changed).is_err());
         let mut changed = serde_json::to_value(&source).unwrap();
         changed["segments"][0]["mic"]["gap_summary"]["total_overlap_trimmed_ms"] =

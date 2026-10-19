@@ -11,17 +11,17 @@ use std::{
     time::Duration,
 };
 
-use cap_editor::{
+use scoopy_editor::{
     EditorFrameFormat, PreparingEditorProgress, PreparingPlaybackController, PreparingPlaybackExit,
     PreparingPlaybackOptions, PreparingPlaybackSession, PreparingPlaybackSnapshot,
     PreparingPlaybackState, PreparingPlaybackStopHandle, PreparingPreviewInput,
     PreparingPreviewOptions, PreparingPreviewSegment,
 };
-use cap_project::{CursorEvents, ProjectConfiguration};
-use cap_recording::recovery::{
+use scoopy_project::{CursorEvents, ProjectConfiguration};
+use scoopy_recording::recovery::{
     PreparingSidecarKind, PreparingStudioSources, PreparingStudioState, PreparingVideoTrack,
 };
-use cap_rendering::{FrozenRecordedCursorAssets, ManagedSegmentVideoInput, ManagedVideoTrackInput};
+use scoopy_rendering::{FrozenRecordedCursorAssets, ManagedSegmentVideoInput, ManagedVideoTrackInput};
 use futures::{
     FutureExt,
     future::{BoxFuture, Shared},
@@ -36,7 +36,7 @@ use crate::frame_ws::{OwnedWatchFrameWs, WSFrame};
 use crate::{
     FinalizationProject, FinalizingRecordings,
     preparing_finalization::FinalizationPreparing,
-    windows::{CapWindowId, EditorWindowIds},
+    windows::{ScoopyWindowId, EditorWindowIds},
 };
 
 mod audio;
@@ -66,9 +66,9 @@ pub(crate) struct PreparingEditorChanged {
 struct PlaybackBinding {
     latest: Option<PreparingEditorChanged>,
     controller: Option<PreparingPlaybackController>,
-    audio_output: Option<Arc<cap_editor::AudioOutput>>,
+    audio_output: Option<Arc<scoopy_editor::AudioOutput>>,
     exit: Option<PreparingPlaybackExit>,
-    handoff: Option<cap_editor::PreparingPlaybackHandoff>,
+    handoff: Option<scoopy_editor::PreparingPlaybackHandoff>,
 }
 
 #[derive(Clone)]
@@ -290,9 +290,9 @@ impl PreparingConsumers {
         path: &Path,
     ) -> Result<
         (
-            Arc<cap_editor::AudioOutput>,
-            cap_editor::EditorStartupInputs,
-            Option<cap_editor::PreparingPlaybackHandoff>,
+            Arc<scoopy_editor::AudioOutput>,
+            scoopy_editor::EditorStartupInputs,
+            Option<scoopy_editor::PreparingPlaybackHandoff>,
         ),
         String,
     > {
@@ -337,10 +337,10 @@ impl PreparingConsumers {
             let output = binding
                 .audio_output
                 .take()
-                .unwrap_or_else(|| Arc::new(cap_editor::AudioOutput::new()));
+                .unwrap_or_else(|| Arc::new(scoopy_editor::AudioOutput::new()));
             return Ok((
                 output,
-                cap_editor::EditorStartupInputs {
+                scoopy_editor::EditorStartupInputs {
                     recordings: None,
                     completed_audio,
                 },
@@ -348,8 +348,8 @@ impl PreparingConsumers {
             ));
         }
         Ok((
-            Arc::new(cap_editor::AudioOutput::new()),
-            cap_editor::EditorStartupInputs::default(),
+            Arc::new(scoopy_editor::AudioOutput::new()),
+            scoopy_editor::EditorStartupInputs::default(),
             None,
         ))
     }
@@ -390,8 +390,8 @@ pub(crate) async fn create_preparing_editor_frame(
     window: Window,
     request_epoch: u32,
 ) -> Result<Option<String>, String> {
-    let CapWindowId::Editor { id } =
-        CapWindowId::from_str(window.label()).map_err(|error| error.to_string())?
+    let ScoopyWindowId::Editor { id } =
+        ScoopyWindowId::from_str(window.label()).map_err(|error| error.to_string())?
     else {
         return Err("Invalid editor window".into());
     };
@@ -486,8 +486,8 @@ pub(crate) async fn stop_preparing_editor_frame(
     window: Window,
     request_epoch: u32,
 ) -> Result<(), String> {
-    let CapWindowId::Editor { id } =
-        CapWindowId::from_str(window.label()).map_err(|error| error.to_string())?
+    let ScoopyWindowId::Editor { id } =
+        ScoopyWindowId::from_str(window.label()).map_err(|error| error.to_string())?
     else {
         return Err("Invalid editor window".into());
     };
@@ -499,8 +499,8 @@ pub(crate) async fn stop_preparing_editor_frame(
 }
 
 fn editor_window_id(window: &Window) -> Result<u32, String> {
-    match CapWindowId::from_str(window.label()).map_err(|error| error.to_string())? {
-        CapWindowId::Editor { id } => Ok(id),
+    match ScoopyWindowId::from_str(window.label()).map_err(|error| error.to_string())? {
+        ScoopyWindowId::Editor { id } => Ok(id),
         _ => Err("Invalid editor window".into()),
     }
 }
@@ -727,7 +727,7 @@ impl Runner {
         let frame_observer = observer.clone();
         let frames = self.frames.clone();
         let mut tracks = vec!["display".to_string()];
-        if let Some(cap_project::StudioRecordingMeta::MultipleSegments { inner }) =
+        if let Some(scoopy_project::StudioRecordingMeta::MultipleSegments { inner }) =
             input.recording_meta.studio_meta()
         {
             if inner
@@ -748,7 +748,7 @@ impl Runner {
                 tracks.push("systemAudio".into());
             }
         }
-        let audio_output = Arc::new(cap_editor::AudioOutput::new());
+        let audio_output = Arc::new(scoopy_editor::AudioOutput::new());
         {
             let mut binding = self.control.playback.lock().unwrap();
             binding.audio_output = Some(audio_output.clone());
@@ -823,7 +823,7 @@ impl Runner {
                     if changed.is_err() { return Ok(()); }
                     let snapshot = updates.borrow_and_update().clone();
                     self.control.publish_snapshot(&snapshot);
-                    if snapshot.progress.phase != cap_editor::PreparingEditorPhase::Preparing {
+                    if snapshot.progress.phase != scoopy_editor::PreparingEditorPhase::Preparing {
                         return Ok(());
                     }
                 },
@@ -840,8 +840,8 @@ impl Runner {
 }
 
 fn ensure_preparing_stopped_layout(
-    timeline: &cap_project::TimelineConfiguration,
-    studio: &cap_project::StudioRecordingMeta,
+    timeline: &scoopy_project::TimelineConfiguration,
+    studio: &scoopy_project::StudioRecordingMeta,
 ) -> Result<(), String> {
     if timeline.segments.len() != 1 || studio.display_notch().is_some() {
         Err("Tauri preparing requires one screen segment without a recorded notch".into())
@@ -852,7 +852,7 @@ fn ensure_preparing_stopped_layout(
 
 pub(crate) fn project_from_preparing_presentation(
     presentation: &ProjectConfiguration,
-    stopped_timeline: &cap_project::TimelineConfiguration,
+    stopped_timeline: &scoopy_project::TimelineConfiguration,
 ) -> ProjectConfiguration {
     let mut project = presentation.clone();
     project.timeline = Some(crate::recording::recording_timeline(
@@ -863,7 +863,7 @@ pub(crate) fn project_from_preparing_presentation(
 }
 
 fn ensure_preparing_track_presentation<'a>(
-    tracks: impl IntoIterator<Item = (Option<&'a cap_project::VideoMeta>, Option<&'a Path>)>,
+    tracks: impl IntoIterator<Item = (Option<&'a scoopy_project::VideoMeta>, Option<&'a Path>)>,
 ) -> Result<(), String> {
     if tracks
         .into_iter()
@@ -903,14 +903,14 @@ fn adapt(
     let mut project = project_from_preparing_presentation(presentation, timeline);
     if project.clips.is_empty() {
         project.clips =
-            cap_editor::initial_clip_configuration(&recording_meta.project_path, studio);
+            scoopy_editor::initial_clip_configuration(&recording_meta.project_path, studio);
     }
     let descriptors = live.segments().ok_or_else(ended)?;
     ensure_preparing_track_presentation(descriptors.iter().map(|segment| {
         (
             segment
                 .camera()
-                .map(cap_recording::recovery::PreparingVideoInput::metadata),
+                .map(scoopy_recording::recovery::PreparingVideoInput::metadata),
             segment.keyboard_path(),
         )
     }))?;
@@ -959,7 +959,7 @@ fn adapt(
         ensure_preparing_cursor_presentation(&cursor)?;
         cursor.stabilize_short_lived_cursor_shapes(
             (!pointer_ids.is_empty()).then_some(&pointer_ids),
-            cap_project::cursor::SHORT_CURSOR_SHAPE_DEBOUNCE_MS,
+            scoopy_project::cursor::SHORT_CURSOR_SHAPE_DEBOUNCE_MS,
         );
         segments.push(PreparingPreviewSegment {
             video: ManagedSegmentVideoInput::new(
@@ -1140,7 +1140,7 @@ mod tests {
         let path = directory.path().canonicalize().unwrap();
         let (_previous_token, previous) = control(&path, 1, 1);
         let (_next_token, next) = control(&path, 1, 2);
-        let output = Arc::new(cap_editor::AudioOutput::new());
+        let output = Arc::new(scoopy_editor::AudioOutput::new());
         let retained = Arc::downgrade(&output);
         previous.playback.lock().unwrap().audio_output = Some(output);
         let (release, receiver) = oneshot::channel();
@@ -1200,7 +1200,7 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let path = directory.path().canonicalize().unwrap();
         let (_token, control) = control(&path, 3, 1);
-        let output = Arc::new(cap_editor::AudioOutput::new());
+        let output = Arc::new(scoopy_editor::AudioOutput::new());
         let retained = Arc::downgrade(&output);
         control.playback.lock().unwrap().audio_output = Some(output);
         let (release, receiver) = oneshot::channel();
@@ -1299,7 +1299,7 @@ mod tests {
 mod presentation_guard_tests {
     use super::*;
 
-    fn camera() -> cap_project::VideoMeta {
+    fn camera() -> scoopy_project::VideoMeta {
         serde_json::from_value(serde_json::json!({
             "path": "camera", "fps": 24, "start_time": 0.125
         }))
@@ -1334,7 +1334,7 @@ mod presentation_guard_tests {
     #[test]
     fn click_up_and_click_down_both_decline_but_pointer_movement_alone_passes() {
         let mut cursor = CursorEvents::default();
-        cursor.moves.push(cap_project::CursorMoveEvent {
+        cursor.moves.push(scoopy_project::CursorMoveEvent {
             active_modifiers: Vec::new(),
             cursor_id: "arrow".into(),
             time_ms: 0.0,
@@ -1343,7 +1343,7 @@ mod presentation_guard_tests {
         });
         ensure_preparing_cursor_presentation(&cursor).unwrap();
         for down in [false, true] {
-            cursor.clicks = vec![cap_project::CursorClickEvent {
+            cursor.clicks = vec![scoopy_project::CursorClickEvent {
                 active_modifiers: Vec::new(),
                 cursor_num: 0,
                 cursor_id: "arrow".into(),
@@ -1358,7 +1358,7 @@ mod presentation_guard_tests {
     }
     #[test]
     fn stopped_layout_rejects_multiple_or_missing_segments_and_recorded_notches() {
-        let segment = cap_project::TimelineSegment {
+        let segment = scoopy_project::TimelineSegment {
             recording_clip: 0,
             start: 0.0,
             end: 6.0,
@@ -1370,13 +1370,13 @@ mod presentation_guard_tests {
         };
         for notch in [
             None,
-            Some(cap_project::DisplayNotch {
+            Some(scoopy_project::DisplayNotch {
                 x: 0.4,
                 width: 0.2,
                 height: 0.03,
             }),
         ] {
-            let metadata: cap_project::RecordingMeta = serde_json::from_value(serde_json::json!({
+            let metadata: scoopy_project::RecordingMeta = serde_json::from_value(serde_json::json!({
                 "pretty_name": "Tauri presentation metadata", "sharing": null,
                 "segments": [{"display": {"path": "display", "fps": 30, "start_time": 0.0}, "display_notch": notch}]
             })).unwrap();

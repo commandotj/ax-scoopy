@@ -1,10 +1,10 @@
 use crate::{AudioRenderer, SegmentMedia};
-use cap_audio::{
+use scoopy_audio::{
     AudioData, AudioRendererTrack, AudioSampleSource, AudioStream, AudioStreamError, ChunkRead,
     StereoMode, VOICE_PREROLL_SAMPLES, VOICE_PROFILE_SAMPLES, VOICE_WINDOW_PADDING_SAMPLES,
     VoiceAudio, VoiceEnhancer, VoiceProfile, VoiceSource,
 };
-use cap_project::{ClipOffsets, ProjectConfiguration, RecordingMeta, StudioRecordingMeta};
+use scoopy_project::{ClipOffsets, ProjectConfiguration, RecordingMeta, StudioRecordingMeta};
 use std::{
     collections::HashMap,
     fmt,
@@ -564,16 +564,16 @@ impl ExportAudioSources {
                         StereoMode::Stereo
                     } else {
                         match project.audio.mic_stereo_mode {
-                            cap_project::StereoMode::Stereo => StereoMode::Stereo,
-                            cap_project::StereoMode::MonoL => StereoMode::MonoL,
-                            cap_project::StereoMode::MonoR => StereoMode::MonoR,
+                            scoopy_project::StereoMode::Stereo => StereoMode::Stereo,
+                            scoopy_project::StereoMode::MonoL => StereoMode::MonoL,
+                            scoopy_project::StereoMode::MonoR => StereoMode::MonoR,
                         }
                     },
                     offset: track.offset(&offsets),
                 }
             })
             .collect::<Vec<_>>();
-        Ok(cap_audio::render_audio(
+        Ok(scoopy_audio::render_audio(
             &tracks,
             cursor,
             samples.min(max_samples - cursor),
@@ -596,7 +596,7 @@ struct ExportAudioTrack {
     enhancer: Option<VoiceEnhancer>,
     enhanced: Option<VoiceAudio>,
     voice_profile: Option<VoiceProfile>,
-    isolation: cap_project::VoiceIsolation,
+    isolation: scoopy_project::VoiceIsolation,
 }
 
 impl ExportAudioTrack {
@@ -627,7 +627,7 @@ impl ExportAudioTrack {
             enhancer: None,
             enhanced: None,
             voice_profile: None,
-            isolation: cap_project::VoiceIsolation::default(),
+            isolation: scoopy_project::VoiceIsolation::default(),
         })
     }
 
@@ -720,8 +720,8 @@ impl AudioSampleSource for ExportAudioView<'_> {
 mod tests {
     use super::*;
     use crate::audio::{AudioSegment, AudioSegmentTrack};
-    use cap_audio::AudioData;
-    use cap_project::{
+    use scoopy_audio::AudioData;
+    use scoopy_project::{
         ClipConfiguration, ClipSpeedAudioMode, ClipTransition, ClipTransitionType,
         TimelineConfiguration, TimelineSegment,
     };
@@ -1135,9 +1135,9 @@ mod tests {
                         data[0].clone(),
                         |config| config.mic_volume_db,
                         |config| match config.mic_stereo_mode {
-                            cap_project::StereoMode::Stereo => StereoMode::Stereo,
-                            cap_project::StereoMode::MonoL => StereoMode::MonoL,
-                            cap_project::StereoMode::MonoR => StereoMode::MonoR,
+                            scoopy_project::StereoMode::Stereo => StereoMode::Stereo,
+                            scoopy_project::StereoMode::MonoL => StereoMode::MonoL,
+                            scoopy_project::StereoMode::MonoR => StereoMode::MonoR,
                         },
                         |offset| offset.mic,
                     )
@@ -1156,9 +1156,9 @@ mod tests {
                         data[2].clone(),
                         |config| config.mic_volume_db,
                         |config| match config.mic_stereo_mode {
-                            cap_project::StereoMode::Stereo => StereoMode::Stereo,
-                            cap_project::StereoMode::MonoL => StereoMode::MonoL,
-                            cap_project::StereoMode::MonoR => StereoMode::MonoR,
+                            scoopy_project::StereoMode::Stereo => StereoMode::Stereo,
+                            scoopy_project::StereoMode::MonoL => StereoMode::MonoL,
+                            scoopy_project::StereoMode::MonoR => StereoMode::MonoR,
                         },
                         |offset| offset.mic,
                     )
@@ -1354,17 +1354,17 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires CAP_STUDIO_SOUND_TEST_AUDIO pointing to a local microphone recording"]
+    #[ignore = "requires SCOOPY_STUDIO_SOUND_TEST_AUDIO pointing to a local microphone recording"]
     fn studio_sound_real_voice_matches_preview_and_export_at_every_tier() {
         ffmpeg::init().unwrap();
-        let path = PathBuf::from(std::env::var_os("CAP_STUDIO_SOUND_TEST_AUDIO").unwrap());
+        let path = PathBuf::from(std::env::var_os("SCOOPY_STUDIO_SOUND_TEST_AUDIO").unwrap());
         let audio = Arc::new(AudioData::from_file(&path).unwrap());
         let paths = vec![path; 3];
         let data = vec![audio.clone(); 3];
         for isolation in [
-            cap_project::VoiceIsolation::Light,
-            cap_project::VoiceIsolation::Balanced,
-            cap_project::VoiceIsolation::Strong,
+            scoopy_project::VoiceIsolation::Light,
+            scoopy_project::VoiceIsolation::Balanced,
+            scoopy_project::VoiceIsolation::Strong,
         ] {
             let (mut preview, mut export) = fixture(&paths, &data);
             let mut project = ProjectConfiguration::default();
@@ -1394,10 +1394,10 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires CAP_STUDIO_SOUND_BENCH_RECORDING pointing to a local Studio recording"]
+    #[ignore = "requires SCOOPY_STUDIO_SOUND_BENCH_RECORDING pointing to a local Studio recording"]
     fn studio_sound_streams_a_real_recording_with_bounded_memory() {
         ffmpeg::init().unwrap();
-        let path = std::env::var_os("CAP_STUDIO_SOUND_BENCH_RECORDING").unwrap();
+        let path = std::env::var_os("SCOOPY_STUDIO_SOUND_BENCH_RECORDING").unwrap();
         let recording = RecordingMeta::load_for_project(Path::new(&path)).unwrap();
         let mut totals = Vec::new();
         for improve in [false, true] {
@@ -1609,8 +1609,8 @@ mod tests {
                         Some(ClipSpeedAudioMode::Mute)
                 }
                 5 => project.audio.mute = true,
-                6 => project.audio.mic_stereo_mode = cap_project::StereoMode::MonoL,
-                7 => project.audio.mic_stereo_mode = cap_project::StereoMode::MonoR,
+                6 => project.audio.mic_stereo_mode = scoopy_project::StereoMode::MonoL,
+                7 => project.audio.mic_stereo_mode = scoopy_project::StereoMode::MonoR,
                 8 => project.audio.mic_volume_db = f32::NAN,
                 9 => project.audio.mic_volume_db = f32::INFINITY,
                 10 => project.audio.system_volume_db = f32::NEG_INFINITY,
@@ -1634,7 +1634,7 @@ mod tests {
                 }
                 18 => {
                     project.audio.improve = true;
-                    project.audio.mic_stereo_mode = cap_project::StereoMode::MonoR;
+                    project.audio.mic_stereo_mode = scoopy_project::StereoMode::MonoR;
                 }
                 19 => {
                     project.audio.improve = true;
@@ -1652,9 +1652,9 @@ mod tests {
                 20 | 21 => {
                     project.audio.improve = true;
                     project.audio.isolation = if variant == 20 {
-                        cap_project::VoiceIsolation::Light
+                        scoopy_project::VoiceIsolation::Light
                     } else {
-                        cap_project::VoiceIsolation::Strong
+                        scoopy_project::VoiceIsolation::Strong
                     };
                 }
                 22..=25 => {

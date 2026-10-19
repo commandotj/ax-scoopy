@@ -299,7 +299,7 @@ export function PlayerContent(props: { compactness?: number }) {
 			{
 				listen: (callback) =>
 					getCurrentWebviewWindow().listen(
-						"cap-dev-set-editor-playback",
+						"scoopy-dev-set-editor-playback",
 						callback,
 					),
 			},
@@ -386,7 +386,7 @@ export function PlayerContent(props: { compactness?: number }) {
 						variant="text"
 						tooltipText="Crop Video"
 						onClick={cropDialogHandler}
-						leftIcon={<IconCapCrop />}
+						leftIcon={<IconScoopyCrop />}
 					>
 						<span class="max-[1200px]:hidden">Crop</span>
 					</EditorButton>
@@ -461,7 +461,7 @@ export function PlayerContent(props: { compactness?: number }) {
 							editorState.timeline.transform.setPosition(0);
 						}}
 					>
-						<IconCapPrev class="size-3.5" />
+						<IconScoopyPrev class="size-3.5" />
 					</button>
 					<Tooltip kbd={["Space"]} content="Play/Pause video">
 						<button
@@ -470,9 +470,9 @@ export function PlayerContent(props: { compactness?: number }) {
 							class="flex justify-center items-center rounded-full transition-opacity size-8 bg-ed-text-1 text-ed-card hover:opacity-90"
 						>
 							{!playbackIntent() || isAtEnd() ? (
-								<IconCapPlay class="size-3" />
+								<IconScoopyPlay class="size-3" />
 							) : (
-								<IconCapPause class="size-3" />
+								<IconScoopyPause class="size-3" />
 							)}
 						</button>
 					</Tooltip>
@@ -490,7 +490,7 @@ export function PlayerContent(props: { compactness?: number }) {
 							setEditorState("playbackTime", totalDuration());
 						}}
 					>
-						<IconCapNext class="size-3.5" />
+						<IconScoopyNext class="size-3.5" />
 					</button>
 				</div>
 				<div class="flex flex-row flex-1 gap-0.5 justify-end items-center min-w-fit">
@@ -503,7 +503,7 @@ export function PlayerContent(props: { compactness?: number }) {
 						}
 						as={KToggleButton}
 						variant="danger"
-						leftIcon={<IconCapScissors />}
+						leftIcon={<IconScoopyScissors />}
 					/>
 					<div class="mx-1.5 w-px h-4 shrink-0 bg-ed-line-strong" />
 					<div class="flex flex-row gap-0.5 items-center" title={zoomHint()}>
@@ -516,7 +516,7 @@ export function PlayerContent(props: { compactness?: number }) {
 									editorState.playbackTime,
 								);
 							}}
-							leftIcon={<IconCapZoomOut />}
+							leftIcon={<IconScoopyZoomOut />}
 						/>
 						<Slider
 							class="w-18 shrink-0"
@@ -554,7 +554,7 @@ export function PlayerContent(props: { compactness?: number }) {
 									editorState.playbackTime,
 								);
 							}}
-							leftIcon={<IconCapZoomIn />}
+							leftIcon={<IconScoopyZoomIn />}
 						/>
 					</div>
 				</div>

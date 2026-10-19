@@ -10,7 +10,7 @@ Delete cloud code from `apps/desktop-gpui`: sign-in, upload, share links, auto-u
 
 ## Problem
 
-The desktop app links auth and upload paths that only make sense with the Cap backend.
+The desktop app links auth and upload paths that only make sense with the Scoopy backend.
 
 ## Goals
 

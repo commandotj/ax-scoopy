@@ -1,5 +1,5 @@
-use cap_project::{CursorClickEvent, CursorEvents, CursorMoveEvent, ProjectConfiguration, XY};
-use cap_rendering::ZoomTransformTimeline;
+use scoopy_project::{CursorClickEvent, CursorEvents, CursorMoveEvent, ProjectConfiguration, XY};
+use scoopy_rendering::ZoomTransformTimeline;
 
 fn project() -> ProjectConfiguration {
     ProjectConfiguration {

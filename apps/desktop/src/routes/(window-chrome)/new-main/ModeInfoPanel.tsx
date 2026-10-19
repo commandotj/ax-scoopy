@@ -15,21 +15,21 @@ const modeOptions = [
 		title: "Instant",
 		description:
 			"Share instantly with a link. Your recording uploads as you record, so you can share it immediately when you're done.",
-		icon: IconCapInstant,
+		icon: IconScoopyInstant,
 	},
 	{
 		mode: "studio" as RecordingMode,
 		title: "Studio",
 		description:
 			"Record locally in the highest quality for editing later. Perfect for creating polished content with effects and transitions.",
-		icon: IconCapFilmCut,
+		icon: IconScoopyFilmCut,
 	},
 	{
 		mode: "screenshot" as RecordingMode,
 		title: "Screenshot",
 		description:
 			"Capture and annotate screenshots instantly. Great for quick captures, bug reports, and visual communication.",
-		icon: IconCapScreenshot,
+		icon: IconScoopyScreenshot,
 	},
 ];
 

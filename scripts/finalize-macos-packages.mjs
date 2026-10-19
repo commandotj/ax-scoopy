@@ -44,7 +44,7 @@ export async function recompressUpdaterArchive(
 		);
 	}
 	const tools = withoutUpdaterSecrets(env);
-	const work = await mkdtemp(path.join(path.dirname(archive), ".cap-update-"));
+	const work = await mkdtemp(path.join(path.dirname(archive), ".scoopy-update-"));
 	try {
 		const output = path.join(work, path.basename(archive));
 		await run(
@@ -120,7 +120,7 @@ export async function convertDiskImage(
 		);
 	}
 	const tools = withoutUpdaterSecrets(env);
-	const work = await mkdtemp(path.join(path.dirname(dmg), ".cap-dmg-"));
+	const work = await mkdtemp(path.join(path.dirname(dmg), ".scoopy-dmg-"));
 	try {
 		const output = path.join(work, path.basename(dmg));
 		try {

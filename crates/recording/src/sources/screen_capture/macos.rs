@@ -7,7 +7,7 @@ use crate::{
     },
 };
 use anyhow::{Context, anyhow};
-use cap_timestamp::Timestamp;
+use scoopy_timestamp::Timestamp;
 use cidre::*;
 use futures::{FutureExt as _, channel::mpsc, future::BoxFuture};
 use std::{
@@ -98,7 +98,7 @@ impl FrameScaler {
 }
 
 fn get_pixel_buffer_pool_size() -> usize {
-    std::env::var("CAP_PIXEL_BUFFER_POOL_SIZE")
+    std::env::var("SCOOPY_PIXEL_BUFFER_POOL_SIZE")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(20)
@@ -139,14 +139,14 @@ fn create_pixel_buffer_pool(width: usize, height: usize) -> Option<arc::R<cv::Pi
 }
 
 fn get_screen_buffer_size() -> usize {
-    std::env::var("CAP_SCREEN_BUFFER_SIZE")
+    std::env::var("SCOOPY_SCREEN_BUFFER_SIZE")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(15)
 }
 
 fn get_max_queue_depth() -> isize {
-    std::env::var("CAP_MAX_QUEUE_DEPTH")
+    std::env::var("SCOOPY_MAX_QUEUE_DEPTH")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(8)
@@ -266,7 +266,7 @@ impl ScreenCaptureConfig<CMSampleBufferCapture> {
                 crop_bounds.size().height(),
             ));
         }
-        cap_fail::fail_err!(
+        scoopy_fail::fail_err!(
             "macos::ScreenCaptureActor::new",
             ns::Error::with_domain(ns::ErrorDomain::os_status(), 69420, None)
         );
@@ -314,7 +314,7 @@ impl ScreenCaptureConfig<CMSampleBufferCapture> {
                     let mach_timestamp =
                         cm::Clock::convert_host_time_to_sys_units(sample_buffer.pts());
                     let timestamp = Timestamp::MachAbsoluteTime(
-                        cap_timestamp::MachAbsoluteTimestamp::new(mach_timestamp),
+                        scoopy_timestamp::MachAbsoluteTimestamp::new(mach_timestamp),
                     );
 
                     match &frame {
@@ -391,7 +391,7 @@ impl ScreenCaptureConfig<CMSampleBufferCapture> {
                                     sample_buffer.retained()
                                 };
 
-                            cap_fail::fail_ret!("screen_capture video frame skip");
+                            scoopy_fail::fail_ret!("screen_capture video frame skip");
 
                             video_frame_count.fetch_add(1, atomic::Ordering::Relaxed);
 
@@ -414,7 +414,7 @@ impl ScreenCaptureConfig<CMSampleBufferCapture> {
                         scap_screencapturekit::Frame::Audio(_) => {
                             use ffmpeg::ChannelLayout;
 
-                            cap_fail::fail_ret!("screen_capture audio frame skip");
+                            scoopy_fail::fail_ret!("screen_capture audio frame skip");
 
                             let Some(audio_tx) = &mut audio_tx else {
                                 return;
@@ -1009,7 +1009,7 @@ async fn rebuild_capturer(params: &CapturerRebuildParams) -> anyhow::Result<Capt
                 let mach_timestamp =
                     cm::Clock::convert_host_time_to_sys_units(sample_buffer.pts());
                 let timestamp = Timestamp::MachAbsoluteTime(
-                    cap_timestamp::MachAbsoluteTimestamp::new(mach_timestamp),
+                    scoopy_timestamp::MachAbsoluteTimestamp::new(mach_timestamp),
                 );
 
                 match &frame {
@@ -1084,7 +1084,7 @@ async fn rebuild_capturer(params: &CapturerRebuildParams) -> anyhow::Result<Capt
                                     sample_buffer.retained()
                             };
 
-                        cap_fail::fail_ret!("screen_capture video frame skip");
+                        scoopy_fail::fail_ret!("screen_capture video frame skip");
 
                         video_frame_count.fetch_add(1, atomic::Ordering::Relaxed);
 
@@ -1107,7 +1107,7 @@ async fn rebuild_capturer(params: &CapturerRebuildParams) -> anyhow::Result<Capt
                     scap_screencapturekit::Frame::Audio(_) => {
                         use ffmpeg::ChannelLayout;
 
-                        cap_fail::fail_ret!("screen_capture audio frame skip");
+                        scoopy_fail::fail_ret!("screen_capture audio frame skip");
 
                         let Some(audio_tx) = &mut audio_tx else {
                             return;

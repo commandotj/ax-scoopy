@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import Tooltip from "@corvu/tooltip";
 import { createElementBounds } from "@solid-primitives/bounds";
 import { makePersisted } from "@solid-primitives/storage";
@@ -37,8 +37,8 @@ import {
 	type UploadProgress,
 	type UploadResult,
 } from "~/utils/tauri";
-import IconCapEditor from "~icons/cap/editor";
-import IconCapUpload from "~icons/cap/upload";
+import IconScoopyEditor from "~icons/scoopy/editor";
+import IconScoopyUpload from "~icons/scoopy/upload";
 import IconLucideClock from "~icons/lucide/clock";
 import IconLucideEye from "~icons/lucide/eye";
 import { FPS, OUTPUT_SIZE } from "./editor/context";
@@ -112,7 +112,7 @@ export default function () {
 				if (state.some((entry) => entry.path === path)) return;
 				const fileName = path.split("/").pop() || "";
 				const match = fileName.match(
-					/(?:Scoopy|Cap) (\d{4}-\d{2}-\d{2} at \d{2}\.\d{2}\.\d{2})/,
+					/(?:Scoopy|Scoopy) (\d{4}-\d{2}-\d{2} at \d{2}\.\d{2}\.\d{2})/,
 				);
 				const prettyName = match ? match[1].replace(/\./g, ":") : fileName;
 				state.unshift({ path, prettyName, isNew: true, type });
@@ -365,7 +365,7 @@ export default function () {
 															);
 														}}
 													>
-														<IconCapCircleX class="size-4" />
+														<IconScoopyCircleX class="size-4" />
 													</TooltipIconButton>
 													{isRecording ? (
 														<TooltipIconButton
@@ -375,7 +375,7 @@ export default function () {
 															disabled={openRecording.isOpening()}
 															onClick={openRecording.open}
 														>
-															<IconCapEditor class="size-4" />
+															<IconScoopyEditor class="size-4" />
 														</TooltipIconButton>
 													) : (
 														<TooltipIconButton
@@ -399,7 +399,7 @@ export default function () {
 														tooltipPlacement="left"
 														onClick={() => copy.mutate()}
 													>
-														<IconCapCopy class="size-4" />
+														<IconScoopyCopy class="size-4" />
 													</TooltipIconButton>
 													<TooltipIconButton
 														class="absolute right-3 bottom-3 z-998"
@@ -411,7 +411,7 @@ export default function () {
 														tooltipPlacement="left"
 														onClick={() => upload.mutate()}
 													>
-														<IconCapUpload class="size-4" />
+														<IconScoopyUpload class="size-4" />
 													</TooltipIconButton>
 													<div class="flex absolute inset-0 justify-center items-center">
 														<Button
@@ -439,7 +439,7 @@ export default function () {
 															)}
 														>
 															<span class="flex items-center">
-																<IconCapCamera class="w-[16px] h-[16px] mr-1.5" />
+																<IconScoopyCamera class="w-[16px] h-[16px] mr-1.5" />
 																{Math.floor(metadata().duration / 60)}:
 																{Math.floor(metadata().duration % 60)
 																	.toString()
@@ -681,7 +681,7 @@ function createRecordingMutations(
 
 			const defaultName = isRecording
 				? "Scoopy Recording"
-				: media.path.split(".cap/")[1];
+				: media.path.split(".scoopy/")[1];
 			const suggestedName = meta.pretty_name || defaultName;
 
 			const fileType = isRecording ? "mp4" : "screenshot";

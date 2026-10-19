@@ -153,7 +153,7 @@ mod tests {
 
     #[test]
     fn ordinary_text_and_plain_urls_are_untouched() {
-        let line = "opened https://cap.so/s/abc123 for the user at /Users/x/Movies/a.cap";
+        let line = "opened https://example.com/s/abc123 for the user at /Users/x/Movies/a.scoopy";
         assert_eq!(scrub_log_text(line), line);
     }
 
@@ -191,7 +191,7 @@ mod tests {
     fn scrubbing_json_leaves_it_parseable() {
         let doc = serde_json::json!({
             "syncTestError": "error sending request for url (https://b.s3.amazonaws.com/x?X-Amz-Signature=secret123&X-Amz-Expires=3600)",
-            "nested": { "path": "~/Movies/a.cap", "count": 3 },
+            "nested": { "path": "~/Movies/a.scoopy", "count": 3 },
         });
         let scrubbed = scrub_log_text(&doc.to_string());
 

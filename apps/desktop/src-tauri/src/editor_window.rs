@@ -13,13 +13,13 @@ use tauri::{AppHandle, Emitter, Listener, Manager, Runtime, Window, ipc::Command
 use tokio::sync::{RwLock, watch};
 use tokio_util::sync::CancellationToken;
 
-use cap_rendering::GpuOutputFormat;
+use scoopy_rendering::GpuOutputFormat;
 use tauri_specta::Event;
 
 use crate::{
     FrameLayoutEvent, create_editor_instance_impl,
     frame_ws::{WSFrame, WSFrameFormat, create_watch_frame_ws},
-    windows::{CapWindowId, EditorWindowIds},
+    windows::{ScoopyWindowId, EditorWindowIds},
 };
 
 /// Forwards rendered frames to the preview websocket and mirrors each frame's
@@ -28,7 +28,7 @@ use crate::{
 fn make_frame_callback(
     app: AppHandle,
     frame_tx: watch::Sender<Option<Arc<WSFrame>>>,
-) -> cap_editor::EditorFrameCallback {
+) -> scoopy_editor::EditorFrameCallback {
     Box::new(move |output, layout| {
         let Some(ws_frame) = frame_for_websocket(output) else {
             return;
@@ -42,9 +42,9 @@ fn make_frame_callback(
     })
 }
 
-pub(crate) fn frame_for_websocket(output: cap_editor::EditorFrameOutput) -> Option<WSFrame> {
+pub(crate) fn frame_for_websocket(output: scoopy_editor::EditorFrameOutput) -> Option<WSFrame> {
     let frame = match output {
-        cap_editor::EditorFrameOutput::Nv12(frame) => {
+        scoopy_editor::EditorFrameOutput::Nv12(frame) => {
             let ws_format = match frame.format {
                 GpuOutputFormat::Nv12 => WSFrameFormat::Nv12 { full_range: false },
                 GpuOutputFormat::Rgba => WSFrameFormat::Rgba,
@@ -60,7 +60,7 @@ pub(crate) fn frame_for_websocket(output: cap_editor::EditorFrameOutput) -> Opti
                 created_at: Instant::now(),
             }
         }
-        cap_editor::EditorFrameOutput::Rgba(frame) => WSFrame {
+        scoopy_editor::EditorFrameOutput::Rgba(frame) => WSFrame {
             data: frame.data.into(),
             width: frame.width,
             height: frame.height,
@@ -73,15 +73,15 @@ pub(crate) fn frame_for_websocket(output: cap_editor::EditorFrameOutput) -> Opti
         // The Tauri editor transports frames over a websocket, so it never
         // requests the gpui-only zero-copy surface format.
         #[cfg(target_os = "macos")]
-        cap_editor::EditorFrameOutput::Surface(_) => return None,
+        scoopy_editor::EditorFrameOutput::Surface(_) => return None,
     };
     Some(frame.into_packed())
 }
 
 pub struct EditorInstance {
-    inner: Arc<cap_editor::EditorInstance>,
+    inner: Arc<scoopy_editor::EditorInstance>,
     pub instance_id: uuid::Uuid,
-    handoff_playback: tokio::sync::Mutex<Option<(uuid::Uuid, cap_editor::PlaybackHandle)>>,
+    handoff_playback: tokio::sync::Mutex<Option<(uuid::Uuid, scoopy_editor::PlaybackHandle)>>,
     disposed: std::sync::atomic::AtomicBool,
     pub ws_port: u16,
     pub ws_shutdown_token: CancellationToken,
@@ -197,7 +197,7 @@ async fn recreate_preparing_instance(
                 let _ = crate::EditorStateChanged::new(state).emit(&state_app);
             },
             make_frame_callback(app.clone(), frame_tx),
-            cap_editor::EditorFrameFormat::Rgba,
+            scoopy_editor::EditorFrameFormat::Rgba,
         )
         .await?;
     let render_frame_event_id = crate::RenderFrameEvent::listen_checked(&app, {
@@ -271,7 +271,7 @@ impl PendingEditorInstances {
     }
 
     pub async fn start_prewarm(app: &AppHandle, window_label: String, path: PathBuf) {
-        let Ok(CapWindowId::Editor { id }) = CapWindowId::from_str(&window_label) else {
+        let Ok(ScoopyWindowId::Editor { id }) = ScoopyWindowId::from_str(&window_label) else {
             return;
         };
         let window_ids = EditorWindowIds::get(app);
@@ -459,7 +459,7 @@ impl EditorInstance {
         expected: &str,
         frame_number: u32,
         fps: u32,
-        resolution: cap_project::XY<u32>,
+        resolution: scoopy_project::XY<u32>,
     ) -> Result<String, String> {
         let mut handoff = self.handoff_playback.lock().await;
         self.validate_handoff(expected)?;
@@ -516,7 +516,7 @@ impl Drop for EditorInstance {
 }
 
 impl Deref for EditorInstance {
-    type Target = Arc<cap_editor::EditorInstance>;
+    type Target = Arc<scoopy_editor::EditorInstance>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -615,8 +615,8 @@ impl EditorInstances {
         window: &Window,
         path: PathBuf,
     ) -> Result<Arc<EditorInstance>, String> {
-        let CapWindowId::Editor { id } =
-            CapWindowId::from_str(window.label()).map_err(|error| error.to_string())?
+        let ScoopyWindowId::Editor { id } =
+            ScoopyWindowId::from_str(window.label()).map_err(|error| error.to_string())?
         else {
             return Err("Invalid editor window".to_string());
         };

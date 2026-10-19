@@ -21,11 +21,11 @@ pub use audio_output::{
     AudioOutput, HEADLESS_BLOCK_FRAMES, HEADLESS_CHANNELS, HEADLESS_SAMPLE_RATE, HeadlessAudioTap,
     PlaySpec,
 };
-pub use cap_audio::{
+pub use scoopy_audio::{
     TranscriptionAudioSource, TranscriptionAudioTake, append_transcription_audio,
     assemble_transcription_audio, waveform_peaks,
 };
-pub use cap_rendering::FrameLayout;
+pub use scoopy_rendering::FrameLayout;
 pub use completed_audio::CompletedAudioHandoff;
 pub use editor::{
     EditorFrameCallback, EditorFrameFormat, EditorFrameOutput, Renderer, RendererHandle,

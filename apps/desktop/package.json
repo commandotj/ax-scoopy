@@ -1,8 +1,8 @@
 {
-	"name": "@cap/desktop",
+	"name": "@scoopy/desktop",
 	"type": "module",
 	"scripts": {
-		"dev": "bun run --cwd ../.. cap-setup && bun run build:sidecar && bun run build:gpui:dev && dotenv -e ../../.env -- bun run preparescript && dotenv -e ../../.env -- node ../../scripts/dev-desktop.mjs",
+		"dev": "bun run --cwd ../.. scoopy-setup && bun run build:sidecar && bun run build:gpui:dev && dotenv -e ../../.env -- bun run preparescript && dotenv -e ../../.env -- node ../../scripts/dev-desktop.mjs",
 		"build:tauri": "bun run build:sidecar && bun run build:gpui && dotenv -e ../../.env -- bun run preparescript --release && node ../../scripts/verify-gpui-release-inputs.mjs && dotenv -e ../../.env -- bun run tauri build",
 		"build:sidecar": "node ../../scripts/build-desktop-binaries.mjs",
 		"build:gpui": "node ../../scripts/run-gpui-build.mjs release",
@@ -17,9 +17,9 @@
 	},
 	"dependencies": {
 		"@aerofoil/rive-solid-canvas": "^2.1.4",
-		"@cap/ui-solid": "workspace:*",
-		"@cap/utils": "workspace:*",
-		"@cap/web-api-contract": "workspace:*",
+		"@scoopy/ui-solid": "workspace:*",
+		"@scoopy/utils": "workspace:*",
+		"@scoopy/web-api-contract": "workspace:*",
 		"@corvu/tooltip": "^0.2.1",
 		"@kobalte/core": "^0.13.11",
 		"@openpanel/web": "^1.4.1",

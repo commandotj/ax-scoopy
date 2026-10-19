@@ -16,8 +16,8 @@ use gpui::{
 use crate::{main_window::Mode, theme::Theme};
 
 /// `.inner_size(580.0, 340.0)` / `.min_inner_size(580.0, 340.0)` /
-/// `.resizable(false)` on the `ShowCapWindow::ModeSelect` arm in `windows.rs`,
-/// and the same pair again from `CapWindowId::ModeSelect::min_size`.
+/// `.resizable(false)` on the `ShowScoopyWindow::ModeSelect` arm in `windows.rs`,
+/// and the same pair again from `ScoopyWindowId::ModeSelect::min_size`.
 pub const MODE_SELECT_WIDTH: f32 = 580.;
 pub const MODE_SELECT_HEIGHT: f32 = 340.;
 
@@ -49,7 +49,7 @@ pub struct ModeSelectWindow {
 
 impl ModeSelectWindow {
     pub fn new(mode: Mode, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        // `CapWindowId::Upgrade | CapWindowId::ModeSelect` in the `Destroyed`
+        // `ScoopyWindowId::Upgrade | ScoopyWindowId::ModeSelect` in the `Destroyed`
         // arm calls `restore_main_and_target_select_windows`: however this
         // window goes away, the main window comes back. Deferred out of the
         // callback -- it fires with the App borrowed.

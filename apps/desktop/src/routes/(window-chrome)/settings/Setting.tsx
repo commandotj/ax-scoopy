@@ -54,7 +54,7 @@ export function SectionCard(
 	return (
 		<div
 			class={cx(
-				"cap-settings-card overflow-hidden rounded-xl border border-gray-3 bg-gray-2",
+				"scoopy-settings-card overflow-hidden rounded-xl border border-gray-3 bg-gray-2",
 				props.padded && "px-4 py-4",
 				props.class,
 			)}
@@ -80,7 +80,7 @@ export function SettingItem(props: {
 	return (
 		<div
 			id={props.id}
-			class="cap-setting-row flex flex-row gap-4 justify-between items-center px-4 py-3.5"
+			class="scoopy-setting-row flex flex-row gap-4 justify-between items-center px-4 py-3.5"
 		>
 			<div class="flex flex-col flex-1 min-w-0 gap-0.5">
 				<p class="text-[13px] text-gray-12">{props.label}</p>

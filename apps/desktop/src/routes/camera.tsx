@@ -69,11 +69,11 @@ const CAMERA_DISCONNECTED_ISSUE: CameraPreviewIssue = {
 };
 
 const getCameraOnlyMode = () => {
-	return window.__CAP__?.cameraOnlyMode === true;
+	return window.__SCOOPY__?.cameraOnlyMode === true;
 };
 
 const getNativeCameraPreviewInitialState = () => {
-	return window.__CAP__?.enableNativeCameraPreview === true;
+	return window.__SCOOPY__?.enableNativeCameraPreview === true;
 };
 
 let ignoreMoveUntil = 0;
@@ -491,7 +491,7 @@ function LegacyCameraPreviewPage(props: {
 	const WS_MAX_BACKOFF_MS = 30000;
 	const WS_MAX_RETRIES = 10;
 
-	const { cameraWsPort } = window.__CAP__;
+	const { cameraWsPort } = window.__SCOOPY__;
 	const [isWindowVisible, setIsWindowVisible] = createSignal(
 		performanceHarnessCameraOpen || !document.hidden,
 	);
@@ -958,7 +958,7 @@ function LegacyCameraPreviewPage(props: {
 	});
 
 	const initialGeneration = (
-		window.__CAP__ as { cleanCaptureGeneration?: number } | undefined
+		window.__SCOOPY__ as { cleanCaptureGeneration?: number } | undefined
 	)?.cleanCaptureGeneration;
 	const revealGeneration =
 		initialGeneration === undefined

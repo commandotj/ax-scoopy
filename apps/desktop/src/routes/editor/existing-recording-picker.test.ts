@@ -20,7 +20,7 @@ describe("existing recording picker", () => {
 				getExistingRecordingPickerOptions(platform, "/Scoopy/recordings"),
 			).toEqual({
 				defaultPath: "/Scoopy/recordings",
-				filters: [{ name: "Scoopy Recording", extensions: ["cap"] }],
+				filters: [{ name: "Scoopy Recording", extensions: ["scoopy"] }],
 				multiple: false,
 			});
 		},

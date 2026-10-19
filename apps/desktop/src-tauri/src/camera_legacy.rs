@@ -2,9 +2,9 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
-use cap_recording::FFmpegVideoFrame;
+use scoopy_recording::FFmpegVideoFrame;
 #[cfg(target_os = "macos")]
-use cap_utils::macos_qos::{MacOsQosClass, set_current_thread_qos};
+use scoopy_utils::macos_qos::{MacOsQosClass, set_current_thread_qos};
 use flume::Sender;
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
@@ -69,7 +69,7 @@ struct BlurInput<'a> {
     width: u32,
     height: u32,
     stride: u32,
-    mode: cap_camera_effects::BlurMode,
+    mode: scoopy_camera_effects::BlurMode,
     receipt: OutputReceipt,
 }
 
@@ -250,7 +250,7 @@ fn prepare_ws_data(
 }
 
 fn scaled_preview_dimensions(width: u32, height: u32, state: &CameraPreviewState) -> (u32, u32) {
-    let blur_enabled = state.background_blur != cap_project::BackgroundBlurMode::Off;
+    let blur_enabled = state.background_blur != scoopy_project::BackgroundBlurMode::Off;
     let (max_width, max_height) = if is_low_spec_preview() {
         // Low-spec caps preview to 640x360 (blur is skipped on low-spec, so the
         // blur-vs-no-blur branch below does not apply).
@@ -434,13 +434,13 @@ pub async fn create_camera_preview_ws(
             #[cfg(target_os = "linux")]
             let state = recording.as_ref().map_or(state, |work| work.state.clone());
             let blur_mode = state.background_blur;
-            let blur_enabled = blur_mode != cap_project::BackgroundBlurMode::Off;
+            let blur_enabled = blur_mode != scoopy_project::BackgroundBlurMode::Off;
             let effects_mode = match blur_mode {
-                cap_project::BackgroundBlurMode::Off | cap_project::BackgroundBlurMode::Light => {
-                    cap_camera_effects::BlurMode::Light
+                scoopy_project::BackgroundBlurMode::Off | scoopy_project::BackgroundBlurMode::Light => {
+                    scoopy_camera_effects::BlurMode::Light
                 }
-                cap_project::BackgroundBlurMode::Heavy => cap_camera_effects::BlurMode::Heavy,
-                cap_project::BackgroundBlurMode::Remove => cap_camera_effects::BlurMode::Remove,
+                scoopy_project::BackgroundBlurMode::Heavy => scoopy_camera_effects::BlurMode::Heavy,
+                scoopy_project::BackgroundBlurMode::Remove => scoopy_camera_effects::BlurMode::Remove,
             };
             let (mut target_width, mut target_height) =
                 scaled_preview_dimensions(frame.width(), frame.height(), &state);
@@ -561,7 +561,7 @@ pub async fn create_camera_preview_ws(
                 }
             }
             if ws_active {
-                if blur_mode == cap_project::BackgroundBlurMode::Remove
+                if blur_mode == scoopy_project::BackgroundBlurMode::Remove
                     && matches!(blurred, Ok(None))
                 {
                     continue;
@@ -613,11 +613,11 @@ struct WsBlurState {
 struct WsBlurResources {
     device: wgpu::Device,
     queue: wgpu::Queue,
-    processor: cap_camera_effects::BlurProcessor,
+    processor: scoopy_camera_effects::BlurProcessor,
     source_texture: Option<(u32, u32, wgpu::Texture)>,
     readbacks: Option<(u32, u32, [WsReadback; 2])>,
     current_idx: usize,
-    mode: Option<cap_camera_effects::BlurMode>,
+    mode: Option<scoopy_camera_effects::BlurMode>,
 }
 
 impl WsBlurState {
@@ -663,7 +663,7 @@ impl WsBlurState {
             receipt,
         } = input;
         // Idle preview keeps its compatibility fallback; recording requires this error to stay terminal.
-        if is_low_spec_preview() || cap_camera_effects::blur_disabled() {
+        if is_low_spec_preview() || scoopy_camera_effects::blur_disabled() {
             return Err("Requested camera blur is disabled or unavailable on this device".into());
         }
 
@@ -685,7 +685,7 @@ impl WsBlurState {
 
         #[cfg(target_os = "linux")]
         if receipt.as_ref().is_some_and(|receipt| matches!(receipt.timestamp,
-            cap_timestamp::Timestamp::Instant(captured) if captured.elapsed() > Duration::from_secs(1))) {
+            scoopy_timestamp::Timestamp::Instant(captured) if captured.elapsed() > Duration::from_secs(1))) {
             return Ok(None);
         }
 
@@ -921,8 +921,8 @@ fn init_headless_blur() -> Result<WsBlurResources, String> {
     }
     let _guard = BlurSessionGuard;
 
-    let instance = cap_rendering::create_wgpu_instance_sync();
-    let force_software_adapter = cap_rendering::force_software_wgpu_adapter();
+    let instance = scoopy_rendering::create_wgpu_instance_sync();
+    let force_software_adapter = scoopy_rendering::force_software_wgpu_adapter();
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::LowPower,
         force_fallback_adapter: force_software_adapter,
@@ -941,7 +941,7 @@ fn init_headless_blur() -> Result<WsBlurResources, String> {
     .map_err(|error| format!("Camera blur device unavailable: {error}"))?;
 
     let mut processor =
-        cap_camera_effects::BlurProcessor::new(&device, wgpu::TextureFormat::Rgba8Unorm)
+        scoopy_camera_effects::BlurProcessor::new(&device, wgpu::TextureFormat::Rgba8Unorm)
             .map_err(|error| format!("Camera blur processor unavailable: {error}"))?;
     processor.set_inference_interval(WS_BLUR_INFERENCE_INTERVAL);
 
@@ -985,11 +985,11 @@ mod tests {
     #[cfg(target_os = "linux")]
     fn receipt(generation: u64, captured: Instant) -> crate::linux_instant_camera::FrameReceipt {
         crate::linux_instant_camera::FrameReceipt {
-            timestamp: cap_timestamp::Timestamp::Instant(captured),
+            timestamp: scoopy_timestamp::Timestamp::Instant(captured),
             generation,
-            processing: cap_recording::instant_recording::LinuxCameraProcessing {
+            processing: scoopy_recording::instant_recording::LinuxCameraProcessing {
                 mirrored: false,
-                blur: cap_recording::instant_recording::LinuxCameraBlur::Off,
+                blur: scoopy_recording::instant_recording::LinuxCameraBlur::Off,
             },
             dimensions: (2, 1),
             blur: None,
@@ -1017,13 +1017,13 @@ mod tests {
         assert!(a.take_ready().unwrap().is_none());
         let newer = b.take_ready().unwrap().unwrap().unwrap();
         assert_eq!(newer.generation, 8);
-        assert!(matches!(newer.timestamp,cap_timestamp::Timestamp::Instant(at) if at==second));
+        assert!(matches!(newer.timestamp,scoopy_timestamp::Timestamp::Instant(at) if at==second));
         assert!(b.take_ready().unwrap().is_none());
         release.send(()).unwrap();
         worker.await.unwrap();
         let older = a.take_ready().unwrap().unwrap().unwrap();
         assert_eq!(older.generation, 7);
-        assert!(matches!(older.timestamp,cap_timestamp::Timestamp::Instant(at) if at==first));
+        assert!(matches!(older.timestamp,scoopy_timestamp::Timestamp::Instant(at) if at==first));
     }
 
     #[cfg(target_os = "linux")]

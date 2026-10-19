@@ -4,8 +4,8 @@ import { cx } from "cva";
 import { type Component, For, type JSX, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import type { FrameConfiguration, FrameStyle } from "~/utils/tauri";
-import IconCapChevronDown from "~icons/cap/chevron-down";
-import IconCapCircleCheck from "~icons/cap/circle-check";
+import IconScoopyChevronDown from "~icons/scoopy/chevron-down";
+import IconScoopyCircleCheck from "~icons/scoopy/circle-check";
 import IconLucideAppWindow from "~icons/lucide/app-window";
 import IconLucideAppWindowMac from "~icons/lucide/app-window-mac";
 import IconLucideBan from "~icons/lucide/ban";
@@ -127,7 +127,7 @@ function FrameSettings() {
 										</span>
 									</span>
 									<Show when={selected()}>
-										<IconCapCircleCheck class="size-4 shrink-0 text-ed-accent" />
+										<IconScoopyCircleCheck class="size-4 shrink-0 text-ed-accent" />
 									</Show>
 								</button>
 							);
@@ -234,7 +234,7 @@ function ScopedFrameButton() {
 						component={hasFrame() ? activeStyle().icon : IconLucideAppWindowMac}
 					/>
 				}
-				rightIcon={<IconCapChevronDown />}
+				rightIcon={<IconScoopyChevronDown />}
 			>
 				<span class="max-[1200px]:hidden">
 					{hasFrame() ? activeStyle().label : "Frame"}

@@ -14,7 +14,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, bail};
-use cap_project::{
+use scoopy_project::{
     AudioMeta, BackgroundSource, ClipConfiguration, MultipleSegment, MultipleSegments, Platform,
     ProjectConfiguration, RecordingMeta, RecordingMetaInner, StudioRecordingMeta,
     StudioRecordingStatus, TimelineConfiguration, TimelineSegment, VideoMeta,
@@ -438,11 +438,11 @@ pub fn write_fixture(spec: &FixtureSpec, dir: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Root for generated fixtures: `CAP_VERIFY_FIXTURE_DIR`, else
+/// Root for generated fixtures: `SCOOPY_VERIFY_FIXTURE_DIR`, else
 /// `<target>/verify-fixtures`. CI caches this directory keyed by the
 /// generator sources.
 pub fn fixture_root() -> PathBuf {
-    if let Some(dir) = std::env::var_os("CAP_VERIFY_FIXTURE_DIR") {
+    if let Some(dir) = std::env::var_os("SCOOPY_VERIFY_FIXTURE_DIR") {
         return PathBuf::from(dir);
     }
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -468,7 +468,7 @@ pub fn ensure_fixture_keyed(
 ) -> anyhow::Result<PathBuf> {
     let root = fixture_root();
     std::fs::create_dir_all(&root)?;
-    let dir = root.join(format!("{key}.cap"));
+    let dir = root.join(format!("{key}.scoopy"));
     let done = root.join(format!("{key}.complete"));
     if done.exists() && dir.exists() {
         return Ok(dir);
@@ -480,7 +480,7 @@ pub fn ensure_fixture_keyed(
     }
     static NEXT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
     let staging = root.join(format!(
-        "{key}.{}-{}.tmp.cap",
+        "{key}.{}-{}.tmp.scoopy",
         std::process::id(),
         NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     ));

@@ -551,9 +551,9 @@ pub fn read_expecting(
         let alternative = best_of(&mut near.chain(far).filter(|(ao, ai)| {
             !(swapped(*ao, *ai) || allowed(outgoing, *ao) && allowed(incoming, *ai))
         }));
-        if std::env::var("CAP_VERIFY_TRACE_BLEND").as_deref() == Ok("2") {
+        if std::env::var("SCOOPY_VERIFY_TRACE_BLEND").as_deref() == Ok("2") {
             eprintln!(
-                "[cap-verify-blend-sides] {}",
+                "[scoopy-verify-blend-sides] {}",
                 serde_json::json!({
                     "stream": kind,
                     "expected": [o.index, i.index],

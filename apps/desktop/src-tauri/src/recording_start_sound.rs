@@ -1,6 +1,6 @@
 use std::{io::Cursor, sync::mpsc, time::Duration};
 
-use cap_recording::RecordingStartGate;
+use scoopy_recording::RecordingStartGate;
 use rodio::{Decoder, OutputStream, Sink};
 
 // The cue is under half a second; a device that has not finished it by now

@@ -9,7 +9,7 @@
 //! pixel-for-pixel. The software path runs twice to establish the encoder's
 //! own determinism as a control.
 //!
-//! Run: cargo run -p cap-recording --example vt-hwframe-encode-benchmark --release
+//! Run: cargo run -p scoopy-recording --example vt-hwframe-encode-benchmark --release
 
 #[cfg(not(target_os = "macos"))]
 fn main() {
@@ -27,10 +27,10 @@ mod macos {
     use std::path::{Path, PathBuf};
     use std::time::{Duration, Instant};
 
-    use cap_enc_ffmpeg::h264::H264Preset;
-    use cap_enc_ffmpeg::remux::concatenate_m4s_segments_with_init;
-    use cap_enc_ffmpeg::segmented_stream::{SegmentedVideoEncoder, SegmentedVideoEncoderConfig};
-    use cap_media_info::VideoInfo;
+    use scoopy_enc_ffmpeg::h264::H264Preset;
+    use scoopy_enc_ffmpeg::remux::concatenate_m4s_segments_with_init;
+    use scoopy_enc_ffmpeg::segmented_stream::{SegmentedVideoEncoder, SegmentedVideoEncoderConfig};
+    use scoopy_media_info::VideoInfo;
     use cidre::{arc, cf, cv};
 
     const WARMUP: usize = 30;
@@ -386,7 +386,7 @@ mod macos {
         for (width, height, fps) in configs {
             let label = format!("{width}x{height}@{fps}");
             let info = VideoInfo::from_raw(
-                cap_media_info::RawVideoFormat::Nv12,
+                scoopy_media_info::RawVideoFormat::Nv12,
                 width as u32,
                 height as u32,
                 fps,

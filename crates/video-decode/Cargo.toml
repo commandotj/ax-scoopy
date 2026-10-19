@@ -1,5 +1,5 @@
 [package]
-name = "cap-video-decode"
+name = "scoopy-video-decode"
 version = "0.1.0"
 edition = "2024"
 
@@ -11,7 +11,7 @@ workspace = true
 scripted = []
 
 [dependencies]
-cap-enc-ffmpeg = { path = "../enc-ffmpeg" }
+scoopy-enc-ffmpeg = { path = "../enc-ffmpeg" }
 ffmpeg.workspace = true
 ffmpeg-hw-device = { path = "../ffmpeg-hw-device" }
 num_cpus = "1.17.0"
@@ -21,7 +21,7 @@ tracing = "0.1.41"
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [dev-dependencies]
-cap-media-info = { path = "../media-info" }
+scoopy-media-info = { path = "../media-info" }
 serde_json.workspace = true
 sha2 = "0.10"
 
@@ -29,7 +29,7 @@ sha2 = "0.10"
 cidre = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-cap-d3d-adapter = { path = "../d3d-adapter" }
+scoopy-d3d-adapter = { path = "../d3d-adapter" }
 windows = { workspace = true, features = [
     "Win32_Foundation",
     "Win32_Graphics_Direct3D",

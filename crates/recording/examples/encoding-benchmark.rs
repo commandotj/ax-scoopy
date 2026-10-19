@@ -1,7 +1,7 @@
-use cap_frame_converter::{
+use scoopy_frame_converter::{
     AsyncConverterPool, ConversionConfig, ConverterPoolConfig, DropStrategy,
 };
-use cap_recording::benchmark::{BenchmarkConfig, EncoderInfo, MetricsSnapshot, PipelineMetrics};
+use scoopy_recording::benchmark::{BenchmarkConfig, EncoderInfo, MetricsSnapshot, PipelineMetrics};
 use ffmpeg::format::Pixel;
 use std::{
     sync::{
@@ -361,7 +361,7 @@ fn main() {
     ffmpeg::init().expect("Failed to init ffmpeg");
     tracing_subscriber::fmt::init();
 
-    println!("=== Cap Encoding Pipeline Benchmark ===\n");
+    println!("=== Scoopy Encoding Pipeline Benchmark ===\n");
 
     let encoder_info = EncoderInfo::detect();
     encoder_info.print_info();

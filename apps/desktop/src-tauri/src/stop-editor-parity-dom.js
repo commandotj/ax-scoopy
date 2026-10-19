@@ -131,7 +131,7 @@
 	const emit = (value) => {
 		void window.__TAURI_INTERNALS__
 			.invoke("plugin:event|emit", {
-				event: "cap-stop-benchmark-dom",
+				event: "scoopy-stop-benchmark-dom",
 				payload: value,
 			})
 			.catch(() => {});

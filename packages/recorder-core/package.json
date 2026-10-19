@@ -1,5 +1,5 @@
 {
-	"name": "@cap/recorder-core",
+	"name": "@scoopy/recorder-core",
 	"private": true,
 	"type": "module",
 	"exports": {

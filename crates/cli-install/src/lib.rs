@@ -1,8 +1,8 @@
-//! Shared logic for installing the `cap` CLI shim onto the user's `PATH`.
+//! Shared logic for installing the `scoopy` CLI shim onto the user's `PATH`.
 //!
 //! Used by both the desktop app (via Tauri commands) and the CLI itself
-//! (`cap desktop status|install-cli|uninstall-cli`) so the two surfaces never
-//! diverge. The shim points at the `cap-cli` binary that sits next to the
+//! (`scoopy desktop status|install-cli|uninstall-cli`) so the two surfaces never
+//! diverge. The shim points at the `scoopy-cli` binary that sits next to the
 //! current executable, which is the bundled CLI for both callers.
 
 use serde::Serialize;
@@ -16,19 +16,19 @@ use std::{
 #[cfg(unix)]
 pub mod appimage;
 
-const CAP_DIR_NAME: &str = ".cap";
+const SCOOPY_DIR_NAME: &str = ".scoopy";
 const BIN_DIR_NAME: &str = "bin";
-const CLI_BINARY_STEM: &str = "cap-cli";
+const CLI_BINARY_STEM: &str = "scoopy-cli";
 
 #[cfg(windows)]
-const SHIM_NAME: &str = "cap.cmd";
+const SHIM_NAME: &str = "scoopy.cmd";
 #[cfg(not(windows))]
-const SHIM_NAME: &str = "cap";
+const SHIM_NAME: &str = "scoopy";
 
 #[cfg(windows)]
-const CLI_BINARY_NAME: &str = "cap-cli.exe";
+const CLI_BINARY_NAME: &str = "scoopy-cli.exe";
 #[cfg(not(windows))]
-const CLI_BINARY_NAME: &str = "cap-cli";
+const CLI_BINARY_NAME: &str = "scoopy-cli";
 
 #[derive(Clone, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -43,7 +43,7 @@ pub struct CliInstallStatus {
     pub path_entry: String,
     pub shell_command: String,
     /// Whether the install dir is persisted to the user's shell PATH config (profile/registry),
-    /// so `cap` will be available in a new terminal even though it is not on the current PATH.
+    /// so `scoopy` will be available in a new terminal even though it is not on the current PATH.
     pub path_configured: bool,
 }
 
@@ -53,16 +53,16 @@ fn home_dir() -> Result<PathBuf, String> {
 
 fn install_dir() -> Result<PathBuf, String> {
     let home = home_dir()?;
-    let cap_bin = home.join(CAP_DIR_NAME).join(BIN_DIR_NAME);
+    let scoopy_bin = home.join(SCOOPY_DIR_NAME).join(BIN_DIR_NAME);
     let local_bin = home.join(".local/bin");
 
-    // Prefer whichever candidate already holds a Cap-managed shim, so `status` and `install` agree
+    // Prefer whichever candidate already holds a Scoopy-managed shim, so `status` and `install` agree
     // regardless of whether they run from the GUI or a terminal (whose PATHs differ). Without this,
     // a shim the web installer placed in ~/.local/bin reads as "not installed" from a GUI launch.
-    // Also match a shim pointing at a different/older Cap install so `install` repoints it in place
+    // Also match a shim pointing at a different/older Scoopy install so `install` repoints it in place
     // rather than leaving it stranded and creating a second shim elsewhere.
     if let Ok(target) = target_path() {
-        for candidate in [&cap_bin, &local_bin] {
+        for candidate in [&scoopy_bin, &local_bin] {
             let shim = candidate.join(SHIM_NAME);
             if shim_points_to(&shim, &target).unwrap_or(false) || shim_is_cap_managed(&shim) {
                 return Ok(candidate.clone());
@@ -70,15 +70,15 @@ fn install_dir() -> Result<PathBuf, String> {
         }
     }
 
-    if path_is_present(&cap_bin.join(SHIM_NAME)) || cfg!(windows) {
-        return Ok(cap_bin);
+    if path_is_present(&scoopy_bin.join(SHIM_NAME)) || cfg!(windows) {
+        return Ok(scoopy_bin);
     }
 
     if path_contains_install_dir(&local_bin) {
         return Ok(local_bin);
     }
 
-    Ok(cap_bin)
+    Ok(scoopy_bin)
 }
 
 fn shim_path() -> Result<PathBuf, String> {
@@ -91,15 +91,15 @@ fn target_path() -> Result<PathBuf, String> {
         return Ok(path);
     }
 
-    let exe = env::current_exe().map_err(|e| format!("Could not locate Cap executable: {e}"))?;
-    // When `cap` runs through the installed shim (a symlink), macOS `current_exe()` returns the
-    // symlink path; resolve it to the real binary so the sibling `cap-cli` resolves to the bundled
+    let exe = env::current_exe().map_err(|e| format!("Could not locate Scoopy executable: {e}"))?;
+    // When `scoopy` runs through the installed shim (a symlink), macOS `current_exe()` returns the
+    // symlink path; resolve it to the real binary so the sibling `scoopy-cli` resolves to the bundled
     // one rather than a non-existent path next to the shim (which made status() report installed:false
-    // for every `cap desktop` subcommand). Mirrors doctor.rs's VersionInfo::collect().
+    // for every `scoopy desktop` subcommand). Mirrors doctor.rs's VersionInfo::collect().
     let exe = resolve_path_for_target_lookup(exe);
     let dir = exe
         .parent()
-        .ok_or_else(|| "Could not locate Cap executable directory".to_string())?;
+        .ok_or_else(|| "Could not locate Scoopy executable directory".to_string())?;
 
     for candidate in cli_binary_candidates(dir) {
         if candidate.exists() {
@@ -220,7 +220,7 @@ fn path_contains_install_dir(install_dir: &Path) -> bool {
 fn shim_points_to(shim_path: &Path, target_path: &Path) -> Result<bool, String> {
     match fs::read_link(shim_path) {
         // The web installer may symlink to a literal app path that the desktop's canonicalized
-        // current_exe spells differently; compare the resolved paths too so a Cap-managed shim is still
+        // current_exe spells differently; compare the resolved paths too so a Scoopy-managed shim is still
         // recognized by status/install/uninstall.
         Ok(link) => Ok(link == target_path || same_file(&link, target_path)),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(false),
@@ -321,9 +321,9 @@ fn windows_path_file_name(path: &[u8]) -> &[u8] {
 
 #[cfg(any(windows, test))]
 fn windows_cli_binary_file_name_is_cap_managed(name: &[u8]) -> bool {
-    name.eq_ignore_ascii_case(b"cap-cli.exe")
-        || name.eq_ignore_ascii_case(b"cap-cli-x86_64-pc-windows-msvc.exe")
-        || name.eq_ignore_ascii_case(b"cap-cli-aarch64-pc-windows-msvc.exe")
+    name.eq_ignore_ascii_case(b"scoopy-cli.exe")
+        || name.eq_ignore_ascii_case(b"scoopy-cli-x86_64-pc-windows-msvc.exe")
+        || name.eq_ignore_ascii_case(b"scoopy-cli-aarch64-pc-windows-msvc.exe")
 }
 
 #[cfg(any(windows, test))]
@@ -434,7 +434,7 @@ pub fn status() -> Result<CliInstallStatus, String> {
     let installed = target_exists && shim_points_to(&shim_path, &target_path)?;
     let conflict = if shim_exists && !installed && !shim_is_cap_managed(&shim_path) {
         Some(format!(
-            "{} already exists and is not managed by Cap",
+            "{} already exists and is not managed by Scoopy",
             display_path(&shim_path)
         ))
     } else if !target_exists {
@@ -499,11 +499,11 @@ pub fn install() -> Result<CliInstallStatus, String> {
     fs::create_dir_all(&install_dir).map_err(|e| format!("Could not create CLI directory: {e}"))?;
 
     if path_is_present(&shim_path) {
-        // Repoint our own shim and any other Cap-managed shim (e.g. one left by a previous or moved
+        // Repoint our own shim and any other Scoopy-managed shim (e.g. one left by a previous or moved
         // install, or by the web installer); only refuse to clobber a genuinely foreign file.
         if !shim_points_to(&shim_path, &target_path)? && !shim_is_cap_managed(&shim_path) {
             return Err(format!(
-                "{} already exists and is not managed by Cap",
+                "{} already exists and is not managed by Scoopy",
                 display_path(&shim_path)
             ));
         }
@@ -527,11 +527,11 @@ pub fn install() -> Result<CliInstallStatus, String> {
 }
 
 /// Persist `install_dir` to the user's PATH (shell profile on unix, User registry on Windows) so a
-/// freshly opened terminal can run `cap`. Idempotent; honours `CAP_NO_MODIFY_PATH`. Returns whether
+/// freshly opened terminal can run `scoopy`. Idempotent; honours `SCOOPY_NO_MODIFY_PATH`. Returns whether
 /// the directory is now persisted. Best-effort: a failure just falls back to the printed command.
 #[cfg(unix)]
 fn ensure_path_persisted(install_dir: &Path) -> bool {
-    if env::var_os("CAP_NO_MODIFY_PATH").is_some() {
+    if env::var_os("SCOOPY_NO_MODIFY_PATH").is_some() {
         return false;
     }
     let Some(home) = dirs::home_dir() else {
@@ -551,7 +551,7 @@ fn ensure_path_persisted(install_dir: &Path) -> bool {
 
 #[cfg(windows)]
 fn ensure_path_persisted(install_dir: &Path) -> bool {
-    if env::var_os("CAP_NO_MODIFY_PATH").is_some() {
+    if env::var_os("SCOOPY_NO_MODIFY_PATH").is_some() {
         return false;
     }
     // Escape single quotes for the single-quoted PowerShell string literal below; a profile path
@@ -650,7 +650,7 @@ fn append_path_export(profile: &Path, install_dir: &str) -> bool {
         .create(true)
         .append(true)
         .open(profile)
-        .and_then(|mut file| writeln!(file, "\n# Added by Cap\n{line}"))
+        .and_then(|mut file| writeln!(file, "\n# Added by Scoopy\n{line}"))
         .is_ok()
 }
 
@@ -686,7 +686,7 @@ mod tests {
     #[test]
     fn uninstall_handles_moved_appimages_without_removing_other_installations() {
         let directory = tempfile::tempdir().unwrap();
-        let shim = directory.path().join("cap");
+        let shim = directory.path().join("scoopy");
         let previous = directory.path().join("previous.AppImage");
         let current = directory.path().join("current.AppImage");
         appimage::write_shim(&shim, &previous).unwrap();
@@ -717,7 +717,7 @@ mod tests {
     fn append_is_detectable_and_caller_dedupes() {
         let home = tempfile::tempdir().unwrap();
         let profile = home.path().join(".zshrc");
-        let install_dir = "/home/u/.cap/bin";
+        let install_dir = "/home/u/.scoopy/bin";
 
         assert!(!profile_mentions_dir(home.path(), install_dir));
         assert!(append_path_export(&profile, install_dir));
@@ -730,20 +730,20 @@ mod tests {
     }
 
     #[test]
-    fn cap_managed_shim_detection() {
+    fn scoopy_managed_shim_detection() {
         let dir = tempfile::tempdir().unwrap();
         let shim = dir.path().join(SHIM_NAME);
 
-        // A symlink to a cap-cli binary is Cap-managed even when it points at a different/moved install
+        // A symlink to a scoopy-cli binary is Scoopy-managed even when it points at a different/moved install
         // (the target need not exist — a dangling link from a moved app still counts).
-        std::os::unix::fs::symlink("/elsewhere/Cap.app/Contents/MacOS/cap-cli", &shim).unwrap();
+        std::os::unix::fs::symlink("/elsewhere/Scoopy.app/Contents/MacOS/scoopy-cli", &shim).unwrap();
         assert!(shim_is_cap_managed(&shim));
 
         if let Some(target_triple) = current_target_triple() {
             fs::remove_file(&shim).unwrap();
             std::os::unix::fs::symlink(
                 format!(
-                    "/elsewhere/Cap.app/Contents/MacOS/{}",
+                    "/elsewhere/Scoopy.app/Contents/MacOS/{}",
                     target_specific_cli_binary_name(target_triple)
                 ),
                 &shim,
@@ -752,22 +752,22 @@ mod tests {
             assert!(shim_is_cap_managed(&shim));
         }
 
-        // A symlink to anything else is not Cap-managed.
+        // A symlink to anything else is not Scoopy-managed.
         fs::remove_file(&shim).unwrap();
         std::os::unix::fs::symlink("/bin/ls", &shim).unwrap();
         assert!(!shim_is_cap_managed(&shim));
 
-        // A regular (non-symlink) file is not Cap-managed, so install refuses to clobber it.
+        // A regular (non-symlink) file is not Scoopy-managed, so install refuses to clobber it.
         fs::remove_file(&shim).unwrap();
         fs::write(&shim, b"#!/bin/sh\n").unwrap();
         assert!(!shim_is_cap_managed(&shim));
 
-        // A missing path is not Cap-managed.
+        // A missing path is not Scoopy-managed.
         fs::remove_file(&shim).unwrap();
         assert!(!shim_is_cap_managed(&shim));
 
         fs::create_dir(&shim).unwrap();
-        let target = Path::new("/home/u/Cap.AppImage");
+        let target = Path::new("/home/u/Scoopy.AppImage");
         assert!(!shim_is_cap_managed(&shim));
         assert!(!shim_points_to(&shim, target).unwrap());
         uninstall_shim(&shim, target).unwrap();
@@ -779,40 +779,40 @@ mod tests {
     fn appimage_shims_remain_managed_when_the_application_moves() {
         let directory = tempfile::tempdir().unwrap();
         let shim = directory.path().join(SHIM_NAME);
-        let target = Path::new("/home/u/Cap.AppImage");
+        let target = Path::new("/home/u/Scoopy.AppImage");
         appimage::write_shim(&shim, target).unwrap();
         assert!(shim_is_cap_managed(&shim));
         assert!(shim_points_to(&shim, target).unwrap());
-        assert!(!shim_points_to(&shim, Path::new("/home/u/New.Cap.AppImage")).unwrap());
+        assert!(!shim_points_to(&shim, Path::new("/home/u/New.Scoopy.AppImage")).unwrap());
     }
 
     #[test]
     fn cli_binary_candidates_include_tauri_sidecar_names() {
-        let dir = Path::new("/Applications/Cap.app/Contents/MacOS");
+        let dir = Path::new("/Applications/Scoopy.app/Contents/MacOS");
         let candidates = cli_binary_candidates_for_triple(dir, Some("x86_64-pc-windows-msvc"));
 
-        assert!(candidates.contains(&dir.join("cap-cli-x86_64-pc-windows-msvc.exe")));
-        assert!(candidates.contains(&dir.join("../Resources/cap-cli-x86_64-pc-windows-msvc.exe")));
+        assert!(candidates.contains(&dir.join("scoopy-cli-x86_64-pc-windows-msvc.exe")));
+        assert!(candidates.contains(&dir.join("../Resources/scoopy-cli-x86_64-pc-windows-msvc.exe")));
     }
 
     #[test]
     fn windows_cap_cmd_detection_requires_generated_shape() {
         assert_eq!(
-            windows_shim_target(b"@echo off\n\"C:\\Program Files\\Cap\\cap-cli.exe\" %*\n"),
-            Some(&b"C:\\Program Files\\Cap\\cap-cli.exe"[..])
+            windows_shim_target(b"@echo off\n\"C:\\Program Files\\Scoopy\\scoopy-cli.exe\" %*\n"),
+            Some(&b"C:\\Program Files\\Scoopy\\scoopy-cli.exe"[..])
         );
         assert_eq!(
-            windows_shim_target(b"@echo off\n\"C:/Program Files/Cap/cap-cli.exe\" %*\n"),
-            Some(&b"C:/Program Files/Cap/cap-cli.exe"[..])
+            windows_shim_target(b"@echo off\n\"C:/Program Files/Scoopy/scoopy-cli.exe\" %*\n"),
+            Some(&b"C:/Program Files/Scoopy/scoopy-cli.exe"[..])
         );
         assert!(windows_shim_target(b"@echo off\ncap-cli.exe %*\n").is_none());
         assert!(windows_shim_target(b"@echo off\n\"C:\\Tools\\other.exe\" %*\n").is_none());
         assert!(
-            windows_shim_target(b"@echo off\nrem cap-cli.exe lives somewhere else\n").is_none()
+            windows_shim_target(b"@echo off\nrem scoopy-cli.exe lives somewhere else\n").is_none()
         );
         assert!(
             windows_shim_target(
-                b"@echo off\n\"C:\\Program Files\\Cap\\cap-cli.exe\" %*\necho done\n"
+                b"@echo off\n\"C:\\Program Files\\Scoopy\\scoopy-cli.exe\" %*\necho done\n"
             )
             .is_none()
         );
@@ -820,11 +820,11 @@ mod tests {
 
     #[test]
     fn windows_cap_cmd_detection_handles_tauri_sidecar_targets() {
-        let target = b"C:\\Program Files\\Cap\\cap-cli-x86_64-pc-windows-msvc.exe";
+        let target = b"C:\\Program Files\\Scoopy\\scoopy-cli-x86_64-pc-windows-msvc.exe";
 
         assert_eq!(
             windows_shim_target(
-                b"@echo off\n\"C:\\Program Files\\Cap\\cap-cli-x86_64-pc-windows-msvc.exe\" %*\n"
+                b"@echo off\n\"C:\\Program Files\\Scoopy\\scoopy-cli-x86_64-pc-windows-msvc.exe\" %*\n"
             ),
             Some(&target[..])
         );
@@ -832,7 +832,7 @@ mod tests {
             b"CAP-CLI-X86_64-PC-WINDOWS-MSVC.EXE"
         ));
         assert!(!windows_cli_binary_file_name_is_cap_managed(
-            b"cap-cli-.exe"
+            b"scoopy-cli-.exe"
         ));
     }
 
@@ -840,28 +840,28 @@ mod tests {
     fn windows_command_path_strips_verbatim_prefixes() {
         assert_eq!(
             windows_command_path(Path::new(
-                "\\\\?\\C:\\Users\\Renee\\AppData\\Local\\Programs\\Cap\\cap-cli.exe"
+                "\\\\?\\C:\\Users\\Renee\\AppData\\Local\\Programs\\Scoopy\\scoopy-cli.exe"
             )),
-            "C:\\Users\\Renee\\AppData\\Local\\Programs\\Cap\\cap-cli.exe"
+            "C:\\Users\\Renee\\AppData\\Local\\Programs\\Scoopy\\scoopy-cli.exe"
         );
         assert_eq!(
-            windows_command_path(Path::new("\\\\?\\UNC\\server\\share\\Cap\\cap-cli.exe")),
-            "\\\\server\\share\\Cap\\cap-cli.exe"
+            windows_command_path(Path::new("\\\\?\\UNC\\server\\share\\Scoopy\\scoopy-cli.exe")),
+            "\\\\server\\share\\Scoopy\\scoopy-cli.exe"
         );
     }
 
     #[test]
     fn windows_cap_cmd_detection_handles_web_installer_targets() {
-        let target = b"%LOCALAPPDATA%\\Programs\\Cap\\cap-cli.exe";
+        let target = b"%LOCALAPPDATA%\\Programs\\Scoopy\\scoopy-cli.exe";
         assert_eq!(
             windows_shim_target(
-                b"\xef\xbb\xbf@echo off\r\n\"%LOCALAPPDATA%\\Programs\\Cap\\cap-cli.exe\" %*\r\n"
+                b"\xef\xbb\xbf@echo off\r\n\"%LOCALAPPDATA%\\Programs\\Scoopy\\scoopy-cli.exe\" %*\r\n"
             ),
             Some(&target[..])
         );
         assert!(windows_shim_target_matches(
             target,
-            "C:\\Users\\Renee\\AppData\\Local\\Programs\\Cap\\cap-cli.exe",
+            "C:\\Users\\Renee\\AppData\\Local\\Programs\\Scoopy\\scoopy-cli.exe",
             |name| match name {
                 "LOCALAPPDATA" => Some("C:\\Users\\Renee\\AppData\\Local".to_string()),
                 _ => None,
@@ -869,20 +869,20 @@ mod tests {
         ));
         assert_eq!(
             windows_env_prefixed_path(
-                "C:\\Users\\Renee\\AppData\\Local\\Programs\\Cap\\cap-cli.exe",
+                "C:\\Users\\Renee\\AppData\\Local\\Programs\\Scoopy\\scoopy-cli.exe",
                 |name| match name {
                     "LOCALAPPDATA" => Some("C:\\Users\\Renee\\AppData\\Local".to_string()),
                     _ => None,
                 },
             )
             .as_deref(),
-            Some("%LOCALAPPDATA%\\Programs\\Cap\\cap-cli.exe")
+            Some("%LOCALAPPDATA%\\Programs\\Scoopy\\scoopy-cli.exe")
         );
         assert_eq!(
             windows_shim_target(
-                b"@echo off\n\"C:\\Users\\Ren\xe9\\AppData\\Local\\Programs\\Cap\\cap-cli.exe\" %*\n"
+                b"@echo off\n\"C:\\Users\\Ren\xe9\\AppData\\Local\\Programs\\Scoopy\\scoopy-cli.exe\" %*\n"
             ),
-            Some(&b"C:\\Users\\Ren\xe9\\AppData\\Local\\Programs\\Cap\\cap-cli.exe"[..])
+            Some(&b"C:\\Users\\Ren\xe9\\AppData\\Local\\Programs\\Scoopy\\scoopy-cli.exe"[..])
         );
     }
 }

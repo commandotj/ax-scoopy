@@ -57,7 +57,7 @@ ENGINE_CRATES = [
     "crates/gpu-converters/**",
     "crates/cursor-capture/**",
     "crates/timestamp/**",
-    "crates/cap-muxer/**",
+    "crates/scoopy-muxer/**",
 ]
 
 
@@ -194,8 +194,8 @@ def cmd_env(args):
     config = load_config()
     names = [n for n in (args.suites or "").split(",") if n]
     allow = ",".join(config.get("unsupported", {}).get(args.platform, {}).keys())
-    if allow and "CAP_VERIFY_UNSUPPORTED_ALLOW" not in os.environ:
-        print(f"export CAP_VERIFY_UNSUPPORTED_ALLOW={shlex.quote(allow)}")
+    if allow and "SCOOPY_VERIFY_UNSUPPORTED_ALLOW" not in os.environ:
+        print(f"export SCOOPY_VERIFY_UNSUPPORTED_ALLOW={shlex.quote(allow)}")
     for suite in select(config, args.tier, args.platform, names or None, args.local):
         for key, value in suite.get("env", {}).items():
             if isinstance(value, dict):
@@ -385,7 +385,7 @@ def cmd_changes(args):
 # Real capture (crates/verify/tests/recording.rs): the recorder and the
 # stimulus, their whole dependency closure, and the harness itself.
 RECORDING = {
-    "roots": ["cap-recording", "cap-verify-stimulus"],
+    "roots": ["scoopy-recording", "scoopy-verify-stimulus"],
     "own": [
         "crates/verify/tests/recording.rs",
         "crates/verify/src/**",
@@ -407,7 +407,7 @@ def recording_affected(config, files, metadata):
     dirs, deps = workspace_graph(metadata)
     reach = set().union(*(closure(r, deps) for r in RECORDING["roots"]))
     for path in files:
-        # Other suites' test files share the cap-verify package but not the
+        # Other suites' test files share the scoopy-verify package but not the
         # recording test binary.
         if path.startswith("crates/verify/tests/"):
             continue
@@ -465,7 +465,7 @@ def cmd_test(_args):
         (["apps/web/app/page.tsx", "README.md"], []),
         (["crates/verify/tests/seek.rs"], ["seek"]),
         (["crates/verify/tests/seek.rs", "crates/verify/tests/export.rs"], ["export", "seek"]),
-        (["crates/verify/src/oracle.rs"], [s["name"] for s in config["suites"] if "cap-verify" in s["roots"]]),
+        (["crates/verify/src/oracle.rs"], [s["name"] for s in config["suites"] if "scoopy-verify" in s["roots"]]),
         (["crates/verify/src/audio_model.rs"], ["audio"]),
         (["crates/rendering/src/decoder/ffmpeg.rs"], [s["name"] for s in config["suites"]]),
         (["crates/video-decode/src/ffmpeg.rs"], [s["name"] for s in config["suites"]]),

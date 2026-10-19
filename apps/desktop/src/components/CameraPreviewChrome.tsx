@@ -148,7 +148,7 @@ export function CameraPreviewToolbar(props: {
 			<Show when={props.onClose}>
 				{(onClose) => (
 					<ControlButton onClick={onClose()}>
-						<IconCapCircleX class="size-5.5" />
+						<IconScoopyCircleX class="size-5.5" />
 					</ControlButton>
 				)}
 			</Show>
@@ -163,7 +163,7 @@ export function CameraPreviewToolbar(props: {
 					);
 				}}
 			>
-				<IconCapEnlarge class="size-5.5" />
+				<IconScoopyEnlarge class="size-5.5" />
 			</ControlButton>
 			<ControlButton
 				pressed={props.state.shape !== "round"}
@@ -177,8 +177,8 @@ export function CameraPreviewToolbar(props: {
 					)
 				}
 			>
-				{props.state.shape === "round" && <IconCapCircle class="size-5.5" />}
-				{props.state.shape === "square" && <IconCapSquare class="size-5.5" />}
+				{props.state.shape === "round" && <IconScoopyCircle class="size-5.5" />}
+				{props.state.shape === "square" && <IconScoopySquare class="size-5.5" />}
 				{props.state.shape === "full" && (
 					<IconLucideRectangleHorizontal class="size-5.5" />
 				)}
@@ -187,7 +187,7 @@ export function CameraPreviewToolbar(props: {
 				pressed={props.state.mirrored}
 				onClick={() => props.setState("mirrored", (mirrored) => !mirrored)}
 			>
-				<IconCapArrows class="size-5.5" />
+				<IconScoopyArrows class="size-5.5" />
 			</ControlButton>
 			<ControlButton
 				pressed={

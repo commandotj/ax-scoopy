@@ -1,7 +1,7 @@
 use super::*;
-use cap_editor::PreparingAudioSegmentInput;
-use cap_project::{AudioMeta, RecordingMeta, StudioRecordingMeta};
-use cap_recording::recovery::PreparingAudioTrack;
+use scoopy_editor::PreparingAudioSegmentInput;
+use scoopy_project::{AudioMeta, RecordingMeta, StudioRecordingMeta};
+use scoopy_recording::recovery::PreparingAudioTrack;
 
 const MAX_AUDIO_TIMING_LOG_BYTES: u64 = 4 * 1024 * 1024;
 
@@ -16,7 +16,7 @@ pub(super) fn adapt_audio(
     control: &Arc<ConsumerControl>,
 ) -> Result<AudioAdaptation, String> {
     let mut expected_metadata = metadata.clone();
-    let cap_project::RecordingMetaInner::Studio(studio) = &mut expected_metadata.inner else {
+    let scoopy_project::RecordingMetaInner::Studio(studio) = &mut expected_metadata.inner else {
         return Err("Preparing audio requires Studio metadata".into());
     };
     let StudioRecordingMeta::MultipleSegments { inner } = studio.as_mut() else {
@@ -43,7 +43,7 @@ pub(super) fn adapt_audio(
         tracing::debug!(%error, "Preparing audio timing requires ordinary loading");
     }
     let timing_log = timing_log.ok().flatten();
-    let repairs = cap_editor::segment_audio_timing_repairs(expected_meta, timing_log.as_deref());
+    let repairs = scoopy_editor::segment_audio_timing_repairs(expected_meta, timing_log.as_deref());
     let live = sources.live().ok_or("Preparing audio sources ended")?;
     let descriptors = live.segments().ok_or("Preparing audio sources ended")?;
     let mut tracks = Vec::with_capacity(descriptors.len());
@@ -64,7 +64,7 @@ pub(super) fn adapt_audio(
             if path.extension().is_some_and(|extension| extension == "m4a") {
                 let control = control.clone();
                 let sources = sources.clone();
-                let input = cap_enc_ffmpeg::SegmentedInput::open_relocatable_interruptible(
+                let input = scoopy_enc_ffmpeg::SegmentedInput::open_relocatable_interruptible(
                     source,
                     [path],
                     Arc::new(move || *control.cancelled.borrow() || sources.live().is_none()),
@@ -84,7 +84,7 @@ pub(super) fn adapt_audio(
                     return None;
                 }
             }
-            cap_audio::ManagedAudioInput::new(source.clone(), path.to_path_buf()).ok()
+            scoopy_audio::ManagedAudioInput::new(source.clone(), path.to_path_buf()).ok()
         };
         tracks.push(PreparingAudioSegmentInput {
             mic: track(PreparingAudioTrack::Mic, "audio-input"),

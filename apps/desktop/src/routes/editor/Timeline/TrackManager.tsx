@@ -111,7 +111,7 @@ function TrackTile(props: {
 				"--tray-index": props.index,
 			}}
 			class={cx(
-				"cap-track-tray-tile group/tile flex w-16 shrink-0 flex-col items-center gap-1.5 rounded-lg pt-2 pb-1.5 outline-hidden transition-[background-color,transform] duration-150",
+				"scoopy-track-tray-tile group/tile flex w-16 shrink-0 flex-col items-center gap-1.5 rounded-lg pt-2 pb-1.5 outline-hidden transition-[background-color,transform] duration-150",
 				available()
 					? "cursor-default hover:bg-ed-ctl focus-visible:bg-ed-ctl active:scale-95"
 					: "cursor-not-allowed opacity-45",
@@ -121,7 +121,7 @@ function TrackTile(props: {
 				<span
 					class={cx(
 						"flex size-7 items-center justify-center rounded-lg [&>svg]:size-3.5",
-						available() ? "cap-track-tile" : "bg-ed-ctl text-ed-text-3",
+						available() ? "scoopy-track-tile" : "bg-ed-ctl text-ed-text-3",
 					)}
 				>
 					{props.option.icon()}
@@ -199,7 +199,7 @@ export function TrackManager(props: {
 					// inline text editor on the canvas); returning focus to the
 					// trigger on close would steal it back.
 					onCloseAutoFocus={(e) => e.preventDefault()}
-					class="cap-track-tray z-50 flex origin-[var(--kb-popover-content-transform-origin)] flex-col overflow-hidden rounded-xl bg-ed-card shadow-ed-pop outline-hidden"
+					class="scoopy-track-tray z-50 flex origin-[var(--kb-popover-content-transform-origin)] flex-col overflow-hidden rounded-xl bg-ed-card shadow-ed-pop outline-hidden"
 				>
 					<div class="flex gap-1 p-1.5">
 						<Index each={selectable()}>
@@ -240,7 +240,7 @@ export function TrackIcon(props: {
 		<div
 			class={cx(
 				"pointer-events-none relative z-10 flex size-[22px] shrink-0 items-center justify-center rounded-md",
-				props.type ? "cap-track-tile" : "bg-ed-ctl text-ed-text-2",
+				props.type ? "scoopy-track-tile" : "bg-ed-ctl text-ed-text-2",
 				props.class,
 			)}
 			style={props.type ? { "--seg-color": trackColor(props.type) } : undefined}

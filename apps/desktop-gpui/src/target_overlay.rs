@@ -23,7 +23,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use cap_recording::sources::screen_capture::ScreenCaptureTarget;
+use scoopy_recording::sources::screen_capture::ScreenCaptureTarget;
 use gpui::{
     Animation, AnimationExt as _, App, AppContext as _, Context, Entity, FontWeight, Global, Hsla,
     ImageFormat, InteractiveElement as _, IntoElement, MouseButton, MouseMoveEvent, MouseUpEvent,
@@ -462,7 +462,7 @@ impl AreaRect {
         }
     }
 
-    /// `x,y,width,height` -- the `CAP_GPUI_AUTO_AREA` harness format.
+    /// `x,y,width,height` -- the `SCOOPY_GPUI_AUTO_AREA` harness format.
     pub fn parse(spec: &str) -> Option<Self> {
         let values: Vec<f32> = spec
             .split(',')
@@ -704,7 +704,7 @@ impl OverlayWindow {
     }
 
     /// Seed an area selection without drawing one -- the harness path
-    /// (`CAP_GPUI_AUTO_AREA`), since unprivileged synthetic drags are dropped.
+    /// (`SCOOPY_GPUI_AUTO_AREA`), since unprivileged synthetic drags are dropped.
     pub fn set_crop(&mut self, crop: AreaRect, cx: &mut Context<Self>) {
         if self.recording_area {
             return;
@@ -1275,7 +1275,7 @@ impl OverlayWindow {
                     .flex()
                     .flex_col()
                     .items_center()
-                    // `IconCapMonitor class="size-20 mb-3"`: the art is a
+                    // `IconScoopyMonitor class="size-20 mb-3"`: the art is a
                     // full-colour gradient, so it goes through `img()` (an
                     // `svg()` would flatten it to a silhouette), and its
                     // 125x84 viewBox keeps its aspect inside the 80px box.

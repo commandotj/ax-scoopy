@@ -1,6 +1,6 @@
 use super::{DecodedAudio, LoadState, PendingBlocks, ProgressiveAudio};
 use crate::AudioStream;
-use cap_enc_ffmpeg::RelocatableSource;
+use scoopy_enc_ffmpeg::RelocatableSource;
 use std::{
     fmt,
     path::{Component, PathBuf},
@@ -220,7 +220,7 @@ impl ManagedProgressiveAudio {
         let worker_control = control.clone();
         let worker_pending = pending.clone();
         let join = std::thread::Builder::new()
-            .name("cap-managed-audio".into())
+            .name("scoopy-managed-audio".into())
             .spawn(move || {
                 let decoded = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                     decode(
@@ -715,10 +715,10 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "Requires CAP_MANAGED_AUDIO_FIXTURE_ROOT and CAP_MANAGED_AUDIO_FIXTURE_PATH"]
+    #[ignore = "Requires SCOOPY_MANAGED_AUDIO_FIXTURE_ROOT and SCOOPY_MANAGED_AUDIO_FIXTURE_PATH"]
     async fn canonical_audio_matches_independent_stream_through_eof() {
-        let root = PathBuf::from(std::env::var_os("CAP_MANAGED_AUDIO_FIXTURE_ROOT").unwrap());
-        let relative = PathBuf::from(std::env::var_os("CAP_MANAGED_AUDIO_FIXTURE_PATH").unwrap());
+        let root = PathBuf::from(std::env::var_os("SCOOPY_MANAGED_AUDIO_FIXTURE_ROOT").unwrap());
+        let relative = PathBuf::from(std::env::var_os("SCOOPY_MANAGED_AUDIO_FIXTURE_PATH").unwrap());
         let canonical = root.join(&relative);
         let managed = ManagedProgressiveAudio::spawn(
             ManagedAudioInput::new(RelocatableSource::new(root).unwrap(), relative).unwrap(),

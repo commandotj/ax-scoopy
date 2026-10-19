@@ -9,7 +9,7 @@ pub const MAX_REQUEST_BYTES: usize = 4 * 1024 * 1024;
 const REQUEST_HEADROOM: usize = 64 * 1024;
 const MAX_METADATA_BYTES: usize = 512 * 1024;
 const MAX_REPORT_BYTES: usize = 2 * 1024 * 1024;
-const OMITTED_ATTACHMENT: &str = r#"{"capLogUploadOmission":"size_limit"}"#;
+const OMITTED_ATTACHMENT: &str = r#"{"scoopyLogUploadOmission":"size_limit"}"#;
 const MAX_FILES: usize = 2;
 
 #[derive(Serialize)]
@@ -287,19 +287,19 @@ mod tests {
     #[test]
     fn retained_history_fits_with_large_metadata_and_recent_events() {
         let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("cap.log"), "ordinary error\n").unwrap();
+        std::fs::write(dir.path().join("scoopy.log"), "ordinary error\n").unwrap();
         for suffix in ["previous", "current"] {
             let mut text =
                 "event\n".repeat(crate::diagnostic_writer::MAX_FILE_BYTES as usize / 6 - 10);
             text.push_str(&format!("latest {suffix}\n"));
             std::fs::write(
                 dir.path()
-                    .join(format!("cap.log.diagnostic-{suffix}.jsonl")),
+                    .join(format!("scoopy.log.diagnostic-{suffix}.jsonl")),
                 text,
             )
             .unwrap();
         }
-        let bundle = collect(dir.path(), "cap.log");
+        let bundle = collect(dir.path(), "scoopy.log");
         assert!(bundle.text.len() > 2 * crate::diagnostic_writer::MAX_FILE_BYTES as usize - 1024);
         let diagnostics =
             serde_json::json!({ "data": "d".repeat(MAX_METADATA_BYTES - 1024) }).to_string();
@@ -331,8 +331,8 @@ mod tests {
     #[test]
     fn redaction_expansion_and_oversized_optional_reports_cannot_overfill_an_upload() {
         let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("cap.log"), "a\n".repeat(MAX_LOG_BYTES / 2)).unwrap();
-        let bundle = collect(dir.path(), "cap.log");
+        std::fs::write(dir.path().join("scoopy.log"), "a\n".repeat(MAX_LOG_BYTES / 2)).unwrap();
+        let bundle = collect(dir.path(), "scoopy.log");
         let prepared = prepare_upload(
             bundle,
             serde_json::json!({}),
@@ -361,10 +361,10 @@ mod tests {
     fn collects_two_recent_files_with_a_fixed_read_budget() {
         let dir = tempfile::tempdir().unwrap();
         for day in ["2026-09-06", "2026-09-07", "2026-09-08"] {
-            std::fs::write(dir.path().join(format!("cap-desktop.log.{day}")), "event\n").unwrap();
+            std::fs::write(dir.path().join(format!("scoopy-desktop.log.{day}")), "event\n").unwrap();
         }
-        std::fs::write(dir.path().join("cap-desktop.log.secret-title"), "private").unwrap();
-        let bundle = collect(dir.path(), "cap-desktop.log");
+        std::fs::write(dir.path().join("scoopy-desktop.log.secret-title"), "private").unwrap();
+        let bundle = collect(dir.path(), "scoopy-desktop.log");
         assert_eq!(bundle.files.len(), 2);
         assert!(bundle.files[1].name.ends_with("2026-09-08"));
         assert!(!bundle.text.contains("private"));
@@ -381,15 +381,15 @@ mod tests {
     #[test]
     fn handles_partial_utf8_missing_logs_and_scan_limits() {
         let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("cap.log");
+        let path = dir.path().join("scoopy.log");
         std::fs::write(&path, "éééé\ncomplete\n").unwrap();
         assert_eq!(read_tail(&path, 12).unwrap().0, "complete\n");
         for index in 0..150 {
             std::fs::write(dir.path().join(format!("unrelated-{index}")), "").unwrap();
         }
-        let bundle = collect(dir.path(), "cap.log");
+        let bundle = collect(dir.path(), "scoopy.log");
         assert_eq!(bundle.directory_entries_scanned, 151);
-        assert!(bundle.files.iter().any(|file| file.name == "cap.log"));
-        assert!(!collect(&dir.path().join("missing"), "cap.log").directory_available);
+        assert!(bundle.files.iter().any(|file| file.name == "scoopy.log"));
+        assert!(!collect(&dir.path().join("missing"), "scoopy.log").directory_available);
     }
 }

@@ -9,16 +9,16 @@ fn main() {
 
     if std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
         // Export dispatch constructs media futures on the UI thread before Tokio can poll them.
-        println!("cargo:rustc-link-arg-bin=cap-gpui=/STACK:16777216");
+        println!("cargo:rustc-link-arg-bin=scoopy-gpui=/STACK:16777216");
     }
 
     let icon = "../desktop/src-tauri/icons/icon.ico";
     println!("cargo:rerun-if-changed={icon}");
     tauri_winres::WindowsResource::new()
         .set_icon_with_id(icon, "1")
-        .set("ProductName", "Cap")
-        .set("FileDescription", "Cap")
-        .set("OriginalFilename", "Cap.exe")
+        .set("ProductName", "Scoopy")
+        .set("FileDescription", "Scoopy")
+        .set("OriginalFilename", "Scoopy.exe")
         .compile()
-        .expect("failed to compile the Cap Windows icon resource");
+        .expect("failed to compile the Scoopy Windows icon resource");
 }

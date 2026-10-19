@@ -2,7 +2,7 @@
 //! of the Tauri preview's blur path (`src-tauri/src/camera.rs:1328-1546`).
 //!
 //! The Tauri native preview renders every frame through its own wgpu device:
-//! the camera IOSurface is imported as a texture, `cap_camera_effects::
+//! the camera IOSurface is imported as a texture, `scoopy_camera_effects::
 //! BlurProcessor` segments + blurs it, and the output lands in the preview
 //! surface. This app paints CVPixelBuffers directly (`paint_surface_fitted`),
 //! so the same pipeline is bent into surface-in / surface-out form:
@@ -11,7 +11,7 @@
 //!    BGRA IOSurface pixel buffer (already downscaled to [`BLUR_MAX_DIMS`] and
 //!    mirrored when the toolbar says so).
 //! 2. The buffer's IOSurface is imported as a `Bgra8Unorm` wgpu texture
-//!    through `cap-rendering`'s `iosurface_texture` seam -- the exact import
+//!    through `scoopy-rendering`'s `iosurface_texture` seam -- the exact import
 //!    the Tauri `NativeFrameConverter` uses (`camera_native.rs:301-310`).
 //!    Imports are cached per ring slot (keyed by pixel-buffer pointer +
 //!    ring generation), so the steady state creates no textures.
@@ -19,7 +19,7 @@
 //!    own thread, and `BlurProcessor::process_into_encoder` composites with
 //!    the newest finished mask, refined against this frame by the guided
 //!    filter. Segmentation never blocks a preview frame.
-//! 4. `cap_rendering::RgbaToBgraSurfaceConverter` blits the RGBA output into
+//! 4. `scoopy_rendering::RgbaToBgraSurfaceConverter` blits the RGBA output into
 //!    a BGRA IOSurface-backed CVPixelBuffer from its own ring, and
 //!    `PendingSurface::wait` blocks until the GPU has finished writing it, so
 //!    the buffer handed back to the window is always complete when painted.
@@ -30,7 +30,7 @@
 //! thread.
 //! The channel back to the window is how "what you see is what records" holds:
 //! this is the same `BlurProcessor` the editor/export camera layer runs
-//! (`cap-rendering/src/lib.rs:5742`), fed by the same `BackgroundBlurMode`
+//! (`scoopy-rendering/src/lib.rs:5742`), fed by the same `BackgroundBlurMode`
 //! the recording bridge writes into `project-config.json`.
 //!
 //! Failure degrades exactly like Tauri's `ensure_blur_processor`
@@ -45,7 +45,7 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 use anyhow::{Context as _, anyhow};
-use cap_rendering::{
+use scoopy_rendering::{
     RgbaToBgraSurfaceConverter,
     iosurface_texture::{IOSurfaceTextureCache, import_metal_texture_to_wgpu},
 };
@@ -97,7 +97,7 @@ pub fn is_low_spec_preview() -> bool {
 }
 
 /// A CVPixelBuffer crossing the worker boundary. CF objects have atomic
-/// refcounts; same contract as `FrameConverter` and cap-rendering's
+/// refcounts; same contract as `FrameConverter` and scoopy-rendering's
 /// `SurfaceFrame`.
 pub struct SendPixelBuf(pub arc::R<cv::PixelBuf>);
 unsafe impl Send for SendPixelBuf {}
@@ -111,11 +111,11 @@ pub struct BlurJob {
     /// ring invalidates the worker's imported-texture cache so a recycled
     /// allocation address cannot alias a stale import.
     pub ring_generation: u64,
-    pub mode: cap_camera_effects::BlurMode,
+    pub mode: scoopy_camera_effects::BlurMode,
 }
 
 pub struct BlurOutput {
-    pub mode: cap_camera_effects::BlurMode,
+    pub mode: scoopy_camera_effects::BlurMode,
     pub cutout: Option<std::sync::Arc<gpui::RenderImage>>,
     /// Blurred BGRA IOSurface pixel buffer, GPU work complete.
     pub buffer: SendPixelBuf,
@@ -183,11 +183,11 @@ fn shared_device(runtime: &tokio::runtime::Runtime) -> Option<(wgpu::Device, wgp
     DEVICE
         .get_or_init(|| {
             runtime.block_on(async {
-                let instance = cap_rendering::create_wgpu_instance_sync();
+                let instance = scoopy_rendering::create_wgpu_instance_sync();
                 let adapter = instance
                     .request_adapter(&wgpu::RequestAdapterOptions {
                         power_preference: wgpu::PowerPreference::LowPower,
-                        force_fallback_adapter: cap_rendering::force_software_wgpu_adapter(),
+                        force_fallback_adapter: scoopy_rendering::force_software_wgpu_adapter(),
                         compatible_surface: None,
                     })
                     .await
@@ -219,7 +219,7 @@ struct Worker {
     device: wgpu::Device,
     queue: wgpu::Queue,
     cache: IOSurfaceTextureCache,
-    processor: cap_camera_effects::BlurProcessor,
+    processor: scoopy_camera_effects::BlurProcessor,
     converter: RgbaToBgraSurfaceConverter,
     /// Imported input textures keyed by pixel-buffer pointer. The converter
     /// ring is four fixed buffers, so four entries cover the steady state and
@@ -233,7 +233,7 @@ struct Worker {
 impl Worker {
     fn new(device: wgpu::Device, queue: wgpu::Queue) -> anyhow::Result<Self> {
         let mut processor =
-            cap_camera_effects::BlurProcessor::new(&device, wgpu::TextureFormat::Rgba8Unorm)
+            scoopy_camera_effects::BlurProcessor::new(&device, wgpu::TextureFormat::Rgba8Unorm)
                 .context("blur processor init")?;
         processor.set_inference_interval(BLUR_INFERENCE_INTERVAL);
         let converter =
@@ -298,7 +298,7 @@ impl Worker {
         let frame = runtime
             .block_on(pending.wait(&self.device, &self.queue))
             .map_err(|error| anyhow!("{error}"))?;
-        let cutout = if mode == cap_camera_effects::BlurMode::Remove {
+        let cutout = if mode == scoopy_camera_effects::BlurMode::Remove {
             use core_foundation::base::TCFType as _;
             use core_video::pixel_buffer::{CVPixelBuffer, CVPixelBufferRef};
             let raw = &*frame.pixel_buffer as *const cv::PixelBuf as CVPixelBufferRef;
@@ -358,16 +358,16 @@ impl Worker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cap_camera_effects::BlurMode;
+    use scoopy_camera_effects::BlurMode;
     use cidre::cf;
     use core_foundation::base::TCFType as _;
     use core_video::pixel_buffer::{CVPixelBuffer, CVPixelBufferRef};
     use std::time::Instant;
 
     #[test]
-    #[ignore = "requires CAP_CAMERA_EFFECT_TEST_FRAME containing a 1280x720 RGBA webcam frame"]
+    #[ignore = "requires SCOOPY_CAMERA_EFFECT_TEST_FRAME containing a 1280x720 RGBA webcam frame"]
     fn native_cutout_preserves_alpha_through_iosurface_and_preview_image() {
-        let pixels = std::fs::read(std::env::var("CAP_CAMERA_EFFECT_TEST_FRAME").unwrap()).unwrap();
+        let pixels = std::fs::read(std::env::var("SCOOPY_CAMERA_EFFECT_TEST_FRAME").unwrap()).unwrap();
         let (width, height) = BLUR_MAX_DIMS;
         assert_eq!(pixels.len(), width * height * 4);
         let properties = cf::Dictionary::new();

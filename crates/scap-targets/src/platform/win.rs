@@ -65,11 +65,11 @@ use crate::bounds::{
 // or window, since there's no simple API that accounts for each monitor having different DPI.
 
 static IGNORED_EXES: &[&str] = &[
-    // As it's a system webview it isn't owned by the Cap process.
+    // As it's a system webview it isn't owned by the Scoopy process.
     "webview2",
     "msedgewebview2",
     // Just make sure, lol
-    "cap",
+    "scoopy",
 ];
 
 #[derive(Clone, Copy)]
@@ -1255,7 +1255,7 @@ fn is_window_valid_for_topmost_selection(
             let exe_name_lower = exe_name.to_lowercase();
             if exe_name_lower.contains("webview2")
                 || exe_name_lower.contains("msedgewebview2")
-                || exe_name_lower.contains("cap")
+                || exe_name_lower.contains("scoopy")
             {
                 return false;
             }
@@ -1384,7 +1384,7 @@ mod tests {
 
     #[test]
     fn ignored_executables_match_stems_without_excluding_other_apps() {
-        for name in ["cap.exe", "CAP.EXE", "WebView2.exe", "msedgewebview2.exe"] {
+        for name in ["scoopy.exe", "CAP.EXE", "WebView2.exe", "msedgewebview2.exe"] {
             assert!(is_ignored_executable(&Path::new(r"C:\Apps").join(name)));
         }
         for name in ["camoufox.exe", "firefox.exe", "inkscape.exe", "capture.exe"] {

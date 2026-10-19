@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { LogicalPosition } from "@tauri-apps/api/dpi";
 import { Menu, MenuItem } from "@tauri-apps/api/menu";
@@ -288,7 +288,7 @@ export function ClipsSidebar(props: { class?: string }) {
 		if (typeof path === "string") await importRecordingPath(path);
 	};
 
-	const pickCapRecording = async () => {
+	const pickScoopyRecording = async () => {
 		const recordingsPath = await join(await appDataDir(), "recordings");
 		const path = await open(
 			getExistingRecordingPickerOptions(ostype(), recordingsPath),
@@ -302,7 +302,7 @@ export function ClipsSidebar(props: { class?: string }) {
 			items: [
 				await MenuItem.new({
 					text: "Existing recording",
-					action: () => void pickCapRecording(),
+					action: () => void pickScoopyRecording(),
 				}),
 				await MenuItem.new({
 					text: "MP4 Video…",
@@ -552,7 +552,7 @@ export function ClipsSidebar(props: { class?: string }) {
 				onClick={backToEditor}
 				class="flex flex-none gap-2 items-center px-4 w-full h-[46px] text-[13px] font-medium border-b transition-colors text-ed-text-1 border-ed-line hover:bg-ed-ctl"
 			>
-				<IconCapMoveLeft class="size-4 text-ed-text-2" />
+				<IconScoopyMoveLeft class="size-4 text-ed-text-2" />
 				Back to editor
 			</button>
 
@@ -573,7 +573,7 @@ export function ClipsSidebar(props: { class?: string }) {
 						disabled={importing()}
 						onClick={openImportMenu}
 					>
-						<IconCapCirclePlus class="size-4" />
+						<IconScoopyCirclePlus class="size-4" />
 						Import
 					</Button>
 				</div>
@@ -593,7 +593,7 @@ export function ClipsSidebar(props: { class?: string }) {
 						fallback={
 							<div class="flex flex-col gap-2 justify-center items-center px-4 py-12 text-center">
 								<div class="flex justify-center items-center rounded-full size-10 bg-gray-3 text-gray-9">
-									<IconCapClapperboard class="size-5" />
+									<IconScoopyClapperboard class="size-5" />
 								</div>
 								<p class="text-sm font-medium text-gray-12">No clips yet</p>
 								<p class="max-w-[200px] text-xs text-gray-10">
@@ -695,7 +695,7 @@ export function ClipsSidebar(props: { class?: string }) {
 														aria-label="Rename clip"
 														class="flex flex-none justify-center items-center rounded-md opacity-0 transition-colors size-7 text-gray-10 hover:bg-gray-5 hover:text-gray-12 group-hover:opacity-100"
 													>
-														<IconCapPencil class="size-3.5" />
+														<IconScoopyPencil class="size-3.5" />
 													</button>
 													<Show when={segments().length > 1}>
 														<button
@@ -705,7 +705,7 @@ export function ClipsSidebar(props: { class?: string }) {
 															aria-label="Remove clip"
 															class="flex flex-none justify-center items-center rounded-md opacity-0 transition-colors size-7 text-gray-10 hover:bg-red-3 hover:text-red-11 group-hover:opacity-100"
 														>
-															<IconCapTrash class="size-3.5" />
+															<IconScoopyTrash class="size-3.5" />
 														</button>
 													</Show>
 												</div>

@@ -1,6 +1,6 @@
 use super::*;
 
-use cap_camera_avfoundation::*;
+use scoopy_camera_avfoundation::*;
 use cidre::*;
 use objc2_av_foundation::*;
 
@@ -9,7 +9,7 @@ pub(super) fn list_cameras_impl() -> impl Iterator<Item = CameraInfo> {
     // unique_id/localized_name accessors autorelease NSStrings that would
     // otherwise accumulate for the process lifetime.
     objc::ar_pool(|| {
-        let devices = cap_camera_avfoundation::list_video_devices();
+        let devices = scoopy_camera_avfoundation::list_video_devices();
         devices
             .iter()
             .map(|d| CameraInfo {
@@ -243,7 +243,7 @@ pub(super) fn start_capturing_impl(
                 // format's defaults, which can be a faster rate than the
                 // selected one (the device would then deliver e.g. 60fps
                 // while the pipeline records it as 30fps, stretching the
-                // recording). Cap delivery at the selected rate; leave the
+                // recording). Scoopy delivery at the selected rate; leave the
                 // max duration alone so low-light rate reduction still works.
                 if let Some(duration) =
                     min_frame_duration_for_rate(format.native(), format.frame_rate())
@@ -280,7 +280,7 @@ pub(super) fn start_capturing_impl(
 }
 
 pub struct AVFoundationRecordingHandle {
-    _delegate: arc::R<cap_camera_avfoundation::CallbackOutputDelegate>,
+    _delegate: arc::R<scoopy_camera_avfoundation::CallbackOutputDelegate>,
     session: arc::R<cidre::av::capture::Session>,
     output: arc::R<av::CaptureVideoDataOutput>,
     input: arc::R<av::CaptureDeviceInput>,

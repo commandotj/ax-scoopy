@@ -1,5 +1,5 @@
 //! Strict expected failures and case records shared by every engine
-//! verification suite (the `cap-verify` oracle tests, the decoder model
+//! verification suite (the `scoopy-verify` oracle tests, the decoder model
 //! fuzzer, the upload fault suite).
 //!
 //! Each suite keeps one TOML file of `[[xfail]]` entries:
@@ -18,7 +18,7 @@
 //!                                       # metric's measured range must lie in
 //!                                       # [min, max] (a number is a max)
 //! reason = "what is wrong"
-//! link = "https://github.com/CapSoftware/Cap/pull/2595"  # empty = no fix yet
+//! link = ""  # empty = no fix yet
 //! ```
 //!
 //! The verdict is strict both ways. A failure class (or seed) that is not
@@ -33,7 +33,7 @@
 //! `require_bound = true` rejects unseeded entries without a bound.
 //!
 //! Every suite writes one JSON line per case ([`Record`]) to
-//! `CAP_VERIFY_REPORT_DIR` when it is set. The `cap-verify-expect` binary
+//! `SCOOPY_VERIFY_REPORT_DIR` when it is set. The `scoopy-verify-expect` binary
 //! rewrites the expectations files from those records (`bless`), and
 //! `scripts/verify/summary.py` turns them into the CI job summary.
 
@@ -48,11 +48,11 @@ use serde::{Deserialize, Serialize};
 
 pub const PLATFORMS: [&str; 3] = ["linux", "macos", "windows"];
 
-/// The machine class from `CAP_VERIFY_HOST` (see [`Xfail::hosts`]); `local`
+/// The machine class from `SCOOPY_VERIFY_HOST` (see [`Xfail::hosts`]); `local`
 /// when unset (a developer machine).
 pub fn host() -> Option<String> {
     Some(
-        std::env::var("CAP_VERIFY_HOST")
+        std::env::var("SCOOPY_VERIFY_HOST")
             .ok()
             .map(|h| h.trim().to_string())
             .filter(|h| !h.is_empty())
@@ -187,7 +187,7 @@ pub struct Xfail {
     /// machine stall (flaky entries only).
     pub starved: bool,
     /// Machine classes the entry applies to, matched against
-    /// `CAP_VERIFY_HOST` (CI sets `github-hosted` or `blacksmith`; `local`
+    /// `SCOOPY_VERIFY_HOST` (CI sets `github-hosted` or `blacksmith`; `local`
     /// when unset); empty means every host. For a defect only one class of machine reaches
     /// (for example the software encoder path of VMs without a hardware
     /// encoder), with the reason in `reason`.
@@ -254,10 +254,10 @@ pub fn glob_match(pattern: &str, text: &str) -> bool {
 }
 
 /// Case selection shared by every suite:
-/// - `CAP_VERIFY_CASE`: comma-separated globs; only matching cases run.
-/// - `CAP_VERIFY_SKIP`: comma-separated globs; matching cases are skipped
+/// - `SCOOPY_VERIFY_CASE`: comma-separated globs; only matching cases run.
+/// - `SCOOPY_VERIFY_SKIP`: comma-separated globs; matching cases are skipped
 ///   (the per-platform FAST tier trims in `scripts/verify/suites.json`).
-/// - `CAP_VERIFY_SHARD=i/n`: only cases whose id hashes to shard `i` (1-based)
+/// - `SCOOPY_VERIFY_SHARD=i/n`: only cases whose id hashes to shard `i` (1-based)
 ///   of `n` run, so one suite can be split across CI jobs case by case.
 pub fn case_selected(id: &str) -> bool {
     let env = |name: &str| std::env::var(name).ok().filter(|v| !v.trim().is_empty());
@@ -268,17 +268,17 @@ pub fn case_selected(id: &str) -> bool {
             .filter(|p| !p.is_empty())
             .collect()
     };
-    if let Some(only) = env("CAP_VERIFY_CASE")
+    if let Some(only) = env("SCOOPY_VERIFY_CASE")
         && !globs(only).iter().any(|p| glob_match(p, id))
     {
         return false;
     }
-    if let Some(skip) = env("CAP_VERIFY_SKIP")
+    if let Some(skip) = env("SCOOPY_VERIFY_SKIP")
         && globs(skip).iter().any(|p| glob_match(p, id))
     {
         return false;
     }
-    match env("CAP_VERIFY_SHARD").and_then(|v| parse_shard(&v)) {
+    match env("SCOOPY_VERIFY_SHARD").and_then(|v| parse_shard(&v)) {
         Some((index, count)) => shard_of(id, count) == index,
         None => true,
     }
@@ -1029,11 +1029,11 @@ pub enum Outcome {
     Xpass,
     Unsupported,
     /// A wall-clock class failed while the machine starved the process
-    /// (cap-verify's sentinel); the test is retried once. Never blessed.
+    /// (scoopy-verify's sentinel); the test is retried once. Never blessed.
     Inconclusive,
 }
 
-/// One case's result, written as a JSON line to `CAP_VERIFY_REPORT_DIR`.
+/// One case's result, written as a JSON line to `SCOOPY_VERIFY_REPORT_DIR`.
 /// Suites may add fields (for example per-stream mismatch lists); readers
 /// ignore what they do not know.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1077,12 +1077,12 @@ pub struct Record {
 }
 
 pub fn report_dir() -> Option<PathBuf> {
-    std::env::var_os("CAP_VERIFY_REPORT_DIR")
+    std::env::var_os("SCOOPY_VERIFY_REPORT_DIR")
         .filter(|dir| !dir.is_empty())
         .map(PathBuf::from)
 }
 
-/// Appends records to `<CAP_VERIFY_REPORT_DIR>/<suite>-<pid>.jsonl` (no-op
+/// Appends records to `<SCOOPY_VERIFY_REPORT_DIR>/<suite>-<pid>.jsonl` (no-op
 /// when the variable is unset). Any extra JSON fields in `extra` are merged
 /// into each line.
 pub fn write_records(records: &[(Record, serde_json::Value)]) {
@@ -1145,7 +1145,7 @@ mod tests {
     #[test]
     fn concurrent_reports_remain_complete_json_lines() {
         let dir = std::env::temp_dir().join(format!(
-            "cap-verify-reports-{}-{}",
+            "scoopy-verify-reports-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

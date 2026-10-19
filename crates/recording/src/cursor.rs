@@ -1,10 +1,10 @@
 use crate::RecordingStartGate;
-use cap_cursor_capture::CursorCropBounds;
-use cap_cursor_info::CursorShape;
-use cap_project::{
+use scoopy_cursor_capture::CursorCropBounds;
+use scoopy_cursor_info::CursorShape;
+use scoopy_project::{
     CursorClickEvent, CursorEvents, CursorMoveEvent, KeyPressEvent, KeyboardEvents, XY,
 };
-use cap_timestamp::Timestamps;
+use scoopy_timestamp::Timestamps;
 use futures::{FutureExt, future::Shared};
 use std::{
     collections::HashMap,
@@ -509,7 +509,7 @@ pub fn spawn_cursor_recorder(
         let mut last_mouse_state = device_state.get_mouse();
         let mut last_keys: Vec<device_query::Keycode> = device_state.get_keys();
 
-        let mut last_position = cap_cursor_capture::RawCursorPosition::get();
+        let mut last_position = scoopy_cursor_capture::RawCursorPosition::get();
 
         std::fs::create_dir_all(&cursors_dir).unwrap();
 
@@ -544,7 +544,7 @@ pub fn spawn_cursor_recorder(
             }
 
             let Some(epoch) = input_epoch(start_gate.as_ref(), start_time) else {
-                last_position = cap_cursor_capture::RawCursorPosition::get();
+                last_position = scoopy_cursor_capture::RawCursorPosition::get();
                 last_mouse_state = device_state.get_mouse();
                 last_keys = device_state.get_keys();
                 continue;
@@ -552,7 +552,7 @@ pub fn spawn_cursor_recorder(
             let elapsed = epoch.elapsed().as_secs_f64() * 1000.0;
             let mouse_state = device_state.get_mouse();
 
-            let position = cap_cursor_capture::RawCursorPosition::get();
+            let position = scoopy_cursor_capture::RawCursorPosition::get();
             // The first sample after the gate opens is always recorded so the
             // cursor has a known position at the recording's time zero.
             let position_changed = position != last_position || std::mem::take(&mut awaiting_start);
@@ -780,7 +780,7 @@ fn macos_cursor_data(cursor: &objc2_app_kit::NSCursor) -> Option<CursorData> {
         let image_data = image.TIFFRepresentation()?;
         let image = image_data.as_bytes_unchecked().to_vec();
         let shape =
-            cap_cursor_info::CursorShapeMacOS::from_hash(&hex::encode(Sha256::digest(&image)));
+            scoopy_cursor_info::CursorShapeMacOS::from_hash(&hex::encode(Sha256::digest(&image)));
 
         Some(CursorData {
             image,

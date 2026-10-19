@@ -479,7 +479,7 @@ float rnnoise_process_frame(DenoiseState *st, float *out, const float *in) {
     rnn_pitch_filter(st->delayed_X, st->delayed_P, st->delayed_Ex, st->delayed_Ep, st->delayed_Exp, g);
     for (i=0;i<NB_BANDS;i++) {
       float alpha = .6f;
-      /* Cap the decay at 0.6 per frame, corresponding to an RT60 of 135 ms.
+      /* Scoopy the decay at 0.6 per frame, corresponding to an RT60 of 135 ms.
          That avoids unnaturally quick attenuation. */
       g[i] = MAX16(g[i], alpha*st->lastg[i]);
       /* Compensate for energy change across frame when computing the threshold gain.

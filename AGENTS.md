@@ -44,7 +44,7 @@ Additionally, `unused_must_use = "deny"` applies to all Rust code: every `Result
 - CSS overrides: `noUnknownAtRules`, `noUnknownTypeSelector`, `noDescendingSpecificity` are off for `**/*.css`.
 
 ### TypeScript — strictness
-- Avoid `any`. Use `unknown` + narrowing, or existing shared types from `@cap/utils`, generated bindings, etc.
+- Avoid `any`. Use `unknown` + narrowing, or existing shared types from `@scoopy/utils`, generated bindings, etc.
 - Do not introduce `@ts-expect-error` / `@ts-ignore` without a concrete reason. Prefer fixing the type.
 
 ## Project Structure & Modules
@@ -56,7 +56,7 @@ Additionally, `unused_must_use = "deny"` applies to all Rust code: every `Result
 - The repo has no hosted backend: there is no web app, no API, and no database.
 
 ## Build, Test, Develop
-- Install: `bun install`; setup: `bun run cap-setup`.
+- Install: `bun install`; setup: `bun run scoopy-setup`.
 - Dev: `bun run dev`. Desktop only: `bun run dev:desktop`.
 - Build: `bun run build` (Turbo). Desktop release: `bun run gpui:build <target>` (Scoopy ships as the GPUI app only).
 - Quality: `bun run lint`, `bun run format`, `bun run typecheck`. Rust: `cargo build -p <crate>`, `cargo test -p <crate>`.

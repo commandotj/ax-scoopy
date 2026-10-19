@@ -1,6 +1,6 @@
-use cap_project::BackgroundSource;
-use cap_rendering_skia::layers::{FrameData, SkiaProjectUniforms};
-use cap_rendering_skia::{BackgroundLayer, LayerStack, SkiaRenderContext};
+use scoopy_project::BackgroundSource;
+use scoopy_rendering_skia::layers::{FrameData, SkiaProjectUniforms};
+use scoopy_rendering_skia::{BackgroundLayer, LayerStack, SkiaRenderContext};
 use skia_safe::EncodedImageFormat;
 use std::fs;
 

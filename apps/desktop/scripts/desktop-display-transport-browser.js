@@ -6,7 +6,7 @@ export function resolveDesktopBenchmarkBrowser({
 	environment = process.env,
 	fileExists = existsSync,
 } = {}) {
-	const override = environment.CAP_DESKTOP_BENCHMARK_BROWSER?.trim();
+	const override = environment.SCOOPY_DESKTOP_BENCHMARK_BROWSER?.trim();
 	if (override) {
 		if (fileExists(override)) return override;
 		throw new Error(`Benchmark browser does not exist: ${override}`);
@@ -45,6 +45,6 @@ export function resolveDesktopBenchmarkBrowser({
 	if (browser) return browser;
 
 	throw new Error(
-		`No Chromium browser found for ${platform}; set CAP_DESKTOP_BENCHMARK_BROWSER to its executable path`,
+		`No Chromium browser found for ${platform}; set SCOOPY_DESKTOP_BENCHMARK_BROWSER to its executable path`,
 	);
 }

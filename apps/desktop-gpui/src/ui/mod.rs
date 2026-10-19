@@ -9,7 +9,7 @@
 //! ## How a component is themed
 //!
 //! `theme.css` re-skins controls per window through attribute selectors --
-//! `[data-macos-native-material="settings"] .cap-toggle { background:
+//! `[data-macos-native-material="settings"] .scoopy-toggle { background:
 //! var(--macos-settings-control-fill) }` and friends. There is no general
 //! mechanism here to match it, because the remaps are not general: only three
 //! surfaces exist in the shipping CSS and each one re-points a specific,

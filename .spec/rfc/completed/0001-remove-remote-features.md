@@ -10,7 +10,7 @@ Ax-scoopy becomes a local-only recorder and editor. Everything that talks to a r
 
 ## Problem
 
-The fork inherits Cap's cloud stack: sign-in, upload and share links, a web app and database, a render farm, and satellite clients. None of it is needed for a local app, and it enlarges build, review and security surface.
+The fork inherits Scoopy's cloud stack: sign-in, upload and share links, a web app and database, a render farm, and satellite clients. None of it is needed for a local app, and it enlarges build, review and security surface.
 
 ## Goals
 

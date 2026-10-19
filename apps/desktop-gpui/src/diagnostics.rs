@@ -7,10 +7,10 @@
 use std::path::PathBuf;
 
 /// The rolling log file's prefix. Deliberately *not* the Tauri app's
-/// `cap-desktop.log`: both apps write into the same directory on macOS, and a
+/// `scoopy-desktop.log`: both apps write into the same directory on macOS, and a
 /// shared prefix would interleave two processes' lines into one file and make
 /// either app's "newest log" lookup pick up the other's.
-pub const LOG_FILE_PREFIX: &str = "cap-gpui.log";
+pub const LOG_FILE_PREFIX: &str = "scoopy-gpui.log";
 
 /// `MAX_SIZE` in `src-tauri/src/logging.rs`.
 
@@ -20,12 +20,12 @@ pub const LOG_FILE_PREFIX: &str = "cap-gpui.log";
 
 /// Where the rolling file log lives.
 ///
-/// macOS uses `~/Library/Logs/so.cap.desktop` -- the same directory the Tauri
-/// app writes into, so a user handing over "the Cap logs folder" hands over
+/// macOS uses `~/Library/Logs/me.systembug.scoopy` -- the same directory the Tauri
+/// app writes into, so a user handing over "the Scoopy logs folder" hands over
 /// both apps' logs -- and every other platform uses
-/// `<local data>/so.cap.desktop/logs`, matching `main.rs` over there.
+/// `<local data>/me.systembug.scoopy/logs`, matching `main.rs` over there.
 pub fn logs_dir() -> PathBuf {
-    if let Ok(directory) = std::env::var("CAP_GPUI_LOG_DIR")
+    if let Ok(directory) = std::env::var("SCOOPY_GPUI_LOG_DIR")
         && !directory.trim().is_empty()
     {
         return PathBuf::from(directory);
@@ -35,13 +35,13 @@ pub fn logs_dir() -> PathBuf {
         dirs::home_dir()
             .unwrap_or_else(|| PathBuf::from("."))
             .join("Library/Logs")
-            .join("so.cap.desktop")
+            .join("me.systembug.scoopy")
     }
     #[cfg(not(target_os = "macos"))]
     {
         dirs::data_local_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join("so.cap.desktop")
+            .join("me.systembug.scoopy")
             .join("logs")
     }
 }

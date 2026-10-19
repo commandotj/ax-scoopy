@@ -25,7 +25,7 @@
 //!   `ProjectConfiguration` and a drag is coalesced by *pausing* the recorder
 //!   for its duration.
 
-use cap_project::{
+use scoopy_project::{
     AudioTrackSegment, Camera3DProperties, Camera3DSegment, CaptionTrackSegment,
     ClipSpeedAudioMode, CursorClickEvent, GlideDirection, KeyboardTrackSegment, MaskKind,
     MaskSegment, OverlayTrack, ProjectConfiguration, SceneMode, SceneSegment, TextSegment,
@@ -561,8 +561,8 @@ pub fn fit_camera3d_motion(segment: &mut Camera3DSegment) {
 }
 impl_track_segment!(MaskSegment, lane: track);
 impl_track_segment!(TextSegment, lane: track);
-impl_track_segment!(cap_project::StyleSegment, lane: track);
-impl_track_segment!(cap_project::ImageSegment, lane: track);
+impl_track_segment!(scoopy_project::StyleSegment, lane: track);
+impl_track_segment!(scoopy_project::ImageSegment, lane: track);
 
 impl TrackSegmentOps for CaptionTrackSegment {
     fn start(&self) -> f64 {
@@ -577,11 +577,11 @@ impl TrackSegmentOps for CaptionTrackSegment {
     fn set_end(&mut self, value: f64) {
         self.end = value;
     }
-    /// `id: \`cap-split-${Date.now()}-${random}\`` (`ED/context.ts:1023`).
+    /// `id: \`scoopy-split-${Date.now()}-${random}\`` (`ED/context.ts:1023`).
     fn split_tail(&self, at: f64) -> Self {
         let mut tail = self.clone();
         tail.start = self.start + at;
-        tail.id = split_id("cap");
+        tail.id = split_id("scoopy");
         tail
     }
 }
@@ -1327,7 +1327,7 @@ struct Camera3DRipple {
 }
 
 fn ripple_camera3d_keyframes(
-    keyframes: &mut Vec<cap_project::Camera3DKeyframe>,
+    keyframes: &mut Vec<scoopy_project::Camera3DKeyframe>,
     ripple: Camera3DRipple,
 ) {
     if keyframes.is_empty() {
@@ -1340,9 +1340,9 @@ fn ripple_camera3d_keyframes(
     let boundary = |time: f64, left: bool| {
         let previous = old.iter().rev().find(|keyframe| keyframe.time <= time);
         let next = old.iter().find(|keyframe| keyframe.time >= time);
-        cap_project::Camera3DKeyframe {
+        scoopy_project::Camera3DKeyframe {
             time,
-            value: cap_rendering::camera3d::sample_track(0.0, &old, time),
+            value: scoopy_rendering::camera3d::sample_track(0.0, &old, time),
             out_easing: if left {
                 None
             } else {
@@ -1509,7 +1509,7 @@ pub fn insert_zoom_segment(
             start,
             end,
             amount,
-            mode: cap_project::ZoomMode::Auto,
+            mode: scoopy_project::ZoomMode::Auto,
             glide_direction: Default::default(),
             glide_speed: 0.5,
             instant_animation: false,
@@ -1693,8 +1693,8 @@ pub fn default_camera3d_segment(start: f64, end: f64) -> Camera3DSegment {
         end,
         enabled: true,
         properties: Camera3DProperties::default(),
-        blur: cap_project::Camera3DBlur {
-            mode: cap_project::Camera3DBlurMode::None,
+        blur: scoopy_project::Camera3DBlur {
+            mode: scoopy_project::Camera3DBlurMode::None,
             strength: 0.,
             falloff: 0.,
             focus_x: 0.37,
@@ -1836,7 +1836,7 @@ pub fn ensure_timeline(project: &mut ProjectConfiguration, clip_display_duration
 /// handles, in the **recording** domain so the pixel and transition terms are
 /// scaled by `timescale`. Deliberate deviation from the source's
 /// `max(1s, 100px)`: at fit-to-window zoom the 100px term alone forbids
-/// trimming below several seconds, and Cap's own Clips feature emits
+/// trimming below several seconds, and Scoopy's own Clips feature emits
 /// sub-second segments -- so the floor here is a tenth of a second plus a
 /// 20px grabbability floor (a 20px box is still fully covered by its
 /// handles). The transition term is a correctness constraint -- a crossfade
@@ -2353,7 +2353,7 @@ fn timeline_shift_after_clip_duration_change(
     (full_shift * (time - old_stable_start)) / affected_duration
 }
 
-fn scale_keyframe_times(tracks: &mut cap_project::Camera3DTracks, scale: f64) {
+fn scale_keyframe_times(tracks: &mut scoopy_project::Camera3DTracks, scale: f64) {
     for track in tracks.all_tracks_mut() {
         for keyframe in track.iter_mut() {
             keyframe.time *= scale;
@@ -3044,9 +3044,9 @@ mod tests {
         let mut fast = two_clip_config();
         let timeline = fast.timeline.as_mut().unwrap();
         timeline.segments[1].timescale = 2.0;
-        timeline.transitions = vec![cap_project::ClipTransition {
+        timeline.transitions = vec![scoopy_project::ClipTransition {
             segment_index: 1,
-            kind: cap_project::ClipTransitionType::CrossFade,
+            kind: scoopy_project::ClipTransitionType::CrossFade,
             duration: 0.6,
         }];
         let timeline = fast.timeline.as_ref().unwrap();
@@ -3725,12 +3725,12 @@ mod tests {
         let timeline = project.timeline.as_mut().unwrap();
         let mut mask = default_mask_segment(5.5, 9.0, 0);
         mask.keyframes.position = vec![
-            cap_project::MaskVectorKeyframe {
+            scoopy_project::MaskVectorKeyframe {
                 time: 0.25,
                 x: 0.2,
                 y: 0.3,
             },
-            cap_project::MaskVectorKeyframe {
+            scoopy_project::MaskVectorKeyframe {
                 time: 2.5,
                 x: 0.7,
                 y: 0.8,
@@ -3741,7 +3741,7 @@ mod tests {
         removed_camera
             .tracks
             .tilt_x
-            .push(cap_project::Camera3DKeyframe {
+            .push(scoopy_project::Camera3DKeyframe {
                 time: 0.5,
                 value: 1.0,
                 out_easing: None,
@@ -3751,7 +3751,7 @@ mod tests {
         retained_camera
             .tracks
             .tilt_x
-            .push(cap_project::Camera3DKeyframe {
+            .push(scoopy_project::Camera3DKeyframe {
                 time: 2.0,
                 value: 2.0,
                 out_easing: None,
@@ -3843,7 +3843,7 @@ mod tests {
         let mut camera = default_camera3d_segment(0.0, 10.0);
         camera.tracks.tilt_x = [2.0, 5.0, 8.0]
             .into_iter()
-            .map(|time| cap_project::Camera3DKeyframe {
+            .map(|time| scoopy_project::Camera3DKeyframe {
                 time,
                 value: time,
                 out_easing: Some([0.0, 0.0]),
@@ -3870,11 +3870,11 @@ mod tests {
         assert_eq!(track[2].in_easing, None);
         assert_eq!(track[2].out_easing, Some([0.0, 0.0]));
         assert_eq!(
-            cap_rendering::camera3d::sample_track(0.0, track, 2.5),
-            cap_rendering::camera3d::sample_track(0.0, &old_track, 2.5)
+            scoopy_rendering::camera3d::sample_track(0.0, track, 2.5),
+            scoopy_rendering::camera3d::sample_track(0.0, &old_track, 2.5)
         );
-        let after_join = cap_rendering::camera3d::sample_track(0.0, track, 3.001);
-        let before_cut = cap_rendering::camera3d::sample_track(0.0, &old_track, 6.001);
+        let after_join = scoopy_rendering::camera3d::sample_track(0.0, track, 3.001);
+        let before_cut = scoopy_rendering::camera3d::sample_track(0.0, &old_track, 6.001);
         assert!((after_join - before_cut).abs() < 1e-9);
     }
 
@@ -3935,7 +3935,7 @@ mod tests {
         assert_eq!(timeline.zoom_segments[1].amount, 1.5);
         assert!(matches!(
             timeline.zoom_segments[1].mode,
-            cap_project::ZoomMode::Auto
+            scoopy_project::ZoomMode::Auto
         ));
         // Before everything.
         assert_eq!(insert_zoom_segment(timeline, 0.5, 1.5, 2.0), 0);
@@ -4087,9 +4087,9 @@ mod tests {
         assert!(set_clip_hide_cursor(timeline, 1, true));
         assert!(set_clip_volume(timeline, 1, 0.5));
         assert!(set_clip_name(timeline, 0, "Intro"));
-        timeline.transitions = vec![cap_project::ClipTransition {
+        timeline.transitions = vec![scoopy_project::ClipTransition {
             segment_index: 2,
-            kind: cap_project::ClipTransitionType::CrossFade,
+            kind: scoopy_project::ClipTransitionType::CrossFade,
             duration: 0.5,
         }];
 
@@ -4116,16 +4116,16 @@ mod tests {
         let mut config = two_clip_config();
         let timeline = config.timeline.as_mut().unwrap();
         assert!(split_clip_segment(timeline, 4.0, Some(0)));
-        timeline.transitions = vec![cap_project::ClipTransition {
+        timeline.transitions = vec![scoopy_project::ClipTransition {
             segment_index: 1,
-            kind: cap_project::ClipTransitionType::CrossFade,
+            kind: scoopy_project::ClipTransitionType::CrossFade,
             duration: 1.0,
         }];
-        timeline.zoom_segments = vec![cap_project::ZoomSegment {
+        timeline.zoom_segments = vec![scoopy_project::ZoomSegment {
             start: 12.0,
             end: 14.0,
             amount: 1.5,
-            mode: cap_project::ZoomMode::Auto,
+            mode: scoopy_project::ZoomMode::Auto,
             glide_direction: Default::default(),
             glide_speed: 1.0,
             instant_animation: false,
@@ -4218,7 +4218,7 @@ mod tests {
 
 pub fn insert_style_segment(
     timeline: &mut TimelineConfiguration,
-    segment: cap_project::StyleSegment,
+    segment: scoopy_project::StyleSegment,
 ) -> usize {
     let start = segment.start;
     let track = segment.track;
@@ -4233,7 +4233,7 @@ pub fn insert_style_segment(
 
 pub fn insert_image_segment(
     timeline: &mut TimelineConfiguration,
-    segment: cap_project::ImageSegment,
+    segment: scoopy_project::ImageSegment,
 ) -> usize {
     let start = segment.start;
     let track = segment.track;
@@ -4329,7 +4329,7 @@ mod style_image_tests {
     fn lane_reorder_moves_segments_without_changing_config_indices() {
         let mut project = project();
         let timeline = project.timeline.as_mut().unwrap();
-        timeline.style_segments.push(cap_project::StyleSegment {
+        timeline.style_segments.push(scoopy_project::StyleSegment {
             start: 0.,
             end: 10.,
             track: 2,
@@ -4390,16 +4390,16 @@ mod style_image_tests {
     #[test]
     fn overlay_reorder_and_lane_delete_update_only_saved_order() {
         let mut project = project();
-        let text = cap_project::OverlayTrack {
-            kind: cap_project::OverlayTrackKind::Text,
+        let text = scoopy_project::OverlayTrack {
+            kind: scoopy_project::OverlayTrackKind::Text,
             track: 0,
         };
-        let image = cap_project::OverlayTrack {
-            kind: cap_project::OverlayTrackKind::Image,
+        let image = scoopy_project::OverlayTrack {
+            kind: scoopy_project::OverlayTrackKind::Image,
             track: 2,
         };
-        let mask = cap_project::OverlayTrack {
-            kind: cap_project::OverlayTrackKind::Mask,
+        let mask = scoopy_project::OverlayTrack {
+            kind: scoopy_project::OverlayTrackKind::Mask,
             track: 0,
         };
         let available = [text, image, mask];
@@ -4420,8 +4420,8 @@ mod style_image_tests {
         assert_eq!(
             project.overlay_order,
             [
-                cap_project::OverlayTrack {
-                    kind: cap_project::OverlayTrackKind::Image,
+                scoopy_project::OverlayTrack {
+                    kind: scoopy_project::OverlayTrackKind::Image,
                     track: 1,
                 },
                 text,

@@ -8,7 +8,7 @@
 //!
 //! The Tauri window is the odd one out architecturally -- it is built straight
 //! from JS with `new WebviewWindow(...)` rather than through the
-//! `ShowCapWindow` builder -- but from over here it is just another window, so
+//! `ShowScoopyWindow` builder -- but from over here it is just another window, so
 //! `app_windows::open_teleprompter` opens it the way everything else opens.
 //!
 //! The playback maths is a straight port of
@@ -45,7 +45,7 @@ pub const TELEPROMPTER_MIN_WIDTH: f32 = 420.;
 pub const TELEPROMPTER_MIN_HEIGHT: f32 = 220.;
 
 /// `trafficLightPosition: new LogicalPosition(14, 14)`, which
-/// `CapWindowId::Teleprompter::traffic_lights_position` repeats on the Rust
+/// `ScoopyWindowId::Teleprompter::traffic_lights_position` repeats on the Rust
 /// side. Real AppKit buttons, moved -- like the settings window's and unlike
 /// the main window's hand-drawn pair. The Tauri inset resolves to a top-left
 /// of `(inset.x, inset.y / 2 + 4)` (see `editor_window::TRAFFIC_LIGHTS` for
@@ -580,7 +580,7 @@ impl Render for TeleprompterWindow {
         div()
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::on_key))
-            // `cap-window-shell relative flex h-screen w-screen flex-col
+            // `scoopy-window-shell relative flex h-screen w-screen flex-col
             //  overflow-hidden text-gray-12`
             .size_full()
             .relative()
@@ -618,7 +618,7 @@ impl TeleprompterWindow {
         }
     }
 
-    /// `cap-window-header flex h-9 shrink-0 items-center` with the note pushed
+    /// `scoopy-window-header flex h-9 shrink-0 items-center` with the note pushed
     /// to the trailing edge. The traffic lights are AppKit's, at (14, 14).
     fn render_header(&self, _window: &Window) -> impl IntoElement {
         let theme = self.theme;
@@ -680,7 +680,7 @@ impl TeleprompterWindow {
         header
     }
 
-    /// `cap-window-body relative min-h-0 flex-1 overflow-hidden`: the script
+    /// `scoopy-window-body relative min-h-0 flex-1 overflow-hidden`: the script
     /// scroller, the vignette over it, and the cue markers over that.
     fn render_body(&self, window: &Window, _cx: &mut Context<Self>) -> impl IntoElement {
         let theme = self.theme;
@@ -1196,7 +1196,7 @@ mod tests {
 
     /// Pausing keeps the scroll offset, so pressing play again picks up where
     /// the script stopped; only a script that already reached the end goes
-    /// back to the top (https://github.com/CapSoftware/Cap/issues/2081).
+    /// back to the top.
     #[test]
     fn playback_resumes_where_it_was_paused() {
         let maximum = 1000.;

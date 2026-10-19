@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { createElementBounds } from "@solid-primitives/bounds";
 import { debounce } from "@solid-primitives/scheduled";
 import { makePersisted } from "@solid-primitives/storage";
@@ -94,19 +94,19 @@ export const EXPORT_TO_OPTIONS = [
 	{
 		label: "File",
 		value: "file",
-		icon: IconCapFile,
+		icon: IconScoopyFile,
 		description: "Save to your computer",
 	},
 	{
 		label: "Clipboard",
 		value: "clipboard",
-		icon: IconCapCopy,
+		icon: IconScoopyCopy,
 		description: "Copy to paste anywhere",
 	},
 	{
 		label: "Shareable Link",
 		value: "link",
-		icon: IconCapLink,
+		icon: IconScoopyLink,
 		description: "Share via cloud",
 	},
 ] as const;
@@ -1038,7 +1038,7 @@ export function ExportPage() {
 						onClick={handleBack}
 						class="flex gap-1.5 items-center h-7 pl-2 pr-2.5 rounded-lg text-[12px] font-medium text-ed-text-2 transition-colors hover:bg-ed-ctl hover:text-ed-text-1 outline-hidden focus-visible:ring-1 focus-visible:ring-ed-accent"
 					>
-						<IconCapMoveLeft class="size-3.5" />
+						<IconScoopyMoveLeft class="size-3.5" />
 						Back to editor
 					</button>
 				</div>
@@ -1164,7 +1164,7 @@ export function ExportPage() {
 					<div class="custom-scroll flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 flex flex-col gap-5">
 						<ExportSection
 							name="Destination"
-							icon={<IconCapUpload class="size-3.5" />}
+							icon={<IconScoopyUpload class="size-3.5" />}
 						>
 							<ExportSegmented
 								options={destinationOptions()}
@@ -1251,7 +1251,7 @@ export function ExportPage() {
 													) ?? organisations()[0]
 												)?.name
 											}
-											<IconCapChevronDown class="size-3.5 text-ed-text-3" />
+											<IconScoopyChevronDown class="size-3.5 text-ed-text-3" />
 										</span>
 									</button>
 								</Show>
@@ -1370,7 +1370,7 @@ export function ExportPage() {
 							>
 								<IconLucideSlidersHorizontal class="size-3.5" />
 								Advanced
-								<IconCapChevronDown
+								<IconScoopyChevronDown
 									class={cx(
 										"ml-auto size-3.5 text-ed-text-3 transition-transform",
 										advancedMode() && "rotate-180",
@@ -1474,7 +1474,7 @@ export function ExportPage() {
 									"Cancel Sign In"
 								) : (
 									<>
-										<IconCapLink class="size-4" />
+										<IconScoopyLink class="size-4" />
 										Sign in to share
 									</>
 								)}
@@ -1494,19 +1494,19 @@ export function ExportPage() {
 							>
 								{settings.exportTo === "file" && (
 									<>
-										<IconCapFile class="size-4" />
+										<IconScoopyFile class="size-4" />
 										Export to File
 									</>
 								)}
 								{settings.exportTo === "clipboard" && (
 									<>
-										<IconCapCopy class="size-4" />
+										<IconScoopyCopy class="size-4" />
 										Export to Clipboard
 									</>
 								)}
 								{settings.exportTo === "link" && (
 									<>
-										<IconCapLink class="size-4" />
+										<IconScoopyLink class="size-4" />
 										{meta().sharing
 											? "Reupload to same link"
 											: "Create shareable link"}
@@ -1738,7 +1738,7 @@ export function ExportPage() {
 													class="flex gap-2 justify-center items-center"
 												>
 													{!copyPressed() ? (
-														<IconCapCopy class="transition-colors duration-200 text-gray-1 size-4 group-hover:text-gray-12" />
+														<IconScoopyCopy class="transition-colors duration-200 text-gray-1 size-4 group-hover:text-gray-12" />
 													) : (
 														<IconLucideCheck class="transition-colors duration-200 text-gray-1 size-4 svgpathanimation group-hover:text-gray-12" />
 													)}
@@ -1749,7 +1749,7 @@ export function ExportPage() {
 														variant="dark"
 														class="flex gap-2 justify-center items-center"
 													>
-														<IconCapLink class="transition-colors duration-200 text-gray-1 size-4 group-hover:text-gray-12" />
+														<IconScoopyLink class="transition-colors duration-200 text-gray-1 size-4 group-hover:text-gray-12" />
 														<p>Open Link</p>
 													</Button>
 												</a>
@@ -1769,7 +1769,7 @@ export function ExportPage() {
 													}
 												}}
 											>
-												<IconCapFile class="size-4" />
+												<IconScoopyFile class="size-4" />
 												Open File
 											</Button>
 											<Button
@@ -1790,7 +1790,7 @@ export function ExportPage() {
 												}}
 											>
 												{!clipboardCopyPressed() ? (
-													<IconCapCopy class="size-4" />
+													<IconScoopyCopy class="size-4" />
 												) : (
 													<IconLucideCheck class="size-4 svgpathanimation" />
 												)}
@@ -1807,7 +1807,7 @@ export function ExportPage() {
 											handleBack();
 										}}
 									>
-										<IconCapMoveLeft class="size-4" />
+										<IconScoopyMoveLeft class="size-4" />
 										Back to editor
 									</Button>
 								</div>

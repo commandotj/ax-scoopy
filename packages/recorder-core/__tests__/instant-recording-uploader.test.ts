@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import {
 	InstantRecordingUploader,
 	MultipartCompletionUncertainError,
-} from "@cap/recorder-core/instant-mp4-uploader";
-import type { VideoId } from "@cap/recorder-core/recorder-types";
+} from "@scoopy/recorder-core/instant-mp4-uploader";
+import type { VideoId } from "@scoopy/recorder-core/recorder-types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const STREAMED_PART_BYTES = 5 * 1024 * 1024;
@@ -275,7 +275,7 @@ describe("InstantRecordingUploader", () => {
 		expect(setUploadStatus).toHaveBeenLastCalledWith(
 			expect.objectContaining({
 				status: "uploadingVideo",
-				capId: videoId,
+				scoopyId: videoId,
 				progress: 100,
 			}),
 		);
@@ -312,7 +312,7 @@ describe("InstantRecordingUploader", () => {
 		vi.stubGlobal("fetch", fetchMock);
 
 		const { initiateMultipartUpload } = await import(
-			"@cap/recorder-core/instant-mp4-uploader"
+			"@scoopy/recorder-core/instant-mp4-uploader"
 		);
 
 		await expect(

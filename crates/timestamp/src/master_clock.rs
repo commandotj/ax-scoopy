@@ -718,7 +718,7 @@ mod tests {
     #[test]
     fn remap_tracks_source_across_fps_matrix() {
         // Whatever rate a camera or display actually delivers — including
-        // rates far above anything Cap configures, like a 1000fps camera —
+        // rates far above anything Scoopy configures, like a 1000fps camera —
         // the remapped timeline must track the source clock so audio and
         // video stay in sync.
         for nominal_fps in [24.0, 30.0, 60.0] {

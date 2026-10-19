@@ -1,6 +1,6 @@
 #![cfg(target_os = "macos")]
 
-use cap_rendering::decoder::{DecoderType, spawn_decoder};
+use scoopy_rendering::decoder::{DecoderType, spawn_decoder};
 use std::{
     path::Path,
     process::Command,

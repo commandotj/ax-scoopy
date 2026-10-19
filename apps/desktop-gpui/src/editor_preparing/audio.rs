@@ -1,13 +1,13 @@
 use super::*;
-use cap_editor::PreparingAudioSegmentInput;
-use cap_project::{AudioMeta, RecordingMeta, StudioRecordingMeta};
-use cap_recording::recovery::PreparingAudioTrack;
+use scoopy_editor::PreparingAudioSegmentInput;
+use scoopy_project::{AudioMeta, RecordingMeta, StudioRecordingMeta};
+use scoopy_recording::recovery::PreparingAudioTrack;
 
 const MAX_AUDIO_TIMING_LOG_BYTES: u64 = 4 * 1024 * 1024;
 
 struct AudioTiming {
     expected_metadata: RecordingMeta,
-    repairs: Option<Vec<cap_editor::SegmentAudioTimingRepair>>,
+    repairs: Option<Vec<scoopy_editor::SegmentAudioTimingRepair>>,
 }
 
 pub(super) struct AudioAdaptation {
@@ -29,7 +29,7 @@ pub(super) fn adapt_audio(
             Some(repairs) => *repairs
                 .get(index)
                 .ok_or("Preparing audio timing layout changed")?,
-            None => cap_editor::SegmentAudioTimingRepair::default(),
+            None => scoopy_editor::SegmentAudioTimingRepair::default(),
         };
         let track = |kind, stem| {
             timing.repairs.as_ref()?;
@@ -42,7 +42,7 @@ pub(super) fn adapt_audio(
             if path.extension().is_some_and(|extension| extension == "m4a") {
                 let control = control.clone();
                 let sources = sources.clone();
-                let input = cap_enc_ffmpeg::SegmentedInput::open_relocatable_interruptible(
+                let input = scoopy_enc_ffmpeg::SegmentedInput::open_relocatable_interruptible(
                     source,
                     [path],
                     Arc::new(move || *control.cancelled.borrow() || sources.live().is_none()),
@@ -62,7 +62,7 @@ pub(super) fn adapt_audio(
                     return None;
                 }
             }
-            cap_audio::ManagedAudioInput::new(source.clone(), path.to_path_buf()).ok()
+            scoopy_audio::ManagedAudioInput::new(source.clone(), path.to_path_buf()).ok()
         };
         tracks.push(PreparingAudioSegmentInput {
             mic: track(PreparingAudioTrack::Mic, "audio-input"),
@@ -81,7 +81,7 @@ pub(super) fn adapt_audio(
 
 fn audio_timing(metadata: &RecordingMeta) -> Result<AudioTiming, String> {
     let mut expected_metadata = metadata.clone();
-    let cap_project::RecordingMetaInner::Studio(studio) = &mut expected_metadata.inner else {
+    let scoopy_project::RecordingMetaInner::Studio(studio) = &mut expected_metadata.inner else {
         return Err("Preparing audio requires Studio metadata".into());
     };
     let StudioRecordingMeta::MultipleSegments { inner } = studio.as_mut() else {
@@ -101,7 +101,7 @@ fn audio_timing(metadata: &RecordingMeta) -> Result<AudioTiming, String> {
         MAX_AUDIO_TIMING_LOG_BYTES,
     );
     let repairs = match timing_log {
-        Ok(log) => Some(cap_editor::segment_audio_timing_repairs(
+        Ok(log) => Some(scoopy_editor::segment_audio_timing_repairs(
             expected_metadata
                 .studio_meta()
                 .ok_or("Preparing Studio metadata ended")?,
@@ -181,7 +181,7 @@ mod tests {
                 .unwrap()
                 .as_nanos();
             let path = std::env::temp_dir().join(format!(
-                "cap-gpui-preparing-audio-{}-{nonce}-{}",
+                "scoopy-gpui-preparing-audio-{}-{nonce}-{}",
                 std::process::id(),
                 NEXT_DIRECTORY.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
             ));
@@ -253,7 +253,7 @@ mod tests {
         let metadata = directory.metadata();
         let before = serde_json::to_value(&metadata).unwrap();
         assert_eq!(
-            cap_editor::segment_audio_timing_repairs(metadata.studio_meta().unwrap(), None)[0]
+            scoopy_editor::segment_audio_timing_repairs(metadata.studio_meta().unwrap(), None)[0]
                 .mic_offset_secs,
             -0.867
         );
@@ -266,7 +266,7 @@ mod tests {
             .remove("gap_summary");
         let finalized: RecordingMeta = serde_json::from_value(finalized_value.clone()).unwrap();
         let ordinary_log = std::fs::read_to_string(directory.log()).unwrap();
-        let ordinary = cap_editor::segment_audio_timing_repairs(
+        let ordinary = scoopy_editor::segment_audio_timing_repairs(
             finalized.studio_meta().unwrap(),
             Some(&ordinary_log),
         );

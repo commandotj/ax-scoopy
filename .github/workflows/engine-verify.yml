@@ -2,7 +2,7 @@ name: Engine verify
 
 # Oracle-based regression suite for the playback, export, recording, editing
 # and captions engines (crates/verify, crates/verify-expect, the decoder model
-# fuzzer in cap-rendering). See crates/verify/README.md.
+# fuzzer in scoopy-rendering). See crates/verify/README.md.
 #
 # Tiers: FULL for every ready (non-draft) pull request that changes an engine
 # crate (scripts/verify/plan.py ENGINE_CRATES) or a high-risk region, with the

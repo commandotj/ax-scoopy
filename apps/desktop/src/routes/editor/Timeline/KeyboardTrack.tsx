@@ -143,9 +143,9 @@ export function KeyboardTrack(props: {
 			<For
 				each={keyboardSegments()}
 				fallback={
-					<div class="cap-empty-lane pointer-events-none">
+					<div class="scoopy-empty-lane pointer-events-none">
 						<span>No keyboard events</span>
-						<span class="cap-empty-lane-action">
+						<span class="scoopy-empty-lane-action">
 							· Record keyboard presses or generate from recording
 						</span>
 					</div>
@@ -164,8 +164,8 @@ export function KeyboardTrack(props: {
 					// Truncation degrades gracefully, so the same row serves both the
 					// full and compact tiers; it just clips against a smaller box.
 					const keysLabel = () => (
-						<div class="cap-seg-labels font-mono">
-							<span class="cap-seg-label truncate max-w-full">
+						<div class="scoopy-seg-labels font-mono">
+							<span class="scoopy-seg-label truncate max-w-full">
 								{segment.displayText || "⌨"}
 							</span>
 						</div>
@@ -257,7 +257,7 @@ export function KeyboardTrack(props: {
 									compactAt={24}
 									full={keysLabel}
 									compact={keysLabel}
-									glyph={() => <span class="cap-seg-label font-mono">⌨</span>}
+									glyph={() => <span class="scoopy-seg-label font-mono">⌨</span>}
 								/>
 							</SegmentContent>
 							<SegmentHandle

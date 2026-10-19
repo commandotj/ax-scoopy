@@ -46,7 +46,7 @@ async fn constants(path: &Path) -> RenderVideoConstants {
 
 fn project() -> ProjectConfiguration {
     ProjectConfiguration {
-        background: cap_project::BackgroundConfiguration {
+        background: scoopy_project::BackgroundConfiguration {
             shadow: 0.0,
             advanced_shadow: None,
             ..Default::default()
@@ -127,11 +127,11 @@ fn with_overlay(kind: &str, path: &str) -> ProjectConfiguration {
     let mut project = project();
     let timeline = project.timeline.as_mut().unwrap();
     match kind {
-        "image" => timeline.image_segments.push(cap_project::ImageSegment {
+        "image" => timeline.image_segments.push(scoopy_project::ImageSegment {
             start: 0.0,
             end: 3.0,
             path: path.into(),
-            size: cap_project::XY::new(0.6, 0.6),
+            size: scoopy_project::XY::new(0.6, 0.6),
             ..Default::default()
         }),
         "text" => timeline.text_segments.push(
@@ -142,8 +142,8 @@ fn with_overlay(kind: &str, path: &str) -> ProjectConfiguration {
             .unwrap(),
         ),
         "captions" => {
-            project.captions = Some(cap_project::CaptionsData {
-                settings: cap_project::CaptionSettings {
+            project.captions = Some(scoopy_project::CaptionsData {
+                settings: scoopy_project::CaptionSettings {
                     enabled: true,
                     ..Default::default()
                 },
@@ -157,8 +157,8 @@ fn with_overlay(kind: &str, path: &str) -> ProjectConfiguration {
             );
         }
         "keyboard" => {
-            project.keyboard = Some(cap_project::KeyboardData {
-                settings: cap_project::KeyboardSettings {
+            project.keyboard = Some(scoopy_project::KeyboardData {
+                settings: scoopy_project::KeyboardSettings {
                     enabled: true,
                     ..Default::default()
                 },

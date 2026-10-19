@@ -90,39 +90,39 @@ const WELCOME_LINES: &[&[(&str, &str)]] = &[
         "  Record and edit screen recordings from the command line.",
     )],
     &[],
-    &[(ANSI_BLUE, "  cap record start --screen <id> --detach")],
+    &[(ANSI_BLUE, "  scoopy record start --screen <id> --detach")],
     &[(
         ANSI_MUTED,
-        "  cap targets     cap doctor     cap guide --json     cap --help",
+        "  scoopy targets     scoopy doctor     scoopy guide --json     scoopy --help",
     )],
 ];
 
-/// Long-form help epilogue. Agents read `cap --help` before doing anything, so the conventions they
+/// Long-form help epilogue. Agents read `scoopy --help` before doing anything, so the conventions they
 /// need to drive the CLI correctly (JSON on stdout, env vars, the canonical workflow) live here.
 const AGENT_HELP: &str = "\
 OUTPUT
   Pass --json (global) for machine-readable JSON on stdout; stderr stays human-readable.
   stdout is the authoritative result. On failure the process exits non-zero and, in --json
   mode, prints a final object/event containing an \"error\" field. Streaming commands (record,
-  export) emit newline-delimited JSON (NDJSON) events. Run `cap guide --json` for the full
+  export) emit newline-delimited JSON (NDJSON) events. Run `scoopy guide --json` for the full
   machine-readable capability + schema manifest.
 
 ENVIRONMENT
-  CAP_NO_MODIFY_PATH  Set to skip editing shell profiles during `cap desktop install-cli`.
-  CAP_DESKTOP_FORCE_INSTALL
+  SCOOPY_NO_MODIFY_PATH  Set to skip editing shell profiles during `scoopy desktop install-cli`.
+  SCOOPY_DESKTOP_FORCE_INSTALL
                       Force the web installer scripts to replace Scoopy Desktop before linking the CLI.
 
 TYPICAL AGENT WORKFLOW
-  cap doctor --json                          # verify permissions & capture readiness
-  cap targets --json                         # discover screens/windows/cameras/mics
-  cap record start --screen <id> --json --detach  # start in background -> {recordingId, pid, path}
-  cap record stop --id <recordingId> --json  # finalize the .scoopy recording
-  cap project validate <path.scoopy> --json     # confirm the recording is complete
-  cap export <path.scoopy> --output out.mp4 --json";
+  scoopy doctor --json                          # verify permissions & capture readiness
+  scoopy targets --json                         # discover screens/windows/cameras/mics
+  scoopy record start --screen <id> --json --detach  # start in background -> {recordingId, pid, path}
+  scoopy record stop --id <recordingId> --json  # finalize the .scoopy recording
+  scoopy project validate <path.scoopy> --json     # confirm the recording is complete
+  scoopy export <path.scoopy> --output out.mp4 --json";
 
 #[derive(Parser)]
 #[command(
-    name = "cap",
+    name = "scoopy",
     version,
     about = "Scoopy screen recording from the command line",
     long_about = "Scoopy screen recording from the command line.\n\nDesigned to be driven by automation and AI agents: add --json to any command for \
@@ -186,7 +186,7 @@ enum Commands {
     Selftest(selftest::SelftestArgs),
     /// Print CLI version and execution context
     Version(FormatArgs),
-    /// Inspect or manage the desktop-installed `cap` shim
+    /// Inspect or manage the desktop-installed `scoopy` shim
     Desktop(DesktopArgs),
     /// Print the machine-readable capability & JSON-schema manifest for agents
     Guide(FormatArgs),
@@ -227,7 +227,7 @@ struct RecordArgs {
 enum RecordCommands {
     /// Start a recording (use --detach to run in the background and stop later)
     Start(RecordStart),
-    /// Stop a detached recording started with `cap record start --detach`
+    /// Stop a detached recording started with `scoopy record start --detach`
     Stop(record::RecordStopArgs),
     /// List active and recent detached recording sessions
     Status(FormatArgs),
@@ -332,7 +332,7 @@ struct RecordingsArgs {
 
 #[derive(Subcommand)]
 enum RecordingsCommands {
-    /// List '.cap' recordings discovered on disk
+    /// List '.scoopy' recordings discovered on disk
     List(RecordingsListArgs),
 }
 
@@ -353,11 +353,11 @@ struct DesktopArgs {
 
 #[derive(Subcommand)]
 enum DesktopCommands {
-    /// Show whether the `cap` shim is installed and on PATH
+    /// Show whether the `scoopy` shim is installed and on PATH
     Status(FormatArgs),
-    /// Install the `cap` shim onto your PATH
+    /// Install the `scoopy` shim onto your PATH
     InstallCli(FormatArgs),
-    /// Remove the `cap` shim from your PATH
+    /// Remove the `scoopy` shim from your PATH
     UninstallCli(FormatArgs),
 }
 
@@ -369,7 +369,7 @@ struct CompletionsArgs {
 
 fn main() {
     #[cfg(target_os = "linux")]
-    if let Some(threads) = cap_utils::linux_runtime::llvmpipe_thread_count() {
+    if let Some(threads) = scoopy_utils::linux_runtime::llvmpipe_thread_count() {
         // Mesa counts host CPUs inside containers; configure it before creating the CLI runtime.
         unsafe {
             std::env::set_var("LP_NUM_THREADS", threads.to_string());
@@ -387,11 +387,11 @@ fn main() {
     let level_filter = cli.log_level.level_filter();
 
     let registry = tracing_subscriber::registry().with(tracing_subscriber::filter::filter_fn(
-        // The binary crate is named `cap`, so its own spans/events have target `cap`/`cap::…`,
-        // which a bare `cap_` prefix excludes — keep those alongside the `cap_*` library crates.
+        // The binary crate is named `scoopy`, so its own spans/events have target `scoopy`/`scoopy::…`,
+        // which a bare `scoopy_` prefix excludes — keep those alongside the `scoopy_*` library crates.
         (|v| {
             let target = v.target();
-            target == "cap" || target.starts_with("cap::") || target.starts_with("cap_")
+            target == "scoopy" || target.starts_with("scoopy::") || target.starts_with("scoopy_")
         }) as fn(&tracing::Metadata) -> bool,
     ));
 
@@ -405,19 +405,19 @@ fn main() {
         )
         .init();
 
-    let _diagnostic_guard = if std::env::var_os("CAP_DIAGNOSTIC_PARENT").is_some() {
+    let _diagnostic_guard = if std::env::var_os("SCOOPY_DIAGNOSTIC_PARENT").is_some() {
         let (writer, guard) = tracing_appender::non_blocking(std::io::stderr());
         let queue_errors = writer.error_counter();
-        cap_utils::operation_diagnostics::install_queue_loss_counter(move || {
+        scoopy_utils::operation_diagnostics::install_queue_loss_counter(move || {
             queue_errors.dropped_lines()
         });
-        cap_utils::operation_diagnostics::install_sink(
-            cap_utils::operation_diagnostics::AppInfo {
+        scoopy_utils::operation_diagnostics::install_sink(
+            scoopy_utils::operation_diagnostics::AppInfo {
                 flavor: "export_worker",
                 version: env!("CARGO_PKG_VERSION"),
-                source_revision: option_env!("CAP_BUILD_REVISION"),
+                source_revision: option_env!("SCOOPY_BUILD_REVISION"),
                 debug_build: cfg!(debug_assertions),
-                source_dirty: option_env!("CAP_BUILD_DIRTY").map(|value| value == "true"),
+                source_dirty: option_env!("SCOOPY_BUILD_DIRTY").map(|value| value == "true"),
             },
             move |bytes| {
                 use std::io::Write;
@@ -441,7 +441,7 @@ fn main() {
     // on an explicitly large stack is what stopped the export worker from overflowing before
     // the first frame; keep the sidecar and desktop runtimes in sync.
     let runtime_thread = std::thread::Builder::new()
-        .name("cap-cli-runtime".to_string())
+        .name("scoopy-cli-runtime".to_string())
         .stack_size(TOKIO_WORKER_THREAD_STACK_SIZE)
         .spawn(move || -> Result<(), String> {
             // serve_main_thread blocks the main thread until this shutdown
@@ -462,7 +462,7 @@ fn main() {
                 .map_err(|e| format!("Failed to build Tokio runtime: {e}"))?;
 
             if _diagnostic_guard.is_some() {
-                drop(runtime.spawn(cap_utils::operation_diagnostics::run_checkpoints()));
+                drop(runtime.spawn(scoopy_utils::operation_diagnostics::run_checkpoints()));
             }
             let result = runtime.block_on(run(cli));
             drop(_diagnostic_guard);
@@ -571,7 +571,7 @@ async fn run(cli: Cli) -> Result<(), String> {
 fn print_welcome(json: bool) -> Result<(), String> {
     if json {
         return write_json(&serde_json::json!({
-            "name": "cap",
+            "name": "scoopy",
             "about": "Scoopy screen recording from the command line",
             "commands": ["record", "targets", "doctor", "guide"],
         }));
@@ -677,21 +677,21 @@ impl DesktopArgs {
                 let format = resolve_format(json, args.format);
                 (
                     format,
-                    emit_install_status(cap_cli_install::status(), format),
+                    emit_install_status(scoopy_cli_install::status(), format),
                 )
             }
             DesktopCommands::InstallCli(args) => {
                 let format = resolve_format(json, args.format);
                 (
                     format,
-                    emit_install_status(cap_cli_install::install(), format),
+                    emit_install_status(scoopy_cli_install::install(), format),
                 )
             }
             DesktopCommands::UninstallCli(args) => {
                 let format = resolve_format(json, args.format);
                 (
                     format,
-                    emit_install_status(cap_cli_install::uninstall(), format),
+                    emit_install_status(scoopy_cli_install::uninstall(), format),
                 )
             }
         };
@@ -712,7 +712,7 @@ fn finish_json(format: OutputFormat, result: Result<(), String>) -> Result<(), S
 }
 
 fn emit_install_status(
-    status: Result<cap_cli_install::CliInstallStatus, String>,
+    status: Result<scoopy_cli_install::CliInstallStatus, String>,
     format: OutputFormat,
 ) -> Result<(), String> {
     let status = status?;

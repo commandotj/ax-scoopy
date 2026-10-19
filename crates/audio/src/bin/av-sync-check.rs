@@ -17,7 +17,7 @@
 
 use std::path::{Path, PathBuf};
 
-use cap_audio::AudioData;
+use scoopy_audio::AudioData;
 
 struct Args {
     video: PathBuf,

@@ -18,7 +18,7 @@
 
 use std::str::FromStr as _;
 
-use cap_recording::sources::screen_capture::ScreenCaptureTarget;
+use scoopy_recording::sources::screen_capture::ScreenCaptureTarget;
 use global_hotkey::{
     GlobalHotKeyEvent, GlobalHotKeyManager, HotKeyState,
     hotkey::{Code, HotKey, Modifiers},
@@ -424,11 +424,11 @@ async fn run_wayland_stop(
 }
 
 #[cfg(target_os = "linux")]
-fn wayland_stop_icon() -> anyhow::Result<cap_utils::linux_recording_stop::StopTrayIcon> {
+fn wayland_stop_icon() -> anyhow::Result<scoopy_utils::linux_recording_stop::StopTrayIcon> {
     let image = image::load_from_memory(include_bytes!("../assets/tray/tray-stop-icon.png"))?
         .resize_exact(32, 32, image::imageops::FilterType::Triangle)
         .into_rgba8();
-    cap_utils::linux_recording_stop::StopTrayIcon::from_rgba(
+    scoopy_utils::linux_recording_stop::StopTrayIcon::from_rgba(
         image.width(),
         image.height(),
         image.as_raw(),
@@ -452,7 +452,7 @@ async fn run_tray_stop(
     cancel: &flume::Receiver<()>,
     events: &flume::Sender<WaylandStopEvent>,
 ) -> anyhow::Result<()> {
-    use cap_utils::linux_recording_stop::{StopTray, StopTrayEvent};
+    use scoopy_utils::linux_recording_stop::{StopTray, StopTrayEvent};
     let icon = wayland_stop_icon()?;
     let tray = StopTray::open(generation, icon).await.map_err(|error| {
         if error.can_fallback() {
@@ -501,7 +501,7 @@ async fn run_portal_stop(
     let session = tokio::time::timeout(Duration::from_secs(5), portal.create_session()).await??;
     let outcome = async {
         let session_path = serde_json::to_value(&session)?.as_str().ok_or_else(|| anyhow::anyhow!("Invalid shortcut session identity"))?.to_owned();
-        let shortcut_id = format!("cap-recording-stop-{generation}");
+        let shortcut_id = format!("scoopy-recording-stop-{generation}");
         let activated = portal.receive_activated().await?;
         let deactivated = portal.receive_deactivated().await?;
         let changed = portal.receive_shortcuts_changed().await?;
@@ -696,13 +696,13 @@ fn register_from_store(cx: &mut App) {
     tracing::info!(count = hotkeys.bindings.len(), "global hotkeys registered");
 }
 
-/// `CAP_GPUI_AUTO_HOTKEY=<store key>`: run an action's dispatch arm without
+/// `SCOOPY_GPUI_AUTO_HOTKEY=<store key>`: run an action's dispatch arm without
 /// the OS keypress (unprivileged synthetic key events are dropped, the same
-/// reason every other `CAP_GPUI_AUTO_*` hook exists).
+/// reason every other `SCOOPY_GPUI_AUTO_*` hook exists).
 pub fn dispatch_for_harness(key: &str, cx: &mut App) {
     match HotkeyAction::from_store_key(key) {
         Some(action) => dispatch(action, cx),
-        None => tracing::error!(key, "CAP_GPUI_AUTO_HOTKEY: unknown action"),
+        None => tracing::error!(key, "SCOOPY_GPUI_AUTO_HOTKEY: unknown action"),
     }
 }
 
@@ -797,7 +797,7 @@ fn dispatch(action: HotkeyAction, cx: &mut App) {
 }
 
 fn microphone_available(name: &str) -> bool {
-    use cap_recording::feeds::microphone::MicrophoneFeed;
+    use scoopy_recording::feeds::microphone::MicrophoneFeed;
 
     if cfg!(target_os = "macos") {
         MicrophoneFeed::list_names()

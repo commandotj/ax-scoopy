@@ -3,7 +3,7 @@
 //! The construction here mirrors `apps/desktop/src-tauri/src/recording.rs`
 //! (`start_recording`): spawn the feed actors, lock the selected devices,
 //! acquire ScreenCaptureKit shareable content, then hand everything to the
-//! studio/instant actor builder from `cap-recording`. Everything in this module
+//! studio/instant actor builder from `scoopy-recording`. Everything in this module
 //! runs on the tokio runtime (`gpui_tokio`), never on gpui's main thread --
 //! kameo actors and the capture pipeline both assume tokio.
 
@@ -14,7 +14,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use anyhow::{Context as _, anyhow};
-use cap_recording::{
+use scoopy_recording::{
     feeds::{camera, camera::CameraFeed, microphone, microphone::MicrophoneFeed},
     instant_recording,
     recovery::{PreparingStudioJob, PreparingStudioObserver, RecoveryManager},
@@ -24,7 +24,7 @@ use cap_recording::{
 use futures_util::FutureExt as _;
 use kameo::{Actor, actor::ActorRef};
 
-pub use cap_recording::feeds::camera::DeviceOrModelID;
+pub use scoopy_recording::feeds::camera::DeviceOrModelID;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecordingMode {
@@ -56,7 +56,7 @@ pub struct StartConfig {
     pub linux_instant_camera: Option<LinuxInstantCameraRequest>,
     /// When set, the pipeline is primed behind this gate and records nothing
     /// until the session arms it at the end of the start cue.
-    pub start_gate: Option<cap_recording::RecordingStartGate>,
+    pub start_gate: Option<scoopy_recording::RecordingStartGate>,
 }
 
 #[cfg(target_os = "linux")]
@@ -89,7 +89,7 @@ impl<A: Actor> Drop for RecordingOwnedFeed<A> {
 pub struct ActiveRecording {
     handle: Handle,
     pub project_dir: PathBuf,
-    start_gate: Option<cap_recording::RecordingStartGate>,
+    start_gate: Option<scoopy_recording::RecordingStartGate>,
     #[cfg(target_os = "linux")]
     instant_operation: Arc<tokio::sync::Mutex<()>>,
     /// Recording-scoped mic mute (payload zeroing at the consumer seam; the
@@ -417,7 +417,7 @@ async fn finalize_studio(
     let project_path = completed.project_path.clone();
     let needs_remux = matches!(
         completed.meta.status(),
-        cap_project::StudioRecordingStatus::NeedsRemux
+        scoopy_project::StudioRecordingStatus::NeedsRemux
     );
     let claim_progress = progress.clone();
     let completed = tokio::task::spawn_blocking(move || {
@@ -553,7 +553,7 @@ pub(crate) type CaptureStopFuture =
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct StudioCameraSnapshot {
     pub blur: crate::store::BlurMode,
-    pub placement: Option<cap_recording::camera_placement::RecordingCameraPlacement>,
+    pub placement: Option<scoopy_recording::camera_placement::RecordingCameraPlacement>,
 }
 
 #[derive(Clone, Default)]
@@ -609,14 +609,14 @@ impl StudioFinalization {
 
     pub(crate) fn matches_preparing_identity(
         &self,
-        identity: &cap_recording::recovery::PreparingStudioIdentity,
+        identity: &scoopy_recording::recovery::PreparingStudioIdentity,
     ) -> bool {
         let observer = self.state.borrow().preparing.clone();
         observer.is_some_and(|observer| {
             observer.identity().same_job(identity)
                 && matches!(
                     observer.latest(),
-                    cap_recording::recovery::PreparingStudioState::Available(_)
+                    scoopy_recording::recovery::PreparingStudioState::Available(_)
                 )
         })
     }
@@ -628,7 +628,7 @@ impl StudioFinalization {
 
     pub(crate) fn allows_preparing_continuation(
         &self,
-        identity: &cap_recording::recovery::PreparingStudioIdentity,
+        identity: &scoopy_recording::recovery::PreparingStudioIdentity,
     ) -> bool {
         let state = self.state.borrow();
         state.capture_stopped
@@ -788,7 +788,7 @@ async fn finish_failed_capture(
 }
 
 impl ActiveRecording {
-    pub fn done_fut(&self) -> cap_recording::DoneFut {
+    pub fn done_fut(&self) -> scoopy_recording::DoneFut {
         match &self.handle {
             Handle::Studio(handle) => handle.done_fut(),
             Handle::Instant(handle) => handle.done_fut(),
@@ -1146,13 +1146,13 @@ impl ActiveRecording {
                         tokio::task::spawn_blocking(move || {
                             ensure_finalization_storage(&project_path)?;
                             match completion {
-                                Some(completion) => cap_recording::recovery::RecoveryManager::finalize_completed_instant_output(
+                                Some(completion) => scoopy_recording::recovery::RecoveryManager::finalize_completed_instant_output(
                                     &display_dir,
                                     &audio_dir,
                                     &muxed,
                                     completion,
                                 ),
-                                None => cap_recording::recovery::RecoveryManager::finalize_instant_output(
+                                None => scoopy_recording::recovery::RecoveryManager::finalize_instant_output(
                                     &display_dir,
                                     &audio_dir,
                                     &muxed,
@@ -1192,7 +1192,7 @@ impl ActiveRecording {
     }
 }
 
-fn save_instant_metadata(meta: &cap_project::RecordingMeta) -> anyhow::Result<()> {
+fn save_instant_metadata(meta: &scoopy_project::RecordingMeta) -> anyhow::Result<()> {
     let contents = serde_json::to_vec_pretty(meta)?;
     write_instant_metadata(&meta.project_path, |file| file.write_all(&contents))
 }
@@ -1238,24 +1238,24 @@ fn persist_preserved_instant_stop(
 }
 
 fn mark_instant_recording_stopped(project_path: &std::path::Path) -> anyhow::Result<()> {
-    let mut meta = cap_project::RecordingMeta::load_for_project(project_path)
+    let mut meta = scoopy_project::RecordingMeta::load_for_project(project_path)
         .map_err(|error| anyhow!("loading recording metadata: {error}"))?;
     meta.inner =
-        cap_project::RecordingMetaInner::Instant(cap_project::InstantRecordingMeta::InProgress {
+        scoopy_project::RecordingMetaInner::Instant(scoopy_project::InstantRecordingMeta::InProgress {
             recording: false,
         });
     save_instant_metadata(&meta)
 }
 
-pub fn available_recording_storage() -> std::io::Result<cap_utils::disk_space::RecordingStorage> {
-    Ok(cap_utils::disk_space::RecordingStorage {
-        available_bytes: cap_utils::disk_space::free_bytes_for_path(&recordings_dir())?,
+pub fn available_recording_storage() -> std::io::Result<scoopy_utils::disk_space::RecordingStorage> {
+    Ok(scoopy_utils::disk_space::RecordingStorage {
+        available_bytes: scoopy_utils::disk_space::free_bytes_for_path(&recordings_dir())?,
         recording_bytes: 0,
     })
 }
 
 pub(crate) fn ensure_finalization_storage(project_path: &std::path::Path) -> anyhow::Result<()> {
-    let storage = cap_utils::disk_space::recording_storage(project_path)
+    let storage = scoopy_utils::disk_space::recording_storage(project_path)
         .context("checking storage before saving the recording")?;
     if !storage.can_finalize() {
         return Err(anyhow!(
@@ -1267,7 +1267,7 @@ pub(crate) fn ensure_finalization_storage(project_path: &std::path::Path) -> any
 }
 
 pub fn recover_instant_recording(project_path: &std::path::Path) -> anyhow::Result<PathBuf> {
-    use cap_project::{InstantRecordingMeta, RecordingMeta, RecordingMetaInner};
+    use scoopy_project::{InstantRecordingMeta, RecordingMeta, RecordingMetaInner};
 
     let mut meta = RecordingMeta::load_for_project(project_path)
         .map_err(|error| anyhow!("loading recording metadata: {error}"))?;
@@ -1281,7 +1281,7 @@ pub fn recover_instant_recording(project_path: &std::path::Path) -> anyhow::Resu
     }
     ensure_finalization_storage(project_path)?;
     let output = project_path.join("content/output.mp4");
-    cap_recording::recovery::RecoveryManager::finalize_instant_output(
+    scoopy_recording::recovery::RecoveryManager::finalize_instant_output(
         &project_path.join("content/display"),
         &project_path.join("content/audio"),
         &output,
@@ -1326,7 +1326,7 @@ pub fn recover_instant_recording(project_path: &std::path::Path) -> anyhow::Resu
 /// `display.mp4` beside it. The Tauri app has the same ordering, and uses its
 /// `updated_studio_meta` for the same reason.
 fn studio_display_path(project_path: &std::path::Path) -> Option<PathBuf> {
-    use cap_project::{RecordingMeta, StudioRecordingMeta};
+    use scoopy_project::{RecordingMeta, StudioRecordingMeta};
 
     let meta = RecordingMeta::load_for_project(project_path).ok()?;
     let path = match meta.studio_meta()? {
@@ -1342,7 +1342,7 @@ fn studio_display_path(project_path: &std::path::Path) -> Option<PathBuf> {
 }
 
 /// Write `<bundle>/screenshots/display.jpg` -- the file both apps' Recents
-/// cards draw. `cap-recording` does not produce it, so without this a project
+/// cards draw. `scoopy-recording` does not produce it, so without this a project
 /// recorded here would show the icon fallback forever, including in the
 /// shipping app.
 fn write_bundle_thumbnail(project_dir: &std::path::Path, source_video: &std::path::Path) {
@@ -1357,9 +1357,9 @@ fn write_bundle_thumbnail(project_dir: &std::path::Path, source_video: &std::pat
 }
 
 pub(crate) fn preparing_presentation(
-    project: &cap_project::ProjectConfiguration,
+    project: &scoopy_project::ProjectConfiguration,
     camera_snapshot: Option<StudioCameraSnapshot>,
-) -> Result<cap_project::ProjectConfiguration, String> {
+) -> Result<scoopy_project::ProjectConfiguration, String> {
     let library = serde_json::from_value(serde_json::Value::Object(crate::store::store_section(
         "animated_gradients",
     )))
@@ -1380,10 +1380,10 @@ pub(crate) fn preparing_presentation(
 }
 
 fn preparing_presentation_for(
-    project: &cap_project::ProjectConfiguration,
+    project: &scoopy_project::ProjectConfiguration,
     blur: crate::store::BlurMode,
-    library: &cap_project::AnimatedGradientLibrary,
-) -> Result<cap_project::ProjectConfiguration, String> {
+    library: &scoopy_project::AnimatedGradientLibrary,
+) -> Result<scoopy_project::ProjectConfiguration, String> {
     if blur != crate::store::BlurMode::Off || project.camera.background_blur.is_active() {
         return Err("Camera blur requires ordinary editor loading".into());
     }
@@ -1454,7 +1454,7 @@ fn enable_studio_sound(project_path: &std::path::Path) -> std::io::Result<()> {
 fn apply_animated_gradient_to_project_config(
     project_dir: &std::path::Path,
     capture_target: &ScreenCaptureTarget,
-    library: &cap_project::AnimatedGradientLibrary,
+    library: &scoopy_project::AnimatedGradientLibrary,
 ) -> bool {
     if matches!(capture_target, ScreenCaptureTarget::CameraOnly) || !library.selected {
         return false;
@@ -1496,7 +1496,7 @@ fn apply_animated_gradient_to_project_config(
 
 fn apply_initial_animated_gradient(
     project: &mut serde_json::Value,
-    config: &cap_project::AnimatedGradientConfig,
+    config: &scoopy_project::AnimatedGradientConfig,
 ) -> bool {
     let Some(background) = project
         .get_mut("background")
@@ -1547,7 +1547,7 @@ fn apply_initial_animated_gradient(
 /// `apps/desktop/src-tauri/src/recording.rs:3889-3891`:
 ///
 /// ```text
-/// config.camera.background_blur = cap_project::BackgroundBlurConfig {
+/// config.camera.background_blur = scoopy_project::BackgroundBlurConfig {
 ///     mode: camera_preview_state.background_blur,
 /// };
 /// ```
@@ -1557,7 +1557,7 @@ fn apply_initial_animated_gradient(
 /// this field. Copying it is what makes a project recorded with the bubble
 /// blurred *open* blurred.
 ///
-/// `cap-recording` writes `project-config.json` itself at the end of a studio
+/// `scoopy-recording` writes `project-config.json` itself at the end of a studio
 /// recording (`studio_recording.rs:1189-1207`) and its builder takes no config,
 /// so the value is merged in afterwards -- a read-modify-write on the raw JSON
 /// that replaces exactly `camera.backgroundBlur.mode` and leaves every other
@@ -1577,7 +1577,7 @@ fn apply_camera_blur_to_project_config(
 fn apply_camera_preview_to_project_config(
     project_dir: &std::path::Path,
     blur: crate::store::BlurMode,
-    placement: Option<cap_recording::camera_placement::RecordingCameraPlacement>,
+    placement: Option<scoopy_recording::camera_placement::RecordingCameraPlacement>,
 ) -> bool {
     use serde_json::{Map, Value};
 
@@ -1620,7 +1620,7 @@ fn apply_camera_preview_to_project_config(
     );
 
     if let Some(placement) = placement {
-        let mut positioned = cap_project::Camera::default();
+        let mut positioned = scoopy_project::Camera::default();
         placement.apply(&mut positioned);
         let Ok(Value::Object(position)) = serde_json::to_value(positioned.position) else {
             return false;
@@ -1660,9 +1660,9 @@ fn apply_camera_preview_to_project_config(
 }
 
 /// `persist_instant_recording_meta` from the CLI, verbatim in behavior: without
-/// this pair of files the recording plays but no Cap surface lists it.
+/// this pair of files the recording plays but no Scoopy surface lists it.
 fn persist_instant_meta(completed: &instant_recording::CompletedRecording) -> anyhow::Result<()> {
-    use cap_project::{
+    use scoopy_project::{
         InstantRecordingMeta, Platform, ProjectConfiguration, RecordingMeta, RecordingMetaInner,
     };
 
@@ -1704,13 +1704,13 @@ fn persist_in_progress_instant_meta(project_path: &std::path::Path) -> anyhow::R
         .unwrap_or("Scoopy Recording")
         .to_string();
 
-    let meta = cap_project::RecordingMeta {
-        platform: Some(cap_project::Platform::default()),
+    let meta = scoopy_project::RecordingMeta {
+        platform: Some(scoopy_project::Platform::default()),
         project_path: project_path.to_path_buf(),
         pretty_name,
         sharing: None,
-        inner: cap_project::RecordingMetaInner::Instant(
-            cap_project::InstantRecordingMeta::InProgress { recording: true },
+        inner: scoopy_project::RecordingMetaInner::Instant(
+            scoopy_project::InstantRecordingMeta::InProgress { recording: true },
         ),
         upload: None,
     };
@@ -1937,14 +1937,14 @@ async fn start_attempt(
     // the user's persisted settings, applied through the same shared
     // `RecordingDefaults` seam so both apps build recordings identically.
     let settings = crate::store::GeneralSettings::load();
-    let defaults = cap_recording::RecordingDefaults {
+    let defaults = scoopy_recording::RecordingDefaults {
         custom_cursor_capture: settings.custom_cursor_capture,
         capture_keyboard_events: settings.capture_keyboard_events,
         crash_recovery_recording: settings.crash_recovery_recording,
         max_fps: settings.max_fps,
         studio_recording_quality: settings.studio_recording_quality.into(),
         out_of_process_muxer: settings.out_of_process_muxer,
-        instant_mode_max_resolution: cap_recording::DEFAULT_INSTANT_MODE_MAX_RESOLUTION,
+        instant_mode_max_resolution: scoopy_recording::DEFAULT_INSTANT_MODE_MAX_RESOLUTION,
     };
     let instant_max_resolution = settings.instant_mode_max_resolution;
 
@@ -1957,7 +1957,7 @@ async fn start_attempt(
             // so the camera bubble stays in the picture there.
             rules.retain(|rule| {
                 rule.window_title.as_deref() != Some("Scoopy Camera")
-                    && rule.window_title.as_deref() != Some("Cap Camera")
+                    && rule.window_title.as_deref() != Some("Scoopy Camera")
             });
         }
         for id in resolve_excluded_window_ids(&rules) {
@@ -2066,7 +2066,7 @@ async fn start_attempt(
 /// `window_exclusion::resolve_window_ids`: every on-screen window matching a
 /// configured exclusion rule, by id. Our own windows are excluded by window
 /// number in `begin_recording` before this runs; this resolves the
-/// user-configured (or default) rules -- other apps, other Cap installs.
+/// user-configured (or default) rules -- other apps, other Scoopy installs.
 #[cfg(target_os = "macos")]
 fn resolve_excluded_window_ids(
     exclusions: &[crate::store::WindowExclusion],
@@ -2109,7 +2109,7 @@ async fn setup_camera(
     settings: Option<camera::CameraDeviceSettings>,
 ) -> anyhow::Result<(
     Arc<RecordingOwnedFeed<CameraFeed>>,
-    cap_recording::feeds::camera::CameraFeedLock,
+    scoopy_recording::feeds::camera::CameraFeedLock,
 )> {
     let feed = CameraFeed::spawn(CameraFeed::default());
     let owner = Arc::new(RecordingOwnedFeed(feed.clone()));
@@ -2133,7 +2133,7 @@ async fn setup_microphone(
     settings: Option<microphone::MicrophoneDeviceSettings>,
 ) -> anyhow::Result<(
     Arc<RecordingOwnedFeed<MicrophoneFeed>>,
-    Arc<cap_recording::feeds::microphone::MicrophoneFeedLock>,
+    Arc<scoopy_recording::feeds::microphone::MicrophoneFeedLock>,
     flume::Receiver<cpal::StreamError>,
 )> {
     let (error_tx, error_rx) = flume::unbounded();
@@ -2155,7 +2155,7 @@ async fn setup_microphone(
 }
 
 #[cfg(target_os = "macos")]
-async fn read_shareable_content() -> anyhow::Result<cap_recording::SendableShareableContent> {
+async fn read_shareable_content() -> anyhow::Result<scoopy_recording::SendableShareableContent> {
     let content = cidre::sc::ShareableContent::current()
         .await
         .map_err(|e| anyhow!("ReadShareableContent: {e}"))?;
@@ -2174,11 +2174,11 @@ async fn read_shareable_content() -> anyhow::Result<cap_recording::SendableShare
 /// The recordings library root, resolved the way `GeneralSettingsStore::
 /// recordings_dir` resolves it so both apps share one library: the custom
 /// `recordingsPath` from the Tauri store if it is absolute and creatable,
-/// otherwise `<app data>/recordings`. `CAP_GPUI_RECORDINGS_DIR` overrides both
+/// otherwise `<app data>/recordings`. `SCOOPY_GPUI_RECORDINGS_DIR` overrides both
 /// (used by the automated end-to-end check so test recordings stay out of the
 /// user's library).
 pub fn recordings_dir() -> PathBuf {
-    if let Ok(dir) = std::env::var("CAP_GPUI_RECORDINGS_DIR")
+    if let Ok(dir) = std::env::var("SCOOPY_GPUI_RECORDINGS_DIR")
         && !dir.trim().is_empty()
     {
         return PathBuf::from(dir);
@@ -2216,15 +2216,15 @@ fn create_project_dir(
     std::fs::create_dir_all(&base)
         .with_context(|| format!("creating recordings dir {}", base.display()))?;
 
-    match cap_utils::disk_space::free_bytes_for_path(&base) {
-        Ok(bytes) if bytes <= cap_utils::disk_space::RECORDING_DISK_RESERVE_BYTES => {
+    match scoopy_utils::disk_space::free_bytes_for_path(&base) {
+        Ok(bytes) if bytes <= scoopy_utils::disk_space::RECORDING_DISK_RESERVE_BYTES => {
             return Err(anyhow!(
                 "Low storage: only {:.2} GB is available. Free up at least {} MB before recording.",
                 bytes as f64 / 1_073_741_824.0,
-                cap_utils::disk_space::RECORDING_DISK_RESERVE_BYTES / (1024 * 1024)
+                scoopy_utils::disk_space::RECORDING_DISK_RESERVE_BYTES / (1024 * 1024)
             ));
         }
-        Ok(bytes) if bytes <= cap_utils::disk_space::RECORDING_DISK_WARN_BYTES => {
+        Ok(bytes) if bytes <= scoopy_utils::disk_space::RECORDING_DISK_WARN_BYTES => {
             tracing::warn!(
                 bytes_remaining = bytes,
                 "Starting recording with low disk space"
@@ -2245,7 +2245,7 @@ fn create_project_dir(
         now,
     );
     let filename = project_bundle_filename(&name);
-    let filename = cap_utils::ensure_unique_filename(&filename, &base)
+    let filename = scoopy_utils::ensure_unique_filename(&filename, &base)
         .map_err(|e| anyhow!("unique filename: {e}"))?;
 
     Ok(base.join(filename))
@@ -2306,7 +2306,7 @@ fn replace_datetime_template_token(
         if token == name {
             output.push_str(&datetime.format(default_format).to_string());
         } else if let Some(custom_format) = token.strip_prefix(&format!("{name}:")) {
-            let format = cap_utils::moment_format_to_chrono(custom_format);
+            let format = scoopy_utils::moment_format_to_chrono(custom_format);
             output.push_str(&datetime.format(&format).to_string());
         } else {
             output.push_str(&candidate[..=end]);
@@ -2433,11 +2433,11 @@ mod tests {
     fn animated_gradient_preference_preserves_camera_only_presentation() {
         let dir = temp_project("animated-camera-only");
         let path = dir.join("project-config.json");
-        let original = serde_json::to_vec(&cap_project::ProjectConfiguration::default()).unwrap();
+        let original = serde_json::to_vec(&scoopy_project::ProjectConfiguration::default()).unwrap();
         std::fs::write(&path, &original).unwrap();
-        let library = cap_project::AnimatedGradientLibrary {
+        let library = scoopy_project::AnimatedGradientLibrary {
             selected: true,
-            last_used: Some(cap_project::AnimatedGradientConfig::default()),
+            last_used: Some(scoopy_project::AnimatedGradientConfig::default()),
             ..Default::default()
         };
         assert!(!apply_animated_gradient_to_project_config(
@@ -2464,15 +2464,15 @@ mod tests {
     fn animated_gradient_preference_is_inactive_without_selection_and_config() {
         let dir = temp_project("animated-inactive");
         let path = dir.join("project-config.json");
-        let original = serde_json::to_vec(&cap_project::ProjectConfiguration::default()).unwrap();
+        let original = serde_json::to_vec(&scoopy_project::ProjectConfiguration::default()).unwrap();
         std::fs::write(&path, &original).unwrap();
         for library in [
-            cap_project::AnimatedGradientLibrary {
+            scoopy_project::AnimatedGradientLibrary {
                 selected: false,
-                last_used: Some(cap_project::AnimatedGradientConfig::default()),
+                last_used: Some(scoopy_project::AnimatedGradientConfig::default()),
                 ..Default::default()
             },
-            cap_project::AnimatedGradientLibrary {
+            scoopy_project::AnimatedGradientLibrary {
                 selected: true,
                 ..Default::default()
             },
@@ -2491,13 +2491,13 @@ mod tests {
     fn animated_gradient_preference_applies_normalized_config_and_visible_padding() {
         let dir = temp_project("animated-new-project");
         let path = dir.join("project-config.json");
-        cap_project::ProjectConfiguration::default()
+        scoopy_project::ProjectConfiguration::default()
             .write(&dir)
             .unwrap();
-        let mut gradient = cap_project::AnimatedGradientConfig::from_seed(73);
+        let mut gradient = scoopy_project::AnimatedGradientConfig::from_seed(73);
         gradient.motion_speed = 800.;
         gradient.flow_scale = 0.;
-        let library = cap_project::AnimatedGradientLibrary {
+        let library = scoopy_project::AnimatedGradientLibrary {
             selected: true,
             last_used: Some(gradient.clone()),
             ..Default::default()
@@ -2542,8 +2542,8 @@ mod tests {
             "aFieldFromANewerBuild": 42
         });
         std::fs::write(&path, serde_json::to_vec(&original).unwrap()).unwrap();
-        let gradient = cap_project::AnimatedGradientConfig::default();
-        let library = cap_project::AnimatedGradientLibrary {
+        let gradient = scoopy_project::AnimatedGradientConfig::default();
+        let library = scoopy_project::AnimatedGradientLibrary {
             selected: true,
             last_used: Some(gradient.clone()),
             ..Default::default()
@@ -2568,9 +2568,9 @@ mod tests {
     fn animated_gradient_preference_leaves_malformed_projects_untouched() {
         let dir = temp_project("animated-malformed");
         let path = dir.join("project-config.json");
-        let library = cap_project::AnimatedGradientLibrary {
+        let library = scoopy_project::AnimatedGradientLibrary {
             selected: true,
-            last_used: Some(cap_project::AnimatedGradientConfig::default()),
+            last_used: Some(scoopy_project::AnimatedGradientConfig::default()),
             ..Default::default()
         };
         assert!(!apply_animated_gradient_to_project_config(
@@ -2602,9 +2602,9 @@ mod tests {
     fn animated_gradient_preference_does_not_replace_custom_sources() {
         let dir = temp_project("animated-custom");
         let path = dir.join("project-config.json");
-        let library = cap_project::AnimatedGradientLibrary {
+        let library = scoopy_project::AnimatedGradientLibrary {
             selected: true,
-            last_used: Some(cap_project::AnimatedGradientConfig::default()),
+            last_used: Some(scoopy_project::AnimatedGradientConfig::default()),
             ..Default::default()
         };
         for source in [
@@ -2613,7 +2613,7 @@ mod tests {
             serde_json::json!({"type": "color", "value": [254, 255, 255], "alpha": 255}),
             serde_json::json!({"type": "color", "value": [255, 255, 255], "alpha": 0}),
             serde_json::json!({"type": "gradient", "from": [255, 0, 0], "to": [0, 0, 255]}),
-            serde_json::json!({"type": "animatedGradient", "config": cap_project::AnimatedGradientConfig::from_seed(99)}),
+            serde_json::json!({"type": "animatedGradient", "config": scoopy_project::AnimatedGradientConfig::from_seed(99)}),
         ] {
             let original = serde_json::to_vec(
                 &serde_json::json!({"background": {"source": source, "padding": 0}}),
@@ -2667,16 +2667,16 @@ mod tests {
             } else {
                 result.unwrap();
             }
-            let meta = cap_project::RecordingMeta::load_for_project(&dir).unwrap();
+            let meta = scoopy_project::RecordingMeta::load_for_project(&dir).unwrap();
             assert!(matches!(
                 meta.inner,
-                cap_project::RecordingMetaInner::Instant(
-                    cap_project::InstantRecordingMeta::InProgress { recording: false }
+                scoopy_project::RecordingMetaInner::Instant(
+                    scoopy_project::InstantRecordingMeta::InProgress { recording: false }
                 )
             ));
             assert!(matches!(
                 meta.upload,
-                Some(cap_project::UploadMeta::Failed { error }) if error == "offline"
+                Some(scoopy_project::UploadMeta::Failed { error }) if error == "offline"
             ));
             assert!(meta.sharing.is_none());
             assert_eq!(
@@ -2717,11 +2717,11 @@ mod tests {
             future.await.unwrap_err().to_string(),
             "capture failed before join"
         );
-        let meta = cap_project::RecordingMeta::load_for_project(&dir).unwrap();
+        let meta = scoopy_project::RecordingMeta::load_for_project(&dir).unwrap();
         assert!(matches!(
             meta.inner,
-            cap_project::RecordingMetaInner::Instant(
-                cap_project::InstantRecordingMeta::InProgress { recording: false }
+            scoopy_project::RecordingMetaInner::Instant(
+                scoopy_project::InstantRecordingMeta::InProgress { recording: false }
             )
         ));
         std::fs::remove_dir_all(&dir).unwrap();
@@ -2814,16 +2814,16 @@ mod tests {
         )
         .unwrap();
         mark_instant_recording_stopped(&dir).unwrap();
-        let meta = cap_project::RecordingMeta::load_for_project(&dir).unwrap();
+        let meta = scoopy_project::RecordingMeta::load_for_project(&dir).unwrap();
         assert!(matches!(
             meta.inner,
-            cap_project::RecordingMetaInner::Instant(
-                cap_project::InstantRecordingMeta::InProgress { recording: false }
+            scoopy_project::RecordingMetaInner::Instant(
+                scoopy_project::InstantRecordingMeta::InProgress { recording: false }
             )
         ));
         assert!(matches!(
             meta.upload,
-            Some(cap_project::UploadMeta::Failed { error }) if error == "offline"
+            Some(scoopy_project::UploadMeta::Failed { error }) if error == "offline"
         ));
         std::fs::remove_dir_all(dir).unwrap();
     }
@@ -2855,11 +2855,11 @@ mod tests {
                 let completed = instant_recording::CompletedRecording {
                     project_path: dir.clone(),
                     display_source: ScreenCaptureTarget::CameraOnly,
-                    meta: cap_project::InstantRecordingMeta::Complete {
+                    meta: scoopy_project::InstantRecordingMeta::Complete {
                         fps: 30,
                         sample_rate: Some(48_000),
                     },
-                    health: cap_recording::RecordingHealth::Healthy,
+                    health: scoopy_recording::RecordingHealth::Healthy,
                     clean_completion: None,
                 };
                 persist_instant_meta(&completed).unwrap();
@@ -2867,12 +2867,12 @@ mod tests {
                 mark_instant_recording_stopped(&dir).unwrap();
             }
 
-            let meta = cap_project::RecordingMeta::load_for_project(&dir).unwrap();
+            let meta = scoopy_project::RecordingMeta::load_for_project(&dir).unwrap();
             if finalized {
                 assert!(matches!(
                     meta.inner,
-                    cap_project::RecordingMetaInner::Instant(
-                        cap_project::InstantRecordingMeta::Complete {
+                    scoopy_project::RecordingMetaInner::Instant(
+                        scoopy_project::InstantRecordingMeta::Complete {
                             fps: 30,
                             sample_rate: Some(48_000)
                         }
@@ -2881,8 +2881,8 @@ mod tests {
             } else {
                 assert!(matches!(
                     meta.inner,
-                    cap_project::RecordingMetaInner::Instant(
-                        cap_project::InstantRecordingMeta::InProgress { recording: false }
+                    scoopy_project::RecordingMetaInner::Instant(
+                        scoopy_project::InstantRecordingMeta::InProgress { recording: false }
                     )
                 ));
             }
@@ -2962,7 +2962,7 @@ mod tests {
             "timeline": { "segments": [{ "start": 1.0, "end": 7200.0 }] },
             "futureProjectSetting": [1, 2, 3]
         });
-        let placement = cap_recording::camera_placement::RecordingCameraPlacement::from_bounds(
+        let placement = scoopy_recording::camera_placement::RecordingCameraPlacement::from_bounds(
             [860.0, 20.0, 200.0, 200.0],
             [0.0, 0.0, 1920.0, 1080.0],
         )
@@ -3016,7 +3016,7 @@ mod tests {
         assert_eq!(std::fs::read(&path).unwrap(), b"{ this is not json");
 
         // And a project with no config at all is a no-op, not a fresh file:
-        // the config is cap-recording's to write.
+        // the config is scoopy-recording's to write.
         let empty = temp_project("empty");
         assert!(!apply_camera_blur_to_project_config(
             &empty,
@@ -3038,7 +3038,7 @@ mod tests {
         assert!(delete_recording_directory(std::path::Path::new("/tmp/../etc")).is_err());
         assert!(
             delete_recording_directory(std::path::Path::new(
-                "/System/definitely-not-the-cap-library.cap"
+                "/System/definitely-not-the-scoopy-library.scoopy"
             ))
             .is_err()
         );
@@ -3055,7 +3055,7 @@ mod tests {
             (BlurMode::Remove, "remove"),
         ] {
             assert_eq!(blur_mode_json(mode), json);
-            let parsed: cap_project::BackgroundBlurMode =
+            let parsed: scoopy_project::BackgroundBlurMode =
                 serde_json::from_value(Value::String(json.to_string()))
                     .expect("the project crate parses what we write");
             assert_eq!(
@@ -3155,7 +3155,7 @@ mod studio_finalization_tests {
     use super::*;
 
     fn channel() -> (StudioFinalizationPublisher, StudioFinalization) {
-        StudioFinalization::channel(PathBuf::from("project.cap"), 42)
+        StudioFinalization::channel(PathBuf::from("project.scoopy"), 42)
     }
 
     fn completed_without_receipt(path: &str) -> studio_recording::CompletedRecording {
@@ -3183,7 +3183,7 @@ mod studio_finalization_tests {
         assert!(finalization.wait_for_capture().await);
         assert!(finalization.is_finalizing());
         assert!(finalization.wait().now_or_never().is_none());
-        publisher.complete(&Ok(PathBuf::from("project.cap")));
+        publisher.complete(&Ok(PathBuf::from("project.scoopy")));
         finalization.wait().await.unwrap();
         assert!(!finalization.is_finalizing());
     }
@@ -3192,7 +3192,7 @@ mod studio_finalization_tests {
     async fn completion_before_subscription_is_retained_for_close_and_reopen() {
         let (publisher, finalization) = channel();
         publisher.capture_stopped();
-        publisher.complete(&Ok(PathBuf::from("project.cap")));
+        publisher.complete(&Ok(PathBuf::from("project.scoopy")));
         drop(publisher);
         assert!(finalization.wait_for_capture().await);
         finalization.wait().await.unwrap();
@@ -3254,7 +3254,7 @@ mod studio_finalization_tests {
             let result = finish_after_capture_stop(async { (true, Ok(())) }, |()| async {
                 publisher.capture_stopped();
                 released.await.unwrap();
-                Ok(PathBuf::from("project.cap"))
+                Ok(PathBuf::from("project.scoopy"))
             })
             .await;
             publisher.complete(&result.1);
@@ -3265,7 +3265,7 @@ mod studio_finalization_tests {
         release.send(()).unwrap();
         let (stopped, result) = task.await.unwrap();
         assert!(stopped);
-        assert_eq!(result.unwrap(), PathBuf::from("project.cap"));
+        assert_eq!(result.unwrap(), PathBuf::from("project.scoopy"));
     }
 
     #[tokio::test]
@@ -3294,7 +3294,7 @@ mod studio_finalization_tests {
         publisher.capture_stopped();
         assert!(finalization.wait_for_capture().await);
         assert!(finalization.wait_for_preparing().now_or_never().is_none());
-        publisher.complete(&Ok(PathBuf::from("project.cap")));
+        publisher.complete(&Ok(PathBuf::from("project.scoopy")));
         assert!(finalization.wait_for_preparing().await.is_none());
         finalization.wait().await.unwrap();
     }
@@ -3305,7 +3305,7 @@ mod studio_finalization_tests {
         publisher.capture_stopped();
         assert!(
             publisher
-                .claim_preparing(&completed_without_receipt("project.cap"))
+                .claim_preparing(&completed_without_receipt("project.scoopy"))
                 .is_none()
         );
         assert!(finalization.wait_for_preparing().await.is_none());
@@ -3323,7 +3323,7 @@ mod studio_finalization_tests {
         let (publisher, finalization) = channel();
         assert!(
             publisher
-                .claim_preparing_with(&completed_without_receipt("project.cap"), |_, _| panic!(
+                .claim_preparing_with(&completed_without_receipt("project.scoopy"), |_, _| panic!(
                     "Capture must be acknowledged before the receipt is claimed"
                 ),)
                 .is_none()
@@ -3341,7 +3341,7 @@ mod studio_finalization_tests {
         publisher.capture_stopped();
         assert!(
             publisher
-                .claim_preparing_with(&completed_without_receipt("other.cap"), |_, _| panic!(
+                .claim_preparing_with(&completed_without_receipt("other.scoopy"), |_, _| panic!(
                     "A different project cannot claim this publisher's receipt"
                 ),)
                 .is_none()
@@ -3349,7 +3349,7 @@ mod studio_finalization_tests {
         assert!(publisher.state.borrow().preparing_decided);
         assert!(finalization.wait_for_preparing().await.is_none());
         assert!(finalization.is_finalizing());
-        publisher.complete(&Ok(PathBuf::from("project.cap")));
+        publisher.complete(&Ok(PathBuf::from("project.scoopy")));
         finalization.wait().await.unwrap();
     }
 
@@ -3361,7 +3361,7 @@ mod studio_finalization_tests {
         assert!(
             publisher
                 .claim_preparing_with(
-                    &completed_without_receipt("project.cap"),
+                    &completed_without_receipt("project.scoopy"),
                     |_, generation| {
                         observed_generation.set(Some(generation));
                         None
@@ -3374,21 +3374,21 @@ mod studio_finalization_tests {
         let cloned = publisher.clone();
         assert!(
             cloned
-                .claim_preparing_with(&completed_without_receipt("project.cap"), |_, _| panic!(
+                .claim_preparing_with(&completed_without_receipt("project.scoopy"), |_, _| panic!(
                     "A duplicate finalizer cannot claim a second receipt"
                 ),)
                 .is_none()
         );
-        publisher.complete(&Ok(PathBuf::from("project.cap")));
+        publisher.complete(&Ok(PathBuf::from("project.scoopy")));
         assert!(
             cloned
-                .claim_preparing_with(&completed_without_receipt("project.cap"), |_, _| panic!(
+                .claim_preparing_with(&completed_without_receipt("project.scoopy"), |_, _| panic!(
                     "A completed finalizer cannot reopen preview admission"
                 ),)
                 .is_none()
         );
         assert_eq!(publisher.target.generation, 42);
-        assert_eq!(publisher.target.project_path, PathBuf::from("project.cap"));
+        assert_eq!(publisher.target.project_path, PathBuf::from("project.scoopy"));
         assert!(Arc::ptr_eq(&publisher.target, &cloned.target));
     }
 
@@ -3396,11 +3396,11 @@ mod studio_finalization_tests {
     fn completed_finalization_cannot_mint_a_late_preparing_job() {
         let (publisher, _) = channel();
         publisher.capture_stopped();
-        publisher.complete(&Ok(PathBuf::from("project.cap")));
+        publisher.complete(&Ok(PathBuf::from("project.scoopy")));
         assert!(!publisher.state.borrow().preparing_decided);
         assert!(
             publisher
-                .claim_preparing_with(&completed_without_receipt("project.cap"), |_, _| panic!(
+                .claim_preparing_with(&completed_without_receipt("project.scoopy"), |_, _| panic!(
                     "Completed finalization cannot claim a first late receipt"
                 ),)
                 .is_none()
@@ -3859,11 +3859,11 @@ mod windows_studio_stop_tests {
     async fn healthy_studio_stop_retains_existing_finalization() {
         let (acknowledged, result) =
             finish_after_capture_stop(async { (true, Ok(())) }, |_| async {
-                Ok(PathBuf::from("preserved.cap"))
+                Ok(PathBuf::from("preserved.scoopy"))
             })
             .await;
         assert!(acknowledged);
-        assert_eq!(result.unwrap(), PathBuf::from("preserved.cap"));
+        assert_eq!(result.unwrap(), PathBuf::from("preserved.scoopy"));
     }
 }
 
@@ -4007,11 +4007,11 @@ mod preparing_presentation_tests {
 
     #[test]
     fn supported_preparing_presentation_preserves_every_config_value() {
-        let project = cap_project::ProjectConfiguration::default();
+        let project = scoopy_project::ProjectConfiguration::default();
         let shown = preparing_presentation_for(
             &project,
             crate::store::BlurMode::Off,
-            &cap_project::AnimatedGradientLibrary::default(),
+            &scoopy_project::AnimatedGradientLibrary::default(),
         )
         .unwrap();
         assert_eq!(
@@ -4022,21 +4022,21 @@ mod preparing_presentation_tests {
 
     #[test]
     fn live_blur_and_selected_gradient_decline_without_mutating_stopped_config() {
-        let project = cap_project::ProjectConfiguration::default();
+        let project = scoopy_project::ProjectConfiguration::default();
         let original = serde_json::to_value(&project).unwrap();
         for blur in [crate::store::BlurMode::Light, crate::store::BlurMode::Heavy] {
             assert!(
                 preparing_presentation_for(
                     &project,
                     blur,
-                    &cap_project::AnimatedGradientLibrary::default(),
+                    &scoopy_project::AnimatedGradientLibrary::default(),
                 )
                 .is_err()
             );
         }
-        let library = cap_project::AnimatedGradientLibrary {
+        let library = scoopy_project::AnimatedGradientLibrary {
             selected: true,
-            last_used: Some(cap_project::AnimatedGradientConfig::default()),
+            last_used: Some(scoopy_project::AnimatedGradientConfig::default()),
             ..Default::default()
         };
         assert!(

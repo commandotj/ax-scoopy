@@ -203,7 +203,7 @@ $owned = $null
 $r = [ordered]@{exitCode=$null;timedOut=$false;forcedCleanup=$false;cleanupComplete=$false;error=$null}
 try {
     Add-Type -Path $q.source
-    $owned = [CapOwnedProcess]::Start($q.binary,$q.arguments,$q.directory,$q.stdout,$q.stderr)
+    $owned = [ScoopyOwnedProcess]::Start($q.binary,$q.arguments,$q.directory,$q.stdout,$q.stderr)
     $r.pid = $owned.Id
     $clock = [Diagnostics.Stopwatch]::StartNew()
     while (-not $owned.WaitForExit(100)) {
@@ -250,7 +250,7 @@ class Runner:
         stdout, stderr = self.root / f"{name}.stdout", self.root / f"{name}.stderr"
         timeout = min(timeout, self.deadline - time.monotonic())
         start = time.monotonic_ns()
-        env = dict(os.environ, CAP_NO_MODIFY_PATH="1")
+        env = dict(os.environ, SCOOPY_NO_MODIFY_PATH="1")
         result = {"name": name, "arguments": list(map(str, arguments)), "stdout": str(stdout), "stderr": str(stderr)}
         if os.name == "nt":
             result.update(self.run_windows(name, arguments, stdout, stderr, timeout, env))
@@ -301,7 +301,7 @@ class Runner:
 
     def run_windows(self, name, arguments, stdout, stderr, timeout, env):
         if not self.windows_source:
-            raise RuntimeError("Windows requires --windows-job-source with the reviewed CapOwnedProcess launcher")
+            raise RuntimeError("Windows requires --windows-job-source with the reviewed ScoopyOwnedProcess launcher")
         if sha256(self.windows_source) != self.binaries[str(self.windows_source)]:
             raise RuntimeError("Windows process supervisor source changed")
         adapter = self.root / f"{name}.ps1"
@@ -359,7 +359,7 @@ def check_media(runner, args, prefix, media):
 
 
 def run_case(runner, args, label, binary, head, mode):
-    project = runner.root / f"{label}-{mode}.cap"
+    project = runner.root / f"{label}-{mode}.scoopy"
     row = {"label": label, "head": head, "mode": mode, "project": str(project), "requirements": {key: requirement("PENDING", reason) for key, reason in UNTESTED.items()}}
     for key in ["clean_local", "decodability", "requested_tracks"]:
         row["requirements"][key] = requirement("PENDING", "Not executed")
@@ -401,7 +401,7 @@ def run_case(runner, args, label, binary, head, mode):
 
 def arguments(argv=None):
     parser = argparse.ArgumentParser(description="Retained real-CLI recording evidence. Exit 0=all requirements PASS, 1=FAIL, 2=required coverage PENDING. No signing, upload, servers or library cleanup.")
-    for flag in ["cap", "ffmpeg", "ffprobe", "root"]:
+    for flag in ["scoopy", "ffmpeg", "ffprobe", "root"]:
         parser.add_argument("--" + flag, required=True, type=Path)
     parser.add_argument("--head", required=True, help="Explicit source identity; recorded as an assertion, not inferred from the executable")
     target = parser.add_mutually_exclusive_group(required=True)
@@ -436,7 +436,7 @@ def main(argv=None):
     if root.exists() or root.is_symlink() or not root.parent.is_dir() or root.parent.resolve() != root.parent:
         raise ValueError("--root must be a fresh absent directory under a real existing parent")
     identities = {}
-    for field in ["cap", "baseline_cap", "ffmpeg", "ffprobe", "windows_job_source"]:
+    for field in ["scoopy", "baseline_cap", "ffmpeg", "ffprobe", "windows_job_source"]:
         path = getattr(args, field)
         if path:
             path = path.resolve(strict=True)
@@ -446,7 +446,7 @@ def main(argv=None):
             identities[str(path)] = sha256(path)
     planned = []
     for iteration in range(args.iterations):
-        builds = [("candidate", args.cap, args.head)]
+        builds = [("candidate", args.scoopy, args.head)]
         if args.baseline_cap:
             builds.insert(0, ("baseline", args.baseline_cap, args.baseline_head))
             if iteration % 2:

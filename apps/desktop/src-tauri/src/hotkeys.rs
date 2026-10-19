@@ -2,10 +2,10 @@ use crate::{
     App, ArcLock, RequestOpenRecordingPicker, RequestStartRecording, recording,
     recording_settings::{RecordingSettingsStore, RecordingTargetMode},
     tray,
-    windows::ShowCapWindow,
+    windows::ShowScoopyWindow,
 };
-use cap_recording::feeds::microphone::MicrophoneFeed;
-use cap_recording::screen_capture::ScreenCaptureTarget;
+use scoopy_recording::feeds::microphone::MicrophoneFeed;
+use scoopy_recording::screen_capture::ScreenCaptureTarget;
 use global_hotkey::HotKeyState;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -248,7 +248,7 @@ async fn confirm_direct_recording_without_microphone(app: &AppHandle) -> bool {
 
 async fn start_recording_from_hotkey(
     app: AppHandle,
-    mode: cap_recording::RecordingMode,
+    mode: scoopy_recording::RecordingMode,
 ) -> Result<(), String> {
     if app
         .state::<ArcLock<App>>()
@@ -307,7 +307,7 @@ pub fn init(app: &AppHandle) {
                 if shortcut.key == Code::Comma && shortcut.mods == Modifiers::META {
                     let app = app.clone();
                     spawn_shortcut_task(async move {
-                        let _ = ShowCapWindow::Settings { page: None }.show(&app).await;
+                        let _ = ShowScoopyWindow::Settings { page: None }.show(&app).await;
                     });
                 }
 
@@ -344,10 +344,10 @@ pub fn init(app: &AppHandle) {
 async fn handle_hotkey(app: AppHandle, action: HotkeyAction) -> Result<(), String> {
     match action {
         HotkeyAction::StartStudioRecording => {
-            start_recording_from_hotkey(app, cap_recording::RecordingMode::Studio).await
+            start_recording_from_hotkey(app, scoopy_recording::RecordingMode::Studio).await
         }
         HotkeyAction::StartInstantRecording => {
-            start_recording_from_hotkey(app, cap_recording::RecordingMode::Instant).await
+            start_recording_from_hotkey(app, scoopy_recording::RecordingMode::Instant).await
         }
         HotkeyAction::StopRecording => recording::stop_recording(app.clone(), app.state()).await,
         HotkeyAction::RestartRecording => recording::restart_recording(app.clone(), app.state())
@@ -364,9 +364,9 @@ async fn handle_hotkey(app: AppHandle, action: HotkeyAction) -> Result<(), Strin
                 .unwrap_or_default();
 
             let next = match current {
-                cap_recording::RecordingMode::Studio => cap_recording::RecordingMode::Instant,
-                cap_recording::RecordingMode::Instant => cap_recording::RecordingMode::Screenshot,
-                cap_recording::RecordingMode::Screenshot => cap_recording::RecordingMode::Studio,
+                scoopy_recording::RecordingMode::Studio => scoopy_recording::RecordingMode::Instant,
+                scoopy_recording::RecordingMode::Instant => scoopy_recording::RecordingMode::Screenshot,
+                scoopy_recording::RecordingMode::Screenshot => scoopy_recording::RecordingMode::Studio,
             };
 
             RecordingSettingsStore::set_mode(&app, next)
@@ -410,7 +410,7 @@ async fn handle_hotkey(app: AppHandle, action: HotkeyAction) -> Result<(), Strin
             match recording::take_screenshot(app.clone(), target.clone()).await {
                 Ok(path) => {
                     if crate::automation::should_open_screenshot_editor(&app, &target) {
-                        let _ = ShowCapWindow::ScreenshotEditor { path }.show(&app).await;
+                        let _ = ShowScoopyWindow::ScreenshotEditor { path }.show(&app).await;
                     }
                     Ok(())
                 }
@@ -429,7 +429,7 @@ async fn handle_hotkey(app: AppHandle, action: HotkeyAction) -> Result<(), Strin
             match recording::take_screenshot(app.clone(), target.clone()).await {
                 Ok(path) => {
                     if crate::automation::should_open_screenshot_editor(&app, &target) {
-                        let _ = ShowCapWindow::ScreenshotEditor { path }.show(&app).await;
+                        let _ = ShowScoopyWindow::ScreenshotEditor { path }.show(&app).await;
                     }
                     Ok(())
                 }
@@ -437,10 +437,10 @@ async fn handle_hotkey(app: AppHandle, action: HotkeyAction) -> Result<(), Strin
             }
         }
         HotkeyAction::ScreenshotArea => {
-            RecordingSettingsStore::set_mode(&app, cap_recording::RecordingMode::Screenshot)
+            RecordingSettingsStore::set_mode(&app, scoopy_recording::RecordingMode::Screenshot)
                 .map_err(|e| format!("Failed to set screenshot mode: {e}"))?;
 
-            tray::update_tray_icon_for_mode(&app, cap_recording::RecordingMode::Screenshot);
+            tray::update_tray_icon_for_mode(&app, scoopy_recording::RecordingMode::Screenshot);
 
             let _ = RequestOpenRecordingPicker {
                 target_mode: Some(RecordingTargetMode::Area),
@@ -549,7 +549,7 @@ async fn run_wayland_stop(
         let session_path = session_path
             .as_str()
             .ok_or("Invalid Stop session identity")?;
-        let id = format!("cap-clean-stop-{generation}");
+        let id = format!("scoopy-clean-stop-{generation}");
         let mut activated = portal
             .receive_activated()
             .await
@@ -668,7 +668,7 @@ async fn run_wayland_tray(
     generation: u32,
     mut cancel: tokio::sync::watch::Receiver<bool>,
 ) -> Result<bool, String> {
-    use cap_utils::linux_recording_stop::{StopTray, StopTrayEvent};
+    use scoopy_utils::linux_recording_stop::{StopTray, StopTrayEvent};
     let icon = match crate::tray::clean_stop_icon() {
         Ok(icon) => icon,
         Err(error) => {

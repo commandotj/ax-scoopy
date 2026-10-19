@@ -76,11 +76,11 @@ pub fn ensure_dir(path: &PathBuf) -> Result<PathBuf, std::io::Error> {
 /// # Example
 ///
 /// ```rust
-/// use cap_utils::ensure_unique_filename;
+/// use scoopy_utils::ensure_unique_filename;
 /// let recordings_dir = std::path::Path::new("recordings");
-/// let unique_name = ensure_unique_filename("My Recording.cap", &recordings_dir,);
-/// // If "My Recording.cap" exists, returns "My Recording (1).cap"
-/// // If that exists too, returns "My Recording (2).cap", etc.
+/// let unique_name = ensure_unique_filename("My Recording.scoopy", &recordings_dir,);
+/// // If "My Recording.scoopy" exists, returns "My Recording (1).scoopy"
+/// // If that exists too, returns "My Recording (2).scoopy", etc.
 ///
 /// let documents_dir = std::path::Path::new("documents");
 /// let unique_name = ensure_unique_filename("document.pdf", &documents_dir);
@@ -331,8 +331,8 @@ mod tests {
     #[test]
     fn unique_filename_when_no_conflict() {
         let temp_dir = tempfile::tempdir().unwrap();
-        let result = ensure_unique_filename("test.cap", temp_dir.path()).unwrap();
-        assert_eq!(result, "test.cap");
+        let result = ensure_unique_filename("test.scoopy", temp_dir.path()).unwrap();
+        assert_eq!(result, "test.scoopy");
     }
 
     #[test]
@@ -340,10 +340,10 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
 
         // Create existing file
-        fs::write(temp_dir.path().join("test.cap"), "").unwrap();
+        fs::write(temp_dir.path().join("test.scoopy"), "").unwrap();
 
-        let result = ensure_unique_filename("test.cap", temp_dir.path()).unwrap();
-        assert_eq!(result, "test (1).cap");
+        let result = ensure_unique_filename("test.scoopy", temp_dir.path()).unwrap();
+        assert_eq!(result, "test (1).scoopy");
     }
 
     #[test]
@@ -351,12 +351,12 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
 
         // Create existing files
-        fs::write(temp_dir.path().join("test.cap"), "").unwrap();
-        fs::write(temp_dir.path().join("test (1).cap"), "").unwrap();
-        fs::write(temp_dir.path().join("test (2).cap"), "").unwrap();
+        fs::write(temp_dir.path().join("test.scoopy"), "").unwrap();
+        fs::write(temp_dir.path().join("test (1).scoopy"), "").unwrap();
+        fs::write(temp_dir.path().join("test (2).scoopy"), "").unwrap();
 
-        let result = ensure_unique_filename("test.cap", temp_dir.path()).unwrap();
-        assert_eq!(result, "test (3).cap");
+        let result = ensure_unique_filename("test.scoopy", temp_dir.path()).unwrap();
+        assert_eq!(result, "test (3).scoopy");
     }
 
     #[test]
@@ -385,17 +385,17 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
 
         // Create base file
-        fs::write(temp_dir.path().join("test.cap"), "").unwrap();
+        fs::write(temp_dir.path().join("test.scoopy"), "").unwrap();
 
         // Try with only 3 attempts
         let attempts = NonZero::new(3).unwrap();
 
         // Create conflicts for attempts 1, 2, 3
-        fs::write(temp_dir.path().join("test (1).cap"), "").unwrap();
-        fs::write(temp_dir.path().join("test (2).cap"), "").unwrap();
-        fs::write(temp_dir.path().join("test (3).cap"), "").unwrap();
+        fs::write(temp_dir.path().join("test (1).scoopy"), "").unwrap();
+        fs::write(temp_dir.path().join("test (2).scoopy"), "").unwrap();
+        fs::write(temp_dir.path().join("test (3).scoopy"), "").unwrap();
 
-        let result = ensure_unique_filename_with_attempts("test.cap", temp_dir.path(), attempts);
+        let result = ensure_unique_filename_with_attempts("test.scoopy", temp_dir.path(), attempts);
 
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Too many filename conflicts"));
@@ -406,30 +406,30 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
 
         // Create a directory with the target name
-        fs::create_dir(temp_dir.path().join("test.cap")).unwrap();
+        fs::create_dir(temp_dir.path().join("test.scoopy")).unwrap();
 
-        let result = ensure_unique_filename("test.cap", temp_dir.path()).unwrap();
-        assert_eq!(result, "test (1).cap");
+        let result = ensure_unique_filename("test.scoopy", temp_dir.path()).unwrap();
+        assert_eq!(result, "test (1).scoopy");
     }
 
     #[test]
     fn unique_filename_handles_special_characters() {
         let temp_dir = tempfile::tempdir().unwrap();
 
-        fs::write(temp_dir.path().join("My Recording (2024).cap"), "").unwrap();
+        fs::write(temp_dir.path().join("My Recording (2024).scoopy"), "").unwrap();
 
-        let result = ensure_unique_filename("My Recording (2024).cap", temp_dir.path()).unwrap();
-        assert_eq!(result, "My Recording (2024) (1).cap");
+        let result = ensure_unique_filename("My Recording (2024).scoopy", temp_dir.path()).unwrap();
+        assert_eq!(result, "My Recording (2024) (1).scoopy");
     }
 
     #[test]
     fn unique_filename_handles_spaces() {
         let temp_dir = tempfile::tempdir().unwrap();
 
-        fs::write(temp_dir.path().join("My Project.cap"), "").unwrap();
+        fs::write(temp_dir.path().join("My Project.scoopy"), "").unwrap();
 
-        let result = ensure_unique_filename("My Project.cap", temp_dir.path()).unwrap();
-        assert_eq!(result, "My Project (1).cap");
+        let result = ensure_unique_filename("My Project.scoopy", temp_dir.path()).unwrap();
+        assert_eq!(result, "My Project (1).scoopy");
     }
 
     #[test]
@@ -437,14 +437,14 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
 
         // Create files with a gap in numbering
-        fs::write(temp_dir.path().join("test.cap"), "").unwrap();
-        fs::write(temp_dir.path().join("test (1).cap"), "").unwrap();
-        // Gap: test (2).cap doesn't exist
-        fs::write(temp_dir.path().join("test (3).cap"), "").unwrap();
+        fs::write(temp_dir.path().join("test.scoopy"), "").unwrap();
+        fs::write(temp_dir.path().join("test (1).scoopy"), "").unwrap();
+        // Gap: test (2).scoopy doesn't exist
+        fs::write(temp_dir.path().join("test (3).scoopy"), "").unwrap();
 
-        let result = ensure_unique_filename("test.cap", temp_dir.path()).unwrap();
+        let result = ensure_unique_filename("test.scoopy", temp_dir.path()).unwrap();
         // Should find the gap at (2)
-        assert_eq!(result, "test (2).cap");
+        assert_eq!(result, "test (2).scoopy");
     }
 }
 

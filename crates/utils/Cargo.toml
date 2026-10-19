@@ -1,5 +1,5 @@
 [package]
-name = "cap-utils"
+name = "scoopy-utils"
 version = "0.1.0"
 edition = "2024"
 

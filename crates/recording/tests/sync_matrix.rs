@@ -10,22 +10,22 @@
 //! timestamps to the wall clock; each case therefore costs its content
 //! duration. Keep cases short.
 //!
-//! Set `CAP_SYNC_MATRIX_REPORT` to write a JSON report of every case.
+//! Set `SCOOPY_SYNC_MATRIX_REPORT` to write a JSON report of every case.
 
 use std::{
     path::{Path, PathBuf},
     time::Duration,
 };
 
-use cap_media_info::{AudioInfo, Sample, Type, VideoInfo};
-use cap_recording::{
+use scoopy_media_info::{AudioInfo, Sample, Type, VideoInfo};
+use scoopy_recording::{
     AudioFrame, ChannelAudioSource, ChannelAudioSourceConfig, ChannelVideoSource,
     ChannelVideoSourceConfig, OutputPipeline,
     ffmpeg::{
         FFmpegVideoFrame, Mp4Muxer, OggMuxer, SegmentedVideoMuxer, SegmentedVideoMuxerConfig,
     },
 };
-use cap_timestamp::{Timestamp, Timestamps};
+use scoopy_timestamp::{Timestamp, Timestamps};
 use serde::{Deserialize, Serialize};
 
 const CONTENT_SECS: f64 = 4.0;
@@ -38,7 +38,7 @@ const ABS_TOLERANCE_SECS: f64 = 0.25;
 /// The drift tracker deliberately re-pins pts toward the wall clock by up to
 /// this much; heavy over-delivery cases get it as designed headroom on top of
 /// the base tolerance. Keep in step with the tracker's re-pin cap.
-const DRIFT_REPIN_CAP_SECS: f64 = 0.1;
+const DRIFT_REPIN_SCOOPY_SECS: f64 = 0.1;
 /// Tolerance for the relative structure (pts deltas vs sent deltas), which is
 /// what actually determines sync drift. The bug class this guards against
 /// produces errors of a second or more.
@@ -257,7 +257,7 @@ async fn run_video_case(case: VideoCase) -> Result<String, String> {
     let fragmented = case.fragmented;
 
     let info = VideoInfo::from_raw(
-        cap_media_info::RawVideoFormat::Bgra,
+        scoopy_media_info::RawVideoFormat::Bgra,
         case.width,
         case.height,
         case.fps,
@@ -384,7 +384,7 @@ async fn run_video_case(case: VideoCase) -> Result<String, String> {
     // headroom on top of that designed deviation has to be wider.
     let over_delivery = f64::from(case.delivered_fps) / f64::from(case.fps.max(1));
     let base_rel_tolerance = if over_delivery > 4.0 {
-        REL_TOLERANCE_SECS + DRIFT_REPIN_CAP_SECS
+        REL_TOLERANCE_SECS + DRIFT_REPIN_SCOOPY_SECS
     } else {
         REL_TOLERANCE_SECS
     };
@@ -581,7 +581,7 @@ async fn run_video_pause_case() -> Result<String, String> {
     let temp = tempfile::tempdir().map_err(|e| format!("tempdir: {e}"))?;
     let out_path = temp.path().join("display.mp4");
 
-    let info = VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 160, 120, FPS);
+    let info = VideoInfo::from_raw(scoopy_media_info::RawVideoFormat::Bgra, 160, 120, FPS);
     let (tx, rx) = flume::bounded::<FFmpegVideoFrame>(32);
     let timestamps = Timestamps::now();
 
@@ -979,7 +979,7 @@ fn check_spans(
 }
 
 async fn run_system_audio_case(case: SystemAudioCase) -> Result<String, String> {
-    use cap_recording::AudioAnchor;
+    use scoopy_recording::AudioAnchor;
 
     let SystemAudioCase { bursts, total_secs } = case;
     let temp = tempfile::tempdir().map_err(|e| format!("tempdir: {e}"))?;
@@ -1053,7 +1053,7 @@ async fn run_system_audio_case(case: SystemAudioCase) -> Result<String, String> 
 /// track's own start_time — the presence of system audio must not move the
 /// mic, and vice versa.
 async fn run_mic_with_system_audio_case() -> Result<String, String> {
-    use cap_recording::AudioAnchor;
+    use scoopy_recording::AudioAnchor;
 
     const MIC_START_SECS: f64 = 0.15;
     const TOTAL_SECS: f64 = 4.5;
@@ -1303,18 +1303,18 @@ fn unmatched_sent_indices(sent: &[f64], pts: &[f64], period: f64) -> String {
 
 // Replaying a user's machine
 // --------------------------
-// `CAP_SYNC_MATRIX_FROM_REPORT=<path to a DiagnosticReport JSON>` replaces the
+// `SCOOPY_SYNC_MATRIX_FROM_REPORT=<path to a DiagnosticReport JSON>` replaces the
 // curated matrix with cases built from that report's `matrixHints`, so a
 // support report can be re-run locally against the shapes the reporter
 // actually has:
 //
-//   CAP_SYNC_MATRIX_FROM_REPORT=~/Downloads/report.json \
-//   CAP_SYNC_MATRIX_REPORT=/tmp/replay.json \
-//     cargo test -p cap-recording --test sync_matrix -- --nocapture
+//   SCOOPY_SYNC_MATRIX_FROM_REPORT=~/Downloads/report.json \
+//   SCOOPY_SYNC_MATRIX_REPORT=/tmp/replay.json \
+//     cargo test -p scoopy-recording --test sync_matrix -- --nocapture
 //
 // Every display hint is crossed with every audio-input hint, capped at
 // MAX_REPORT_CASES pairs. The report is read through the local structs below
-// rather than `cap_recording::diagnostics::DiagnosticReport` on purpose: a
+// rather than `scoopy_recording::diagnostics::DiagnosticReport` on purpose: a
 // Windows report must be replayable on macOS, and the per-OS `SystemDiagnostics`
 // in the envelope would not deserialize there.
 //
@@ -1370,7 +1370,7 @@ struct ReportAudioHint {
     buffer_range: Option<(u32, u32)>,
 }
 
-/// The embedded `cap selftest av-sync` report, which serializes snake_case.
+/// The embedded `scoopy selftest av-sync` report, which serializes snake_case.
 #[derive(Deserialize)]
 struct ReportSyncTest {
     #[serde(default)]
@@ -1685,7 +1685,7 @@ async fn warm_up_video_encoder() {
     let Ok(temp) = tempfile::tempdir() else {
         return;
     };
-    let info = VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 160, 120, 30);
+    let info = VideoInfo::from_raw(scoopy_media_info::RawVideoFormat::Bgra, 160, 120, 30);
     let (tx, rx) = flume::bounded::<FFmpegVideoFrame>(8);
     let timestamps = Timestamps::now();
     let base = timestamps.instant();
@@ -1753,7 +1753,7 @@ async fn run_video_case_with_cold_retry(case: VideoCase) -> Result<String, Strin
 #[tokio::test(flavor = "multi_thread")]
 async fn segmented_video_muxer_forwards_completed_video_segments() {
     let temp = tempfile::tempdir().expect("temporary recording directory");
-    let info = VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 160, 120, 30);
+    let info = VideoInfo::from_raw(scoopy_media_info::RawVideoFormat::Bgra, 160, 120, 30);
     let (frame_tx, frame_rx) = flume::bounded::<FFmpegVideoFrame>(8);
     let (segment_tx, segment_rx) = std::sync::mpsc::channel();
     let timestamps = Timestamps::now();
@@ -1796,7 +1796,7 @@ async fn segmented_video_muxer_forwards_completed_video_segments() {
         "segmented video pipeline did not forward a completed media segment"
     );
     assert!(events.iter().all(|event| {
-        event.media_type == cap_enc_ffmpeg::segmented_stream::SegmentMediaType::Video
+        event.media_type == scoopy_enc_ffmpeg::segmented_stream::SegmentMediaType::Video
             && event.file_size > 0
             && event.path.is_file()
     }));
@@ -1816,8 +1816,8 @@ async fn synthetic_device_matrix_preserves_sync() {
 
     warm_up_video_encoder().await;
 
-    // Randomized cases are reproducible: rerun with CAP_SYNC_MATRIX_SEED=<seed>.
-    let seed: u64 = std::env::var("CAP_SYNC_MATRIX_SEED")
+    // Randomized cases are reproducible: rerun with SCOOPY_SYNC_MATRIX_SEED=<seed>.
+    let seed: u64 = std::env::var("SCOOPY_SYNC_MATRIX_SEED")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or_else(|| {
@@ -1826,15 +1826,15 @@ async fn synthetic_device_matrix_preserves_sync() {
                 .map(|d| d.as_nanos() as u64)
                 .unwrap_or(0x5EED)
         });
-    let random_cases: usize = std::env::var("CAP_SYNC_MATRIX_RANDOM_CASES")
+    let random_cases: usize = std::env::var("SCOOPY_SYNC_MATRIX_RANDOM_CASES")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(6);
-    eprintln!("randomized cases: {random_cases}, CAP_SYNC_MATRIX_SEED={seed}");
+    eprintln!("randomized cases: {random_cases}, SCOOPY_SYNC_MATRIX_SEED={seed}");
 
     // Replay mode runs only the reporter's shapes; the curated matrix is a
     // different question than "does this user's machine hold sync".
-    if let Ok(report_path) = std::env::var("CAP_SYNC_MATRIX_FROM_REPORT") {
+    if let Ok(report_path) = std::env::var("SCOOPY_SYNC_MATRIX_FROM_REPORT") {
         run_report_replay(&report_path, &mut results).await;
         finish(results, seed);
         return;
@@ -2007,7 +2007,7 @@ async fn synthetic_device_matrix_preserves_sync() {
 
 /// Writes the optional JSON report and applies the pass/degradation gates.
 fn finish(results: Vec<CaseResult>, seed: u64) {
-    if let Ok(report_path) = std::env::var("CAP_SYNC_MATRIX_REPORT") {
+    if let Ok(report_path) = std::env::var("SCOOPY_SYNC_MATRIX_REPORT") {
         #[derive(Serialize)]
         struct Report<'a> {
             seed: u64,

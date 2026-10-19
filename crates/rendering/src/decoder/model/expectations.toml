@@ -1,5 +1,5 @@
 # Strict expected failures for the decoder model tests
-# (cap-rendering decoder::model: `cargo test -p cap-rendering --lib decoder::model`).
+# (scoopy-rendering decoder::model: `cargo test -p scoopy-rendering --lib decoder::model`).
 #
 # Format: the shared engine verification format (crates/verify-expect):
 #   [[xfail]]
@@ -25,7 +25,7 @@ case = "decoder-model/avf/late-start/random-seeks/playback"
 class = "future"
 seeds = "61"
 reason = "AVAssetReader requests before a late-starting stream's first frame read the reader one frame further ahead per request, and seeks into the stream start show the wrong frame"
-link = "https://github.com/CapSoftware/Cap/pull/2603"
+link = ""
 
 [[xfail]]
 case = "decoder-model/avf/vfr/keyframe-seeks/playback"
@@ -33,7 +33,7 @@ class = "future"
 seeds = "28 53 59"
 flaky = true
 reason = "Seeds 28, 53 and 59 fail in every run; which wrong answer comes first depends on the wall clock. Without a stall the first wrong answer is a future one at a seek (seed 28 request 61, seed 53 request 8, seed 59 request 9: the next sample, e.g. sample 68 for 67): pool position capping, the reader's pool position is capped to the newest request (avassetreader.rs update_decoder_position(decoder_idx, capped)) so a reader that already decoded past the sample is reused without a reset. When the test thread stalls for 250 ms or more, the decoder's idle timeout (IDLE_READER_TIMEOUT, avassetreader.rs) clears the cache and reader state, the later requests take another path and the first wrong answer is a stale one from the wrong-GOP seek (reader started on the keyframe time rounded to 10 ms). Measured on Apple silicon: future 3 of 3 per seed without a stall, stale for all three seeds with a 300 ms stall before every request, and for seed 53 with a single 300 ms stall before request 6 (a 240 ms stall keeps future). macos-15: future in 6 of 7 runs, stale in 1 (38743345280). With #2595's decoder changes seed 28 passes and seeds 53 and 59 keep only the stale (wrong-GOP) answer"
-link = "https://github.com/CapSoftware/Cap/pull/2595 https://github.com/CapSoftware/Cap/pull/2603"
+link = ""
 
 [[xfail]]
 case = "decoder-model/avf/vfr/keyframe-seeks/playback"
@@ -41,7 +41,7 @@ class = "stale"
 seeds = "28 53 59"
 flaky = true
 reason = "Seeds 28, 53 and 59 fail in every run; which wrong answer comes first depends on the wall clock. Without a stall the first wrong answer is a future one at a seek (seed 28 request 61, seed 53 request 8, seed 59 request 9: the next sample, e.g. sample 68 for 67): pool position capping, the reader's pool position is capped to the newest request (avassetreader.rs update_decoder_position(decoder_idx, capped)) so a reader that already decoded past the sample is reused without a reset. When the test thread stalls for 250 ms or more, the decoder's idle timeout (IDLE_READER_TIMEOUT, avassetreader.rs) clears the cache and reader state, the later requests take another path and the first wrong answer is a stale one from the wrong-GOP seek (reader started on the keyframe time rounded to 10 ms). Measured on Apple silicon: future 3 of 3 per seed without a stall, stale for all three seeds with a 300 ms stall before every request, and for seed 53 with a single 300 ms stall before request 6 (a 240 ms stall keeps future). macos-15: future in 6 of 7 runs, stale in 1 (38743345280). With #2595's decoder changes seed 28 passes and seeds 53 and 59 keep only the stale (wrong-GOP) answer"
-link = "https://github.com/CapSoftware/Cap/pull/2595 https://github.com/CapSoftware/Cap/pull/2603"
+link = ""
 
 [[xfail]]
 case = "decoder-model/ffmpeg/camera-fast/random-seeks/playback"

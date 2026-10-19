@@ -8,8 +8,8 @@ use ::windows::Win32::Graphics::Direct3D11::{
 };
 use ::windows::Win32::Graphics::Dxgi::Common::DXGI_SAMPLE_DESC;
 use anyhow::anyhow;
-use cap_media_info::{AudioInfo, VideoInfo};
-use cap_timestamp::{PerformanceCounterTimestamp, Timestamp};
+use scoopy_media_info::{AudioInfo, VideoInfo};
+use scoopy_timestamp::{PerformanceCounterTimestamp, Timestamp};
 use cpal::traits::{DeviceTrait, HostTrait};
 use futures::{
     FutureExt, StreamExt,
@@ -694,8 +694,8 @@ impl output_pipeline::VideoSource for VideoSource {
         // that API is unsupported (or silently ineffective) the gate keeps
         // high-refresh monitors from recording far more frames than the
         // nominal rate. For sources at or below nominal it admits everything.
-        let cadence_interval_hns = if std::env::var("CAP_DISABLE_CAPTURE_CADENCE").is_ok() {
-            info!("Capture cadence gate disabled via CAP_DISABLE_CAPTURE_CADENCE");
+        let cadence_interval_hns = if std::env::var("SCOOPY_DISABLE_CAPTURE_CADENCE").is_ok() {
+            info!("Capture cadence gate disabled via SCOOPY_DISABLE_CAPTURE_CADENCE");
             None
         } else {
             let fps = video_info.fps();
@@ -710,7 +710,7 @@ impl output_pipeline::VideoSource for VideoSource {
             let scaled_frame_count = scaled_frame_count.clone();
             let stats_health_tx = stats_health_tx.clone();
             move || {
-                cap_mediafoundation_utils::thread_init();
+                scoopy_mediafoundation_utils::thread_init();
 
                 let video_frame_counter: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
                 let video_drop_counter: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
@@ -1175,7 +1175,7 @@ fn create_system_audio_capturer(
     let target_info = crate::sources::audio_mixer::AudioMixer::INFO;
     let device_differs_from_target = !device_info.matches_format(&target_info);
     let mut capture_clock =
-        crate::sources::capture_clock::CaptureClock::new(cap_timestamp::Timestamps::now());
+        crate::sources::capture_clock::CaptureClock::new(scoopy_timestamp::Timestamps::now());
 
     let mut resampler = if device_differs_from_target {
         info!(
@@ -1202,13 +1202,13 @@ fn create_system_audio_capturer(
 
                 thread_local! {
                     static MMCSS_HANDLE: std::cell::RefCell<
-                        Option<cap_mediafoundation_utils::MmcssAudioHandle>,
+                        Option<scoopy_mediafoundation_utils::MmcssAudioHandle>,
                     > = const { std::cell::RefCell::new(None) };
                 }
                 MMCSS_HANDLE.with(|cell| {
                     let mut h = cell.borrow_mut();
                     if h.is_none() {
-                        *h = cap_mediafoundation_utils::MmcssAudioHandle::register_audio();
+                        *h = scoopy_mediafoundation_utils::MmcssAudioHandle::register_audio();
                     }
                 });
 
@@ -1516,7 +1516,7 @@ impl output_pipeline::AudioSource for SystemAudioSource {
         }
     }
 
-    fn audio_info(&self) -> cap_media_info::AudioInfo {
+    fn audio_info(&self) -> scoopy_media_info::AudioInfo {
         self.audio_info
     }
 

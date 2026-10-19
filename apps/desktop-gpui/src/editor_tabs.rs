@@ -20,8 +20,8 @@ use std::{
 };
 
 #[cfg(test)]
-use cap_project::CaptionsData;
-use cap_project::{
+use scoopy_project::CaptionsData;
+use scoopy_project::{
     BackgroundBlurConfig, BackgroundBlurMode, CameraShape, CameraXPosition, CameraYPosition,
     CaptionSegment, CaptionSettings, CornerStyle, CursorAnimationStyle, CursorRippleConfig,
     KeyboardData, KeyboardSettings, ProjectConfiguration, RecordingMeta, ShadowConfiguration,
@@ -1454,7 +1454,7 @@ impl EditorWindow {
 
             grid = grid.child(dot.on_click(cx.listener(move |this, _, window, cx| {
                 this.edit_project("camera-position", window, cx, move |project| {
-                    project.camera.position = cap_project::CameraPosition {
+                    project.camera.position = scoopy_project::CameraPosition {
                         x: match item_x {
                             0 => CameraXPosition::Left,
                             2 => CameraXPosition::Right,
@@ -1612,17 +1612,17 @@ impl EditorWindow {
         let theme = self.theme;
         let isolation_options = [
             (
-                cap_project::VoiceIsolation::Light,
+                scoopy_project::VoiceIsolation::Light,
                 "Light",
                 "Keep more of your original voice and room sound.",
             ),
             (
-                cap_project::VoiceIsolation::Balanced,
+                scoopy_project::VoiceIsolation::Balanced,
                 "Balanced",
                 "Clearer isolation with natural voice detail.",
             ),
             (
-                cap_project::VoiceIsolation::Strong,
+                scoopy_project::VoiceIsolation::Strong,
                 "Strong",
                 "More isolation for noisy spaces. May change voice texture.",
             ),
@@ -2023,7 +2023,7 @@ impl EditorWindow {
                 .spawn(async move {
                     let meta = RecordingMeta::load_for_project(&path)
                         .map_err(|error| format!("Failed to load recording data: {error}"))?;
-                    cap_project::generate_project_keyboard_segments(&meta, &timeline, &settings)
+                    scoopy_project::generate_project_keyboard_segments(&meta, &timeline, &settings)
                 })
                 .await;
 
@@ -2657,7 +2657,7 @@ impl EditorWindow {
                             .text_size(px(12.))
                             .text_color(Hsla::from(theme.gray_10))
                             .child(download_message.unwrap_or_else(|| {
-                                "Keep Cap open while the model downloads. Editor reloads will \
+                                "Keep Scoopy open while the model downloads. Editor reloads will \
                                  reconnect automatically."
                                     .to_string()
                             })),
@@ -2788,7 +2788,7 @@ impl EditorWindow {
                                         .text_size(px(12.))
                                         .text_color(Hsla::from(theme.gray_10))
                                         .child(
-                                            "This is the first version of captions in Cap. \
+                                            "This is the first version of captions in Scoopy. \
                                                  Active word highlighting may be inaccurate in \
                                                  some situations. We're working on a fix for this \
                                                  and it will be released in upcoming versions.",
@@ -3367,7 +3367,7 @@ pub enum OffsetKind {
 }
 
 impl OffsetKind {
-    pub fn read(self, offsets: &cap_project::ClipOffsets) -> f32 {
+    pub fn read(self, offsets: &scoopy_project::ClipOffsets) -> f32 {
         match self {
             Self::SystemAudio => offsets.system_audio,
             Self::Mic => offsets.mic,
@@ -3375,7 +3375,7 @@ impl OffsetKind {
         }
     }
 
-    pub fn write(self, offsets: &mut cap_project::ClipOffsets, value: f32) {
+    pub fn write(self, offsets: &mut scoopy_project::ClipOffsets, value: f32) {
         match self {
             Self::SystemAudio => offsets.system_audio = value,
             Self::Mic => offsets.mic = value,

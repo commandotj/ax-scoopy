@@ -189,7 +189,7 @@ export function OverlayTrack(
 				<button
 					type="button"
 					disabled={props.type === "image" && editorState.importingImage}
-					class="cap-empty-lane pointer-events-auto"
+					class="scoopy-empty-lane pointer-events-auto"
 					onMouseDown={(event) => event.stopPropagation()}
 					onClick={(event) => {
 						event.stopPropagation();
@@ -203,12 +203,12 @@ export function OverlayTrack(
 								<span>
 									Change background, camera and cursor for part of your video
 								</span>
-								<span class="cap-empty-lane-action">· Add style</span>
+								<span class="scoopy-empty-lane-action">· Add style</span>
 							</>
 						}
 					>
 						<span>Place images and logos on your video</span>
-						<span class="cap-empty-lane-action">
+						<span class="scoopy-empty-lane-action">
 							{editorState.importingImage
 								? "· Importing image…"
 								: "· Add image"}
@@ -238,15 +238,15 @@ export function OverlayTrack(
 						>
 							<SegmentLabel
 								full={() => (
-									<div class="cap-seg-labels">
-										<span class="cap-seg-label truncate">{segment.name}</span>
-										<span class="cap-seg-sublabel">
+									<div class="scoopy-seg-labels">
+										<span class="scoopy-seg-label truncate">{segment.name}</span>
+										<span class="scoopy-seg-sublabel">
 											{`${(segment.end - segment.start).toFixed(1)}s`}
 										</span>
 									</div>
 								)}
 								compact={() => (
-									<span class="cap-seg-label truncate">{segment.name}</span>
+									<span class="scoopy-seg-label truncate">{segment.name}</span>
 								)}
 							/>
 						</SegmentContent>

@@ -13,7 +13,7 @@ use crate::{
 };
 
 const UPDATE_ENDPOINT: &str =
-    "https://cdn.crabnebula.app/update/cap/cap/{{target}}/{{current_version}}";
+    "https://cdn.crabnebula.app/update/scoopy/scoopy/{{target}}/{{current_version}}";
 
 const FIRST_CHECK_DELAY: Duration = Duration::from_secs(60);
 const CHECK_INTERVAL: Duration = Duration::from_secs(2 * 60 * 60);
@@ -107,7 +107,7 @@ fn updater_target() -> Result<String, String> {
 
     #[cfg(target_os = "linux")]
     {
-        cap_utils::linux_package::updater_target(arch)
+        scoopy_utils::linux_package::updater_target(arch)
     }
     #[cfg(not(target_os = "linux"))]
     {
@@ -385,7 +385,7 @@ pub fn spawn_background_loop(app: AppHandle) {
                         }
                     };
 
-                    // Safe while Cap runs: the .app bundle is swapped in place
+                    // Safe while Scoopy runs: the .app bundle is swapped in place
                     // and takes effect on relaunch.
                     if let Err(err) = update.install(bytes) {
                         warn!("Failed to install nightly update {version}: {err}");

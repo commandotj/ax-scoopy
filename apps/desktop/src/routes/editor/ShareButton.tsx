@@ -77,7 +77,7 @@ function ShareButton() {
 										destination: "link",
 									});
 								}}
-								leftIcon={<IconCapUpload />}
+								leftIcon={<IconScoopyUpload />}
 							>
 								Reupload
 							</EditorButton>
@@ -127,7 +127,7 @@ function ShareButton() {
 											>
 												<KSelect.Trigger class="flex justify-center items-center transition-colors duration-200 rounded-md size-5 text-ed-text-2 bg-ed-ctl-hover hover:bg-ed-ctl-active group focus:outline-hidden focus-visible:outline-hidden">
 													<KSelect.Icon>
-														<IconCapChevronDown class="size-4 transition-transform duration-200 group-data-expanded:rotate-180" />
+														<IconScoopyChevronDown class="size-4 transition-transform duration-200 group-data-expanded:rotate-180" />
 													</KSelect.Icon>
 												</KSelect.Trigger>
 												<KSelect.Portal>
@@ -150,7 +150,7 @@ function ShareButton() {
 											onClick={copyLink}
 										>
 											{!copyPressed() ? (
-												<IconCapCopy class="size-3" />
+												<IconScoopyCopy class="size-3" />
 											) : (
 												<IconLucideCheck class="size-3 svgpathanimation" />
 											)}

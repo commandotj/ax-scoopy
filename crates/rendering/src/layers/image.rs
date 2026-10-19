@@ -7,7 +7,7 @@ use std::{
 };
 
 use bytemuck::{Pod, Zeroable};
-use cap_project::ImageSegment;
+use scoopy_project::ImageSegment;
 use image::{ImageDecoder, RgbaImage};
 use wgpu::util::DeviceExt;
 
@@ -664,7 +664,7 @@ impl ImageLayer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cap_project::XY;
+    use scoopy_project::XY;
 
     fn segment(path: &str) -> ImageSegment {
         ImageSegment {
@@ -1058,7 +1058,7 @@ mod tests {
                 .unwrap()
                 .as_nanos();
             let directory =
-                std::env::temp_dir().join(format!("cap-image-test-{}-{id}", std::process::id()));
+                std::env::temp_dir().join(format!("scoopy-image-test-{}-{id}", std::process::id()));
             std::fs::create_dir(&directory).unwrap();
             Self(directory)
         }

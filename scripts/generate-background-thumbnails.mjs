@@ -14,7 +14,7 @@ const check = args.includes("--check");
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const backgrounds = join(root, "apps/desktop/src-tauri/assets/backgrounds");
 const ffmpeg = process.env.FFMPEG_PATH || "ffmpeg";
-const temporary = await mkdtemp(join(tmpdir(), "cap-background-thumbnails-"));
+const temporary = await mkdtemp(join(tmpdir(), "scoopy-background-thumbnails-"));
 let count = 0;
 try {
 	const categories = await readdir(backgrounds, { withFileTypes: true });

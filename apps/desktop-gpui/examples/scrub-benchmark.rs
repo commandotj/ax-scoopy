@@ -7,12 +7,12 @@
 //! The editor can write `project-config.json` back into the project, so point
 //! it at a copy rather than a recording in the library.
 //!
-//! Run: cargo run --release --example scrub-benchmark -- <project.cap> [STEPS] [STEP_FRAMES]
+//! Run: cargo run --release --example scrub-benchmark -- <project.scoopy> [STEPS] [STEP_FRAMES]
 
 use std::{path::PathBuf, sync::Arc, time::Duration, time::Instant};
 
-use cap_editor::{AudioOutput, EditorFrameFormat, EditorFrameOutput, EditorInstance};
-use cap_project::XY;
+use scoopy_editor::{AudioOutput, EditorFrameFormat, EditorFrameOutput, EditorInstance};
+use scoopy_project::XY;
 
 const PREVIEW_FPS: u32 = 60;
 const PREVIEW_RESOLUTION: XY<u32> = XY { x: 1248, y: 702 };
@@ -175,7 +175,7 @@ fn main() -> anyhow::Result<()> {
     let project_path = arguments
         .next()
         .map(PathBuf::from)
-        .ok_or_else(|| anyhow::anyhow!("Pass a studio .cap project path"))?;
+        .ok_or_else(|| anyhow::anyhow!("Pass a studio .scoopy project path"))?;
     let steps = arguments
         .next()
         .and_then(|value| value.parse().ok())

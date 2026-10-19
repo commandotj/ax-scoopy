@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use cap_recording::feeds::{camera, microphone::MicrophoneFeed};
+use scoopy_recording::feeds::{camera, microphone::MicrophoneFeed};
 use kameo::Actor;
 
 use crate::devices::{DeviceSnapshot, InputSnapshot, TargetSnapshot};
@@ -44,7 +44,7 @@ async fn native_picker_latency() -> anyhow::Result<()> {
         );
         measure("tauri_device_inventory", sample, || {
             (
-                cap_camera::list_cameras().collect::<Vec<_>>(),
+                scoopy_camera::list_cameras().collect::<Vec<_>>(),
                 MicrophoneFeed::list_names(),
             )
         });
@@ -64,8 +64,8 @@ async fn native_picker_latency() -> anyhow::Result<()> {
         });
     }
 
-    let device_id = std::env::var("CAP_PICKER_BENCH_CAMERA_ID")?;
-    let camera_info = cap_camera::list_cameras()
+    let device_id = std::env::var("SCOOPY_PICKER_BENCH_CAMERA_ID")?;
+    let camera_info = scoopy_camera::list_cameras()
         .find(|camera| camera.device_id() == device_id)
         .ok_or_else(|| anyhow::anyhow!("Benchmark camera is unavailable"))?;
     let id = camera::DeviceOrModelID::from_info(&camera_info);

@@ -41,7 +41,7 @@ use crate::{
     target_select_overlay::WindowFocusManager,
     window_exclusion::WindowExclusion,
 };
-use cap_recording::{feeds, sources::screen_capture::ScreenCaptureTarget};
+use scoopy_recording::{feeds, sources::screen_capture::ScreenCaptureTarget};
 
 #[cfg(target_os = "macos")]
 const DEFAULT_TRAFFIC_LIGHTS_INSET: LogicalPosition<f64> = LogicalPosition::new(12.0, 12.0);
@@ -112,7 +112,7 @@ const WINDOWS_WEBVIEW2_BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfO
 #[cfg(windows)]
 fn windows_webview2_browser_args() -> String {
     let mut args = WINDOWS_WEBVIEW2_BROWSER_ARGS.to_string();
-    if cap_rendering::force_software_wgpu_adapter()
+    if scoopy_rendering::force_software_wgpu_adapter()
         || std::env::args_os().any(|arg| arg.to_str() == Some("--disable-gpu"))
     {
         args.push_str(" --disable-gpu");
@@ -215,13 +215,13 @@ fn hide_recording_windows(app: &AppHandle, restore_target_select_overlays: bool)
     }
 
     for (label, window) in app.webview_windows() {
-        if let Ok(id) = CapWindowId::from_str(&label)
+        if let Ok(id) = ScoopyWindowId::from_str(&label)
             && matches!(
                 id,
-                CapWindowId::TargetSelectOverlay { .. } | CapWindowId::Main | CapWindowId::Camera
+                ScoopyWindowId::TargetSelectOverlay { .. } | ScoopyWindowId::Main | ScoopyWindowId::Camera
             )
         {
-            if matches!(id, CapWindowId::TargetSelectOverlay { .. }) {
+            if matches!(id, ScoopyWindowId::TargetSelectOverlay { .. }) {
                 if restore_target_select_overlays
                     && window.is_visible().unwrap_or(false)
                     && let Some(focus_manager) = focus_manager.as_ref()
@@ -229,7 +229,7 @@ fn hide_recording_windows(app: &AppHandle, restore_target_select_overlays: bool)
                     focus_manager.remember_overlay_for_restore(label);
                 }
                 hide_overlay(&window);
-            } else if matches!(id, CapWindowId::Main) {
+            } else if matches!(id, ScoopyWindowId::Main) {
                 crate::hide_main_window(app);
             } else {
                 let _ = window.hide();
@@ -951,7 +951,7 @@ fn logical_work_area(
 
 fn initial_content_window_fit(
     app: &AppHandle,
-    id: &CapWindowId,
+    id: &ScoopyWindowId,
 ) -> Option<(ContentWindowFit, f64)> {
     let preferred = id.preferred_content_size()?;
     let monitor = app
@@ -975,7 +975,7 @@ fn initial_content_window_fit(
     ))
 }
 
-async fn fit_content_window_bounds(window: &WebviewWindow, id: &CapWindowId, initial: bool) {
+async fn fit_content_window_bounds(window: &WebviewWindow, id: &ScoopyWindowId, initial: bool) {
     let Some(preferred) = id.preferred_content_size() else {
         return;
     };
@@ -1181,7 +1181,7 @@ impl Drop for PendingControlsWindow {
 }
 
 #[derive(Clone, Deserialize, Type)]
-pub enum CapWindowId {
+pub enum ScoopyWindowId {
     Main,
     Settings,
     Editor { id: u32 },
@@ -1199,7 +1199,7 @@ pub enum CapWindowId {
     Teleprompter,
 }
 
-impl FromStr for CapWindowId {
+impl FromStr for ScoopyWindowId {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -1245,7 +1245,7 @@ impl FromStr for CapWindowId {
     }
 }
 
-impl std::fmt::Display for CapWindowId {
+impl std::fmt::Display for ScoopyWindowId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Main => write!(f, "main"),
@@ -1271,7 +1271,7 @@ impl std::fmt::Display for CapWindowId {
     }
 }
 
-impl CapWindowId {
+impl ScoopyWindowId {
     fn preferred_content_size(&self) -> Option<(f64, f64)> {
         match self {
             Self::Settings => Some((782.0, 775.0)),
@@ -1379,7 +1379,7 @@ impl CapWindowId {
 }
 
 #[derive(Debug, Clone, Type, Deserialize)]
-pub enum ShowCapWindow {
+pub enum ShowScoopyWindow {
     Main {
         init_target_mode: Option<RecordingTargetMode>,
     },
@@ -1416,7 +1416,7 @@ pub enum ShowCapWindow {
     Onboarding,
 }
 
-impl ShowCapWindow {
+impl ShowScoopyWindow {
     pub fn show<'a>(
         &'a self,
         app: &'a AppHandle<Wry>,
@@ -1469,7 +1469,7 @@ impl ShowCapWindow {
                         state.ids.clone(),
                         &state.counter,
                         &state.open_gates,
-                        |id| CapWindowId::Editor { id },
+                        |id| ScoopyWindowId::Editor { id },
                     )
                     .await?,
                 )
@@ -1483,7 +1483,7 @@ impl ShowCapWindow {
                         state.ids.clone(),
                         &state.counter,
                         &state.open_gates,
-                        |id| CapWindowId::ScreenshotEditor { id },
+                        |id| ScoopyWindowId::ScreenshotEditor { id },
                     )
                     .await?,
                 )
@@ -1919,7 +1919,7 @@ impl ShowCapWindow {
                     return Box::pin(Self::Onboarding.show(app)).await;
                 }
 
-                let title = CapWindowId::Main.title();
+                let title = ScoopyWindowId::Main.title();
                 let should_protect = should_protect_window(app, &title);
 
                 #[cfg(target_os = "macos")]
@@ -1938,8 +1938,8 @@ impl ShowCapWindow {
                     .visible(false)
                     .initialization_script(format!(
                         "
-                        window.__CAP__ = window.__CAP__ ?? {{}};
-                        window.__CAP__.initialTargetMode = {}
+                        window.__SCOOPY__ = window.__SCOOPY__ ?? {{}};
+                        window.__SCOOPY__.initialTargetMode = {}
                     ",
                         serde_json::to_string(init_target_mode)
                             .expect("Failed to serialize initial target mode")
@@ -2052,7 +2052,7 @@ impl ShowCapWindow {
                     .map(|d| d.id())
                     == Some(display.id());
 
-                let title = CapWindowId::TargetSelectOverlay {
+                let title = ScoopyWindowId::TargetSelectOverlay {
                     display_id: display_id.clone(),
                 }
                 .title();
@@ -2094,7 +2094,7 @@ impl ShowCapWindow {
                     .transparent(true)
                     .visible(false)
                     .initialization_script(format!(
-                        "window.__CAP__ = window.__CAP__ ?? {{}}; window.__CAP__.cameraWsPort = {camera_ws_port};"
+                        "window.__SCOOPY__ = window.__SCOOPY__ ?? {{}}; window.__SCOOPY__.cameraWsPort = {camera_ws_port};"
                     ));
 
                 #[cfg(all(target_os = "macos", debug_assertions))]
@@ -2126,7 +2126,7 @@ impl ShowCapWindow {
                 }
 
                 #[cfg(target_os = "linux")]
-                if cap_recording::screenshot::uses_wayland_portal() {
+                if scoopy_recording::screenshot::uses_wayland_portal() {
                     let Some(bounds) = display.raw_handle().logical_bounds() else {
                         return Err(tauri::Error::WindowNotFound);
                     };
@@ -2158,7 +2158,7 @@ impl ShowCapWindow {
                 }
 
                 #[cfg(target_os = "linux")]
-                if cap_recording::screenshot::uses_wayland_portal() {
+                if scoopy_recording::screenshot::uses_wayland_portal() {
                     use tauri::{LogicalPosition, LogicalSize};
                     let Some(bounds) = display.raw_handle().logical_bounds() else {
                         return Err(tauri::Error::WindowNotFound);
@@ -2506,7 +2506,7 @@ impl ShowCapWindow {
                     let state = panel_manager.get_state(PanelWindowType::Camera).await;
                     warn!("Camera window creation blocked, current state: {:?}", state);
                     if state == PanelState::Ready
-                        && let Some(window) = CapWindowId::Camera.get(app)
+                        && let Some(window) = ScoopyWindowId::Camera.get(app)
                     {
                         if *centered {
                             center_camera_window(app, &window);
@@ -2520,7 +2520,7 @@ impl ShowCapWindow {
                             std::time::Duration::from_millis(500),
                         )
                         .await;
-                    if let Some(window) = CapWindowId::Camera.get(app) {
+                    if let Some(window) = ScoopyWindowId::Camera.get(app) {
                         if *centered {
                             center_camera_window(app, &window);
                         }
@@ -2559,7 +2559,7 @@ impl ShowCapWindow {
 
                     let label = camera_window_label
                         .clone()
-                        .unwrap_or_else(|| CapWindowId::Camera.label());
+                        .unwrap_or_else(|| ScoopyWindowId::Camera.label());
                     let mut window_builder = self
                         .window_builder_with_label(app, "/camera", label)
                         .maximized(false)
@@ -2571,11 +2571,11 @@ impl ShowCapWindow {
                         .skip_taskbar(true)
                         .initialization_script(format!(
                             "
-			                window.__CAP__ = window.__CAP__ ?? {{}};
-			                window.__CAP__.cameraWsPort = {};
-			                window.__CAP__.cameraOnlyMode = {};
-			                window.__CAP__.enableNativeCameraPreview = {};
-                            window.__CAP__.cleanCaptureGeneration = {};
+			                window.__SCOOPY__ = window.__SCOOPY__ ?? {{}};
+			                window.__SCOOPY__.cameraWsPort = {};
+			                window.__SCOOPY__.cameraOnlyMode = {};
+			                window.__SCOOPY__.enableNativeCameraPreview = {};
+                            window.__SCOOPY__.cleanCaptureGeneration = {};
 		                ",
                             state.camera_ws_port,
                             centered,
@@ -2611,10 +2611,10 @@ impl ShowCapWindow {
                     log_window_content_protection(
                         &window,
                         should_protect,
-                        &CapWindowId::Camera.title(),
+                        &ScoopyWindowId::Camera.title(),
                     );
 
-                    let camera_monitor = CapWindowId::Main
+                    let camera_monitor = ScoopyWindowId::Main
                         .get(app)
                         .map(|w| CursorMonitorInfo::from_window(&w))
                         .unwrap_or(cursor_monitor);
@@ -2792,7 +2792,7 @@ impl ShowCapWindow {
                     return Err(tauri::Error::WindowNotFound);
                 };
 
-                let title = CapWindowId::WindowCaptureOccluder {
+                let title = ScoopyWindowId::WindowCaptureOccluder {
                     screen_id: screen_id.clone(),
                 }
                 .title();
@@ -2834,7 +2834,7 @@ impl ShowCapWindow {
                 }
 
                 #[cfg(target_os = "linux")]
-                if cap_recording::screenshot::uses_wayland_portal() {
+                if scoopy_recording::screenshot::uses_wayland_portal() {
                     let Some(bounds) = display.raw_handle().logical_bounds() else {
                         return Err(tauri::Error::WindowNotFound);
                     };
@@ -2856,7 +2856,7 @@ impl ShowCapWindow {
                 lock_window_text_scale(&window);
 
                 #[cfg(target_os = "linux")]
-                if cap_recording::screenshot::uses_wayland_portal() {
+                if scoopy_recording::screenshot::uses_wayland_portal() {
                     use tauri::{LogicalPosition, LogicalSize};
                     let Some(bounds) = display.raw_handle().logical_bounds() else {
                         return Err(tauri::Error::WindowNotFound);
@@ -2941,7 +2941,7 @@ impl ShowCapWindow {
                 window
             }
             Self::CaptureArea { screen_id } => {
-                let title = CapWindowId::CaptureArea.title();
+                let title = ScoopyWindowId::CaptureArea.title();
                 let should_protect = should_protect_window(app, &title);
 
                 let mut window_builder = self
@@ -2981,7 +2981,7 @@ impl ShowCapWindow {
                 }
 
                 #[cfg(target_os = "linux")]
-                if cap_recording::screenshot::uses_wayland_portal() {
+                if scoopy_recording::screenshot::uses_wayland_portal() {
                     let Some(bounds) = display.raw_handle().logical_bounds() else {
                         return Err(tauri::Error::WindowNotFound);
                     };
@@ -3041,7 +3041,7 @@ impl ShowCapWindow {
                 }
 
                 #[cfg(target_os = "linux")]
-                if cap_recording::screenshot::uses_wayland_portal() {
+                if scoopy_recording::screenshot::uses_wayland_portal() {
                     use tauri::{LogicalPosition, LogicalSize};
                     let Some(bounds) = display.raw_handle().logical_bounds() else {
                         return Err(tauri::Error::WindowNotFound);
@@ -3073,7 +3073,7 @@ impl ShowCapWindow {
                 );
 
                 // Hide the main window if the target monitor is the same
-                if let Some(main_window) = CapWindowId::Main.get(app)
+                if let Some(main_window) = ScoopyWindowId::Main.get(app)
                     && let (Ok(outer_pos), Ok(outer_size)) =
                         (main_window.outer_position(), main_window.outer_size())
                     && let Ok(scale_factor) = main_window.scale_factor()
@@ -3091,7 +3091,7 @@ impl ShowCapWindow {
                 let width = 320.0;
                 let height = 150.0;
 
-                let title = CapWindowId::RecordingControls.title();
+                let title = ScoopyWindowId::RecordingControls.title();
                 let should_protect = should_protect_window(app, &title);
 
                 #[cfg(target_os = "macos")]
@@ -3265,7 +3265,7 @@ impl ShowCapWindow {
                 window
             }
             Self::RecordingsOverlay => {
-                let title = CapWindowId::RecordingsOverlay.title();
+                let title = ScoopyWindowId::RecordingsOverlay.title();
                 let should_protect = should_protect_window(app, &title);
 
                 let window = self
@@ -3399,7 +3399,7 @@ impl ShowCapWindow {
         &'a self,
         app: &'a AppHandle<Wry>,
         url: impl Into<PathBuf>,
-        id: &CapWindowId,
+        id: &ScoopyWindowId,
         label: impl Into<String>,
     ) -> WebviewWindowBuilder<'a, Wry, AppHandle<Wry>> {
         let settings = GeneralSettingsStore::get(app).ok().flatten();
@@ -3424,7 +3424,7 @@ impl ShowCapWindow {
             .devtools(cfg!(debug_assertions));
 
         #[cfg(all(target_os = "macos", debug_assertions))]
-        if matches!(id, CapWindowId::Main) {
+        if matches!(id, ScoopyWindowId::Main) {
             // Main stays hidden until its frontend mounts; WebKit must finish loading Vite first.
             builder = builder
                 .background_throttling(tauri::utils::config::BackgroundThrottlingPolicy::Disabled);
@@ -3489,7 +3489,7 @@ impl ShowCapWindow {
                 .zoom_hotkeys_enabled(false)
                 .additional_browser_args(&browser_args)
                 .initialization_script(format!(
-                    "window.__CAP__ = window.__CAP__ ?? {{}}; window.__CAP__.windowsWebview2BrowserArgs = {browser_args_json};"
+                    "window.__SCOOPY__ = window.__SCOOPY__ ?? {{}}; window.__SCOOPY__.windowsWebview2BrowserArgs = {browser_args_json};"
                 ));
         }
 
@@ -3503,38 +3503,38 @@ impl ShowCapWindow {
         builder
     }
 
-    pub fn id(&self, app: &AppHandle) -> CapWindowId {
+    pub fn id(&self, app: &AppHandle) -> ScoopyWindowId {
         match self {
-            ShowCapWindow::Main { .. } => CapWindowId::Main,
-            ShowCapWindow::Settings { .. } => CapWindowId::Settings,
-            ShowCapWindow::Editor { project_path } => {
+            ShowScoopyWindow::Main { .. } => ScoopyWindowId::Main,
+            ShowScoopyWindow::Settings { .. } => ScoopyWindowId::Settings,
+            ShowScoopyWindow::Editor { project_path } => {
                 let state = app.state::<EditorWindowIds>();
                 let id = project_window_id_for_key(&state.ids, &project_window_key(project_path))
                     .expect("editor window is not reserved");
-                CapWindowId::Editor { id }
+                ScoopyWindowId::Editor { id }
             }
-            ShowCapWindow::RecordingsOverlay => CapWindowId::RecordingsOverlay,
-            ShowCapWindow::TargetSelectOverlay { display_id, .. } => {
-                CapWindowId::TargetSelectOverlay {
+            ShowScoopyWindow::RecordingsOverlay => ScoopyWindowId::RecordingsOverlay,
+            ShowScoopyWindow::TargetSelectOverlay { display_id, .. } => {
+                ScoopyWindowId::TargetSelectOverlay {
                     display_id: display_id.clone(),
                 }
             }
-            ShowCapWindow::WindowCaptureOccluder { screen_id } => {
-                CapWindowId::WindowCaptureOccluder {
+            ShowScoopyWindow::WindowCaptureOccluder { screen_id } => {
+                ScoopyWindowId::WindowCaptureOccluder {
                     screen_id: screen_id.clone(),
                 }
             }
-            ShowCapWindow::CaptureArea { .. } => CapWindowId::CaptureArea,
-            ShowCapWindow::Camera { .. } => CapWindowId::Camera,
-            ShowCapWindow::InProgressRecording { .. } => CapWindowId::RecordingControls,
-            ShowCapWindow::Upgrade => CapWindowId::Upgrade,
-            ShowCapWindow::ModeSelect => CapWindowId::ModeSelect,
-            ShowCapWindow::Onboarding => CapWindowId::Onboarding,
-            ShowCapWindow::ScreenshotEditor { path } => {
+            ShowScoopyWindow::CaptureArea { .. } => ScoopyWindowId::CaptureArea,
+            ShowScoopyWindow::Camera { .. } => ScoopyWindowId::Camera,
+            ShowScoopyWindow::InProgressRecording { .. } => ScoopyWindowId::RecordingControls,
+            ShowScoopyWindow::Upgrade => ScoopyWindowId::Upgrade,
+            ShowScoopyWindow::ModeSelect => ScoopyWindowId::ModeSelect,
+            ShowScoopyWindow::Onboarding => ScoopyWindowId::Onboarding,
+            ShowScoopyWindow::ScreenshotEditor { path } => {
                 let state = app.state::<ScreenshotEditorWindowIds>();
                 let id = project_window_id_for_key(&state.ids, &project_window_key(path))
                     .expect("screenshot editor window is not reserved");
-                CapWindowId::ScreenshotEditor { id }
+                ScoopyWindowId::ScreenshotEditor { id }
             }
         }
     }
@@ -3641,7 +3641,7 @@ pub fn set_theme(window: tauri::Window, theme: AppTheme) {
     });
 
     #[cfg(target_os = "macos")]
-    match CapWindowId::from_str(window.label()) {
+    match ScoopyWindowId::from_str(window.label()) {
         Ok(win) if win.traffic_lights_position().is_some() => position_traffic_lights(window, None),
         Ok(_) | Err(_) => {}
     }
@@ -3656,7 +3656,7 @@ pub fn position_traffic_lights(_window: tauri::Window, _controls_inset: Option<(
         &_window,
         _controls_inset.map(LogicalPosition::from).or_else(|| {
             // Attempt to get the default inset from the window's traffic lights position
-            CapWindowId::from_str(_window.label())
+            ScoopyWindowId::from_str(_window.label())
                 .ok()
                 .and_then(|id| id.traffic_lights_position().flatten())
         }),
@@ -3668,7 +3668,7 @@ pub fn position_traffic_lights(_window: tauri::Window, _controls_inset: Option<(
 #[instrument(skip(_window))]
 pub fn set_teleprompter_window_level(_window: tauri::Window, _always_on_top: bool) {
     #[cfg(target_os = "macos")]
-    if _window.label() == CapWindowId::Teleprompter.to_string() {
+    if _window.label() == ScoopyWindowId::Teleprompter.to_string() {
         let level = if _always_on_top {
             TELEPROMPTER_PANEL_LEVEL
         } else {
@@ -3678,7 +3678,7 @@ pub fn set_teleprompter_window_level(_window: tauri::Window, _always_on_top: boo
     }
 
     #[cfg(not(target_os = "macos"))]
-    if _window.label() == CapWindowId::Teleprompter.to_string()
+    if _window.label() == ScoopyWindowId::Teleprompter.to_string()
         && let Err(error) = _window.set_always_on_top(_always_on_top)
     {
         warn!(?error, "Failed to update teleprompter window level");
@@ -3690,7 +3690,7 @@ pub fn set_teleprompter_window_level(_window: tauri::Window, _always_on_top: boo
 #[instrument(skip(_window))]
 pub fn set_teleprompter_window_opacity(_window: tauri::Window, _opacity: f64) {
     #[cfg(target_os = "macos")]
-    if _window.label() == CapWindowId::Teleprompter.to_string() {
+    if _window.label() == ScoopyWindowId::Teleprompter.to_string() {
         crate::platform::set_window_opacity(_window, _opacity);
     }
 }
@@ -3719,13 +3719,13 @@ fn position_traffic_lights_impl(
 // Capture exclusion (WDA_EXCLUDEFROMCAPTURE / NSWindowSharingType::None) also hides
 // the window from "capture-based" displays such as virtual/indirect/dummy-HDMI or
 // mirrored monitors, making it invisible and unreachable. We therefore only protect
-// Cap's own windows while a recording is actually active, which is the only time the
+// Scoopy's own windows while a recording is actually active, which is the only time the
 // exclusion is meaningful.
 //
 // On known capture-based remote displays (Shadow and RDP), recording-gated exclusion hides the recording
 // controls from the user and trips DRM detectors (Shadow error S:102), so exclusion
-// is skipped entirely there — Cap's windows then appear in recordings, which is the
-// lesser evil. Overridable via the CAP_WINDOW_CAPTURE_EXCLUSION env var.
+// is skipped entirely there — Scoopy's windows then appear in recordings, which is the
+// lesser evil. Overridable via the SCOOPY_WINDOW_CAPTURE_EXCLUSION env var.
 #[cfg(target_os = "windows")]
 pub fn capture_exclusion_hides_ui() -> bool {
     static LAST_LOGGED: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
@@ -3767,7 +3767,7 @@ fn content_protection_enabled(app: &AppHandle<Wry>) -> bool {
 }
 
 fn window_capture_excluded(app: &AppHandle<Wry>, window_title: &str) -> bool {
-    if window_title == CapWindowId::Teleprompter.title() {
+    if window_title == ScoopyWindowId::Teleprompter.title() {
         return true;
     }
 
@@ -3791,21 +3791,21 @@ fn should_protect_window(app: &AppHandle<Wry>, window_title: &str) -> bool {
 }
 
 fn native_content_protection_allowed(window_title: &str) -> bool {
-    !cfg!(target_os = "macos") || window_title != CapWindowId::RecordingControls.title()
+    !cfg!(target_os = "macos") || window_title != ScoopyWindowId::RecordingControls.title()
 }
 
 pub fn apply_content_protection(app: &AppHandle<Wry>, enabled: bool) {
     let enabled = enabled && !capture_exclusion_hides_ui();
 
     for (label, window) in app.webview_windows() {
-        let Ok(id) = CapWindowId::from_str(&label) else {
+        let Ok(id) = ScoopyWindowId::from_str(&label) else {
             continue;
         };
 
         // The camera window's protection depends on the recording mode (studio excludes
         // the preview, instant keeps it) and is driven from `start_recording`. Only ever
         // clear it here so it stays visible outside of recordings.
-        if matches!(id, CapWindowId::Camera) {
+        if matches!(id, ScoopyWindowId::Camera) {
             if !enabled {
                 let _ = window.set_content_protected(false);
             }
@@ -4030,7 +4030,7 @@ pub async fn apply_macos_liquid_glass_background(
 
         _window
             .run_on_main_thread(move || {
-                let result = if window.label() == CapWindowId::Main.label() {
+                let result = if window.label() == ScoopyWindowId::Main.label() {
                     crate::platform::apply_main_window_liquid_glass_background(
                         &window, _enabled, _radius,
                     )
@@ -4113,7 +4113,7 @@ impl ProjectWindowOpenGates {
 struct ProjectWindowOpening {
     app: AppHandle,
     ids: Arc<Mutex<Vec<(PathBuf, u32)>>>,
-    id: CapWindowId,
+    id: ScoopyWindowId,
     existing_window: Option<WebviewWindow>,
     owned_window: Option<WebviewWindow>,
     committed: bool,
@@ -4127,7 +4127,7 @@ impl ProjectWindowOpening {
         ids: Arc<Mutex<Vec<(PathBuf, u32)>>>,
         counter: &AtomicU32,
         gates: &ProjectWindowOpenGates,
-        make_id: fn(u32) -> CapWindowId,
+        make_id: fn(u32) -> ScoopyWindowId,
     ) -> tauri::Result<Self> {
         let key = project_window_key(path);
         let gate = gates.for_path(key.clone()).lock_owned().await;
@@ -4180,7 +4180,7 @@ impl Drop for ProjectWindowOpening {
             return;
         }
         let numeric_id = match self.id {
-            CapWindowId::Editor { id } | CapWindowId::ScreenshotEditor { id } => id,
+            ScoopyWindowId::Editor { id } | ScoopyWindowId::ScreenshotEditor { id } => id,
             _ => return,
         };
         self.ids
@@ -4193,10 +4193,10 @@ impl Drop for ProjectWindowOpening {
             }
             let native_window = window.as_ref().window().clone();
             match self.id {
-                CapWindowId::Editor { .. } => {
+                ScoopyWindowId::Editor { .. } => {
                     tauri::async_runtime::spawn(EditorInstances::remove(native_window));
                 }
-                CapWindowId::ScreenshotEditor { .. } => {
+                ScoopyWindowId::ScreenshotEditor { .. } => {
                     tauri::async_runtime::spawn(ScreenshotEditorInstances::remove(native_window));
                 }
                 _ => {}
@@ -4207,12 +4207,12 @@ impl Drop for ProjectWindowOpening {
         tauri::async_runtime::spawn(async move {
             let label = id.label();
             match id {
-                CapWindowId::Editor { .. } => {
+                ScoopyWindowId::Editor { .. } => {
                     PendingEditorInstances::get(&app)
                         .cancel_prewarm(&label)
                         .await;
                 }
-                CapWindowId::ScreenshotEditor { .. } => {
+                ScoopyWindowId::ScreenshotEditor { .. } => {
                     PendingScreenshotEditorInstances::get(&app)
                         .cancel_prewarm(&label)
                         .await;
@@ -4273,7 +4273,7 @@ impl EditorRecordingTarget {
 pub fn editor_window_for_path(app: &AppHandle, path: &std::path::Path) -> Option<WebviewWindow> {
     let ids = EditorWindowIds::get(app);
     let id = project_window_id_for_key(&ids.ids, &project_window_key(path))?;
-    CapWindowId::Editor { id }.get(app)
+    ScoopyWindowId::Editor { id }.get(app)
 }
 
 #[cfg(test)]
@@ -4300,9 +4300,9 @@ mod content_window_tests {
     fn small_display_fits_all_content_windows_and_lowers_oversized_minimums() {
         let area = rect(0.0, 25.0, 1024.0, 703.0);
         for id in [
-            CapWindowId::Settings,
-            CapWindowId::Editor { id: 0 },
-            CapWindowId::ScreenshotEditor { id: 0 },
+            ScoopyWindowId::Settings,
+            ScoopyWindowId::Editor { id: 0 },
+            ScoopyWindowId::ScreenshotEditor { id: 0 },
         ] {
             let preferred = id.preferred_content_size().unwrap();
             let fit = fit_content_window(
@@ -4428,17 +4428,17 @@ mod content_window_tests {
     #[test]
     fn only_macos_controls_bypass_native_content_protection() {
         assert_eq!(
-            native_content_protection_allowed(&CapWindowId::RecordingControls.title()),
+            native_content_protection_allowed(&ScoopyWindowId::RecordingControls.title()),
             !cfg!(target_os = "macos")
         );
         assert!(native_content_protection_allowed(
-            &CapWindowId::Camera.title()
+            &ScoopyWindowId::Camera.title()
         ));
         assert!(native_content_protection_allowed(
-            &CapWindowId::Settings.title()
+            &ScoopyWindowId::Settings.title()
         ));
         assert!(native_content_protection_allowed(
-            &CapWindowId::Teleprompter.title()
+            &ScoopyWindowId::Teleprompter.title()
         ));
     }
 

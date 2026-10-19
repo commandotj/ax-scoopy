@@ -1,5 +1,5 @@
-use cap_audio::DecodedAudio;
-use cap_project::{AudioGapSummary, AudioMeta, RecordingMeta, StudioRecordingMeta};
+use scoopy_audio::DecodedAudio;
+use scoopy_project::{AudioGapSummary, AudioMeta, RecordingMeta, StudioRecordingMeta};
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -130,7 +130,7 @@ impl CompletedAudioHandoff {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use cap_project::{
+    use scoopy_project::{
         MultipleSegment, MultipleSegments, RecordingMetaInner, StudioRecordingStatus, VideoMeta,
     };
     use std::io::Write;
@@ -158,14 +158,14 @@ pub(crate) mod tests {
         }
         file.flush().unwrap();
         Arc::new(DecodedAudio::from(Arc::new(
-            cap_audio::AudioData::from_file(file.path()).unwrap(),
+            scoopy_audio::AudioData::from_file(file.path()).unwrap(),
         )))
     }
 
     pub(crate) fn metadata() -> RecordingMeta {
         RecordingMeta {
             platform: None,
-            project_path: "fixture.cap".into(),
+            project_path: "fixture.scoopy".into(),
             pretty_name: "Audio handoff fixture".into(),
             sharing: None,
             upload: None,
@@ -304,16 +304,16 @@ pub(crate) mod tests {
     fn completed_cache_rejects_different_or_unresolvable_project_paths() {
         let directory = tempfile::tempdir().unwrap();
         let mut original = metadata();
-        original.project_path = directory.path().join("original.cap");
+        original.project_path = directory.path().join("original.scoopy");
         std::fs::create_dir(&original.project_path).unwrap();
         let mut other = original.clone();
-        other.project_path = directory.path().join("other.cap");
+        other.project_path = directory.path().join("other.scoopy");
         std::fs::create_dir(&other.project_path).unwrap();
         let audio = audio();
         for missing in [false, true] {
             if missing {
-                original.project_path = directory.path().join("missing-original.cap");
-                other.project_path = directory.path().join("missing-other.cap");
+                original.project_path = directory.path().join("missing-original.scoopy");
+                other.project_path = directory.path().join("missing-other.scoopy");
             }
             assert!(
                 CompletedAudioHandoff::from_completed_tracks(&original, &other, completed(&audio))
@@ -342,7 +342,7 @@ pub(crate) mod tests {
         ] {
             let mut actual = original.clone();
             match field {
-                "project" => actual.project_path = "other.cap".into(),
+                "project" => actual.project_path = "other.scoopy".into(),
                 "index" => segments_mut(&mut actual).swap(0, 1),
                 "count" => {
                     assert!(segments_mut(&mut actual).pop().is_some());

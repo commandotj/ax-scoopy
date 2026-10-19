@@ -5,8 +5,8 @@
 
 mod common;
 
-use cap_project::ProjectConfiguration;
-use cap_verify::{
+use scoopy_project::ProjectConfiguration;
+use scoopy_verify::{
     catalog,
     fixture::{FixtureSpec, Rng},
     report::{self, Tier},
@@ -211,10 +211,10 @@ fn hide_camera_scene(config: &mut ProjectConfiguration) {
         .as_mut()
         .expect("timeline")
         .scene_segments
-        .push(cap_project::SceneSegment {
+        .push(scoopy_project::SceneSegment {
             start: 2.0,
             end: 4.0,
-            mode: cap_project::SceneMode::HideCamera,
+            mode: scoopy_project::SceneMode::HideCamera,
             split_layout: None,
             transition_in: 0.3,
             transition_out: 0.3,
@@ -243,7 +243,7 @@ fn edits_sequential() {
 /// WARP-rendered Windows included).
 const REALTIME_WARMUP_LIMIT: std::time::Duration = std::time::Duration::from_secs(2);
 
-/// The real-time playback loop (`cap_editor::Playback`), not just the decode
+/// The real-time playback loop (`scoopy_editor::Playback`), not just the decode
 /// and render path: every frame it delivers must show what the model puts at
 /// that frame number. Frames may be dropped under load (macOS CI presents at
 /// a few fps); at least `MIN_DELIVERED` must arrive once the clock has
@@ -302,7 +302,7 @@ fn realtime_loop() {
                     // renders on the WARP software rasterizer, whose speed
                     // (0.13 to 0.96 of the frames on Blacksmith, run
                     // 38851482675, depending on the fixture) measures WARP,
-                    // not Cap, so only the identity checks and the minimum
+                    // not Scoopy, so only the identity checks and the minimum
                     // below apply there. A wall-clock class: a proven
                     // machine stall makes it inconclusive, never excused.
                     let floor = if cfg!(windows) { 0.0 } else { 0.75 };

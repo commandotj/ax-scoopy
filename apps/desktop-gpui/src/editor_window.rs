@@ -26,11 +26,11 @@
 //!   video")`, `crates/rendering/src/project_recordings.rs:127`) on a bundle
 //!   whose display track will not open. [`preflight`] runs that exact call
 //!   under `catch_unwind` on a background thread before `EditorInstance::new`
-//!   ever sees the path, so a corrupt `.cap` becomes an in-window error state
+//!   ever sees the path, so a corrupt `.scoopy` becomes an in-window error state
 //!   instead of taking the process down.
 //!
 //! E2 adds a fourth: **`on_state_change` and `frame_cb` are both called from
-//! foreign threads** -- the `cap-playback` OS thread and tokio workers -- so
+//! foreign threads** -- the `scoopy-playback` OS thread and tokio workers -- so
 //! neither may touch a gpui `Context`. Both go through channels drained on the
 //! main thread ([`PlayheadSignal`], the frame pump), and every transport call
 //! that locks `instance.state` runs on the tokio runtime ([`run_transport`]).
@@ -47,13 +47,13 @@ use std::{
     time::{Duration, Instant},
 };
 
-use cap_cursor_info::CursorFamily;
-use cap_editor::{EditorFrameOutput, EditorInstance, EditorState};
-use cap_project::{
+use scoopy_cursor_info::CursorFamily;
+use scoopy_editor::{EditorFrameOutput, EditorInstance, EditorState};
+use scoopy_project::{
     ClipSpeedAudioMode, Cursors, ProjectConfiguration, RecordingMeta, RecordingMetaInner,
     StudioRecordingMeta, TimelineConfiguration, XY,
 };
-use cap_rendering::{FrameLayout, ProjectRecordingsMeta, RenderedFrame};
+use scoopy_rendering::{FrameLayout, ProjectRecordingsMeta, RenderedFrame};
 #[cfg(target_os = "macos")]
 use core_foundation::base::TCFType;
 #[cfg(target_os = "macos")]
@@ -84,12 +84,12 @@ mod scenes;
 // ---------------------------------------------------------------------------
 
 /// `.inner_size(1275.0, 800.0)` / `.min_inner_size(1275.0, 800.0)` on the
-/// `ShowCapWindow::Editor` arm (`windows.rs:1934-1935`), and the same pair
-/// again from `CapWindowId::Editor::min_size` (`windows.rs:1112`).
+/// `ShowScoopyWindow::Editor` arm (`windows.rs:1934-1935`), and the same pair
+/// again from `ScoopyWindowId::Editor::min_size` (`windows.rs:1112`).
 pub const EDITOR_WIDTH: f32 = 1275.;
 pub const EDITOR_HEIGHT: f32 = 800.;
 
-/// `CapWindowId::Editor::traffic_lights_position` is
+/// `ScoopyWindowId::Editor::traffic_lights_position` is
 /// `Some(Some(LogicalPosition::new(20.0, 32.0)))` (`windows.rs:1092-1094`) --
 /// but the Tauri inset is NOT the button's top-left corner.
 /// `position_window_controls` (`platform/macos/delegates.rs`) builds a
@@ -106,7 +106,7 @@ pub const TRAFFIC_LIGHTS: Option<Point<Pixels>> = Some(point(px(20.), px(20.)));
 
 /// `FPS = 60` (`routes/editor/context.ts:148`), mirrored in Rust as
 /// `EDITOR_PREVIEW_FPS` (`apps/desktop/src-tauri/src/lib.rs:146`). FPS is not
-/// a constant inside `cap-editor` -- it is a parameter on `start_playback` and
+/// a constant inside `scoopy-editor` -- it is a parameter on `start_playback` and
 /// on the `preview_tx` tuple, so the app owns it.
 pub const EDITOR_PREVIEW_FPS: u32 = 60;
 
@@ -341,7 +341,7 @@ pub struct ProjectSummary {
     pub recording_clips: usize,
 }
 
-/// Validate a `.cap` before handing it to `EditorInstance::new`.
+/// Validate a `.scoopy` before handing it to `EditorInstance::new`.
 ///
 /// Two classes of failure are separated here on purpose:
 ///
@@ -418,12 +418,12 @@ pub fn preflight(path: &std::path::Path) -> Result<ProjectSummary, String> {
     // for the second or two before the instance exists -- the timeline the
     // instance hands over then replaces it wholesale.
     if config.timeline.is_none() {
-        config.timeline = Some(cap_project::TimelineConfiguration {
+        config.timeline = Some(scoopy_project::TimelineConfiguration {
             segments: recordings
                 .segments
                 .iter()
                 .enumerate()
-                .map(|(index, segment)| cap_project::TimelineSegment {
+                .map(|(index, segment)| scoopy_project::TimelineSegment {
                     recording_clip: index as u32,
                     timescale: 1.0,
                     start: 0.0,
@@ -484,7 +484,7 @@ const NO_AUTO_ZOOM_CLICKS_MESSAGE: &str =
 
 fn load_recording_clicks(
     project_path: &std::path::Path,
-) -> Vec<Vec<cap_project::CursorClickEvent>> {
+) -> Vec<Vec<scoopy_project::CursorClickEvent>> {
     let Ok(meta) = RecordingMeta::load_for_project(project_path) else {
         return Vec::new();
     };
@@ -493,7 +493,7 @@ fn load_recording_clicks(
     };
     let load = |cursor: Option<PathBuf>| {
         cursor
-            .and_then(|cursor| cap_project::CursorEvents::load_clicks_from_file(&cursor).ok())
+            .and_then(|cursor| scoopy_project::CursorEvents::load_clicks_from_file(&cursor).ok())
             .unwrap_or_default()
     };
     match &**studio {
@@ -556,7 +556,7 @@ fn recorded_cursor_family(studio: &StudioRecordingMeta) -> Option<CursorFamily> 
 ///   (`frame_pipeline.rs:809-827`) and gpui's atlas expects BGRA, the same
 ///   swap `library::decode_thumbnail` does after decoding a thumbnail.
 pub fn frame_image(frame: &RenderedFrame) -> Option<Arc<RenderImage>> {
-    let tight = cap_gpui_kernels::frame::unpad_rgba_to_bgra(
+    let tight = scoopy_gpui_kernels::frame::unpad_rgba_to_bgra(
         &frame.data,
         frame.width as usize,
         frame.padded_bytes_per_row as usize,
@@ -906,7 +906,7 @@ impl StatsSnapshot {
 // ---------------------------------------------------------------------------
 
 /// `on_state_change` is a `Fn + Send + Sync` the instance calls from whichever
-/// thread moved the playhead -- the `cap-playback` OS thread during playback,
+/// thread moved the playhead -- the `scoopy-playback` OS thread during playback,
 /// a tokio worker on a seek. It may never touch a gpui `Context`, so it does
 /// the only two things that are safe from a foreign thread: store the position
 /// and poke a bounded channel.
@@ -1603,7 +1603,7 @@ pub struct EditorWindow {
     preset_dialog: Option<PresetDialog>,
     caption_sync_signature: Option<u64>,
     pub(crate) export: Option<ExportUi>,
-    pub(crate) sharing: Option<cap_project::SharingMeta>,
+    pub(crate) sharing: Option<scoopy_project::SharingMeta>,
     /// The Clips layout mode (`ClipsSidebar.tsx`): while open, the config
     /// sidebar's column draws the clips sidebar instead.
     pub(crate) clips: crate::editor_clips::ClipsState,
@@ -1910,7 +1910,7 @@ impl EditorWindow {
             }
         })
         .detach();
-        // `CapWindowId::Editor`'s `Destroyed` arm drops the window from
+        // `ScoopyWindowId::Editor`'s `Destroyed` arm drops the window from
         // `EditorWindowIds`, disposes the instance and calls
         // `restore_main_windows_if_no_editors` (`lib.rs:5777-5792`). Deferred
         // out of the callback -- it fires with the App borrowed.
@@ -2184,7 +2184,7 @@ impl EditorWindow {
         self.stop_playback(cx);
     }
 
-    /// Hand the close path the pending write, so a `.cap` closed inside the
+    /// Hand the close path the pending write, so a `.scoopy` closed inside the
     /// 250ms debounce still lands on disk -- `onCleanup(() => { ...
     /// flushProjectConfig() })` (`ED/context.ts:1246-1252`).
     pub fn pending_save(&self) -> Rc<RefCell<PendingProjectSave>> {
@@ -2447,7 +2447,7 @@ impl EditorWindow {
         if !force && self.caption_sync_signature == signature {
             return;
         }
-        cap_project::synchronize_captions(&mut self.project, &self.clip_display_durations);
+        scoopy_project::synchronize_captions(&mut self.project, &self.clip_display_durations);
         self.caption_sync_signature = self.caption_projection_signature();
     }
 
@@ -2568,7 +2568,7 @@ impl EditorWindow {
         let previous_animated_gradient = self.animated_gradient_config().cloned();
         let animated_background_changed = self.animated_gradient_config()
             != match &config.background.source {
-                cap_project::BackgroundSource::AnimatedGradient { config } => Some(config),
+                scoopy_project::BackgroundSource::AnimatedGradient { config } => Some(config),
                 _ => None,
             }
             || crate::editor_sidebar::is_none_background(&self.project)
@@ -2790,7 +2790,7 @@ impl EditorWindow {
     pub(crate) fn preparing_frame_arrived(
         &mut self,
         epoch: &crate::editor_preparing::PreparingEpoch,
-        identity: &cap_recording::recovery::PreparingStudioIdentity,
+        identity: &scoopy_recording::recovery::PreparingStudioIdentity,
         sequence: u64,
         frame: EditorFrame,
         window: &mut Window,
@@ -2838,7 +2838,7 @@ impl EditorWindow {
         if self.preparing_auto_played
             || !self.preparing_frame_presented
             || !self.preparing_controls_ready()
-            || !std::env::var("CAP_GPUI_AUTO_PREPARING_PLAY").is_ok_and(|value| value == "1")
+            || !std::env::var("SCOOPY_GPUI_AUTO_PREPARING_PLAY").is_ok_and(|value| value == "1")
         {
             return;
         }
@@ -3276,13 +3276,13 @@ impl EditorWindow {
         self.seek_to_time(total, cx);
     }
 
-    /// Harness only (`CAP_GPUI_AUTO_SEEK`, `CAP_GPUI_AUTO_PLAYBACK_TORTURE`):
+    /// Harness only (`SCOOPY_GPUI_AUTO_SEEK`, `SCOOPY_GPUI_AUTO_PLAYBACK_TORTURE`):
     /// seek to a fraction along the timeline.
     ///
     /// It goes the long way round -- fraction to a window x, then through the
     /// same [`Self::time_at`] mapping a real click takes -- so the geometry is
     /// exercised too. Only gpui's event delivery is skipped, for the same
-    /// reason as every other `CAP_GPUI_AUTO_*` hook: unprivileged synthetic
+    /// reason as every other `SCOOPY_GPUI_AUTO_*` hook: unprivileged synthetic
     /// clicks are dropped.
     pub fn seek_fraction(&mut self, fraction: f64, window: &mut Window, cx: &mut Context<Self>) {
         let viewport_width: f32 = window.viewport_size().width.into();
@@ -3292,7 +3292,7 @@ impl EditorWindow {
         self.seek_to_time(time, cx);
     }
 
-    /// Harness only (`CAP_GPUI_AUTO_PLAYBACK`): stop and emit the run's
+    /// Harness only (`SCOOPY_GPUI_AUTO_PLAYBACK`): stop and emit the run's
     /// numbers. Identical to pressing pause -- the report is emitted on every
     /// stop, this just guarantees one happens.
     pub fn stop_for_measurement(&mut self, cx: &mut Context<Self>) {
@@ -5141,7 +5141,7 @@ pub(crate) struct EditorNotice {
 /// How long a notice stays up.
 const EDITOR_NOTICE_DURATION: Duration = Duration::from_millis(2500);
 
-fn caption_text_from_words(words: &[cap_project::CaptionWord]) -> String {
+fn caption_text_from_words(words: &[scoopy_project::CaptionWord]) -> String {
     let mut text = String::new();
     for word in words {
         let value = word.text.trim();
@@ -5190,7 +5190,7 @@ fn fresh_caption_source_id(project: &ProjectConfiguration) -> String {
         let random = std::collections::hash_map::RandomState::new()
             .build_hasher()
             .finish();
-        let id = format!("cap-split-{millis}-{random:x}");
+        let id = format!("scoopy-split-{millis}-{random:x}");
         if project
             .captions
             .as_ref()
@@ -5213,7 +5213,7 @@ fn split_caption_segment(
     let Some(track) = timeline.caption_segments.get(index) else {
         return false;
     };
-    let source_id = cap_project::source_caption_id(&track.id);
+    let source_id = scoopy_project::source_caption_id(&track.id);
     let Some((source_index, source)) = project
         .captions
         .as_ref()
@@ -5294,7 +5294,7 @@ fn delete_caption_segments(project: &mut ProjectConfiguration, indices: &[usize]
     let source_ids = indices
         .iter()
         .filter_map(|index| timeline.caption_segments.get(*index))
-        .map(|segment| cap_project::source_caption_id(&segment.id).to_string())
+        .map(|segment| scoopy_project::source_caption_id(&segment.id).to_string())
         .collect::<Vec<_>>();
     let Some(timeline) = project.timeline.as_mut() else {
         return false;
@@ -6754,27 +6754,27 @@ impl EditorWindow {
             }))
     }
 
-    fn aspect_ratio_label(aspect: Option<&cap_project::AspectRatio>) -> &'static str {
+    fn aspect_ratio_label(aspect: Option<&scoopy_project::AspectRatio>) -> &'static str {
         match aspect {
             None => "Auto",
-            Some(cap_project::AspectRatio::Wide) => "Wide",
-            Some(cap_project::AspectRatio::Vertical) => "Vertical",
-            Some(cap_project::AspectRatio::Square) => "Square",
-            Some(cap_project::AspectRatio::Classic) => "Classic",
-            Some(cap_project::AspectRatio::Tall) => "Tall",
+            Some(scoopy_project::AspectRatio::Wide) => "Wide",
+            Some(scoopy_project::AspectRatio::Vertical) => "Vertical",
+            Some(scoopy_project::AspectRatio::Square) => "Square",
+            Some(scoopy_project::AspectRatio::Classic) => "Classic",
+            Some(scoopy_project::AspectRatio::Tall) => "Tall",
         }
     }
 
     fn toolbar_menu_items(&self, kind: ToolbarMenu) -> Vec<ui::MenuItem> {
         match kind {
             ToolbarMenu::AspectRatio => {
-                const OPTIONS: &[(Option<cap_project::AspectRatio>, &str)] = &[
+                const OPTIONS: &[(Option<scoopy_project::AspectRatio>, &str)] = &[
                     (None, "Auto"),
-                    (Some(cap_project::AspectRatio::Wide), "Wide ⋅16:9"),
-                    (Some(cap_project::AspectRatio::Vertical), "Vertical ⋅9:16"),
-                    (Some(cap_project::AspectRatio::Square), "Square ⋅1:1"),
-                    (Some(cap_project::AspectRatio::Classic), "Classic ⋅4:3"),
-                    (Some(cap_project::AspectRatio::Tall), "Tall ⋅3:4"),
+                    (Some(scoopy_project::AspectRatio::Wide), "Wide ⋅16:9"),
+                    (Some(scoopy_project::AspectRatio::Vertical), "Vertical ⋅9:16"),
+                    (Some(scoopy_project::AspectRatio::Square), "Square ⋅1:1"),
+                    (Some(scoopy_project::AspectRatio::Classic), "Classic ⋅4:3"),
+                    (Some(scoopy_project::AspectRatio::Tall), "Tall ⋅3:4"),
                 ];
                 OPTIONS
                     .iter()
@@ -6840,13 +6840,13 @@ impl EditorWindow {
         self.toolbar_menu = None;
         match kind {
             ToolbarMenu::AspectRatio => {
-                const OPTIONS: [Option<cap_project::AspectRatio>; 6] = [
+                const OPTIONS: [Option<scoopy_project::AspectRatio>; 6] = [
                     None,
-                    Some(cap_project::AspectRatio::Wide),
-                    Some(cap_project::AspectRatio::Vertical),
-                    Some(cap_project::AspectRatio::Square),
-                    Some(cap_project::AspectRatio::Classic),
-                    Some(cap_project::AspectRatio::Tall),
+                    Some(scoopy_project::AspectRatio::Wide),
+                    Some(scoopy_project::AspectRatio::Vertical),
+                    Some(scoopy_project::AspectRatio::Square),
+                    Some(scoopy_project::AspectRatio::Classic),
+                    Some(scoopy_project::AspectRatio::Tall),
                 ];
                 let Some(next) = OPTIONS.get(index).cloned() else {
                     return;
@@ -7050,7 +7050,7 @@ impl EditorWindow {
         self.apply_project_preset(next, window, cx);
     }
 
-    /// The built-in Default row: Cap's own look, with this project's timeline
+    /// The built-in Default row: Scoopy's own look, with this project's timeline
     /// and clips kept.
     fn apply_default_preset(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let mut next = crate::presets::default_project_config();
@@ -7180,7 +7180,7 @@ impl EditorWindow {
                 self.edit_project("caption-enabled", window, cx, move |project| {
                     let captions = project
                         .captions
-                        .get_or_insert_with(cap_project::CaptionsData::default);
+                        .get_or_insert_with(scoopy_project::CaptionsData::default);
                     if captions.settings.enabled == next {
                         return false;
                     }
@@ -7193,7 +7193,7 @@ impl EditorWindow {
                 self.edit_project("keyboard-enabled", window, cx, move |project| {
                     let keyboard = project
                         .keyboard
-                        .get_or_insert_with(cap_project::KeyboardData::default);
+                        .get_or_insert_with(scoopy_project::KeyboardData::default);
                     if keyboard.settings.enabled == next {
                         return false;
                     }
@@ -7327,7 +7327,7 @@ impl EditorWindow {
         }
         if placement.is_none() {
             placement = edits::place_segment_at_time(
-                &[] as &[cap_project::TextSegment],
+                &[] as &[scoopy_project::TextSegment],
                 time,
                 length,
                 total,
@@ -7435,7 +7435,7 @@ impl EditorWindow {
             |timeline| {
                 index = edits::insert_style_segment(
                     timeline,
-                    cap_project::StyleSegment {
+                    scoopy_project::StyleSegment {
                         start,
                         end,
                         track: lane,
@@ -7635,9 +7635,9 @@ impl EditorWindow {
         let ratio = f64::from(imported.width) / f64::from(imported.height) * f64::from(output[1])
             / f64::from(output[0]);
         let size = if ratio >= 1.0 {
-            cap_project::XY::new(0.3, 0.3 / ratio)
+            scoopy_project::XY::new(0.3, 0.3 / ratio)
         } else {
-            cap_project::XY::new(0.3 * ratio, 0.3)
+            scoopy_project::XY::new(0.3 * ratio, 0.3)
         };
         self.tracks.image = self.tracks.image.max(lane + 1);
         let mut index = 0;
@@ -7645,7 +7645,7 @@ impl EditorWindow {
             |timeline| {
                 index = edits::insert_image_segment(
                     timeline,
-                    cap_project::ImageSegment {
+                    scoopy_project::ImageSegment {
                         start,
                         end,
                         track: lane,
@@ -7765,7 +7765,7 @@ impl EditorWindow {
         cx.notify();
     }
 
-    /// `CAP_GPUI_AUTO_ADD_TRACK` (see `app_windows::drive_auto_sidebar`).
+    /// `SCOOPY_GPUI_AUTO_ADD_TRACK` (see `app_windows::drive_auto_sidebar`).
     pub(crate) fn auto_add_track(
         &mut self,
         spec: &str,
@@ -7795,7 +7795,7 @@ impl EditorWindow {
         cx.notify();
     }
 
-    /// `CAP_GPUI_AUTO_CLIP_MENU` (see `app_windows::drive_auto_sidebar`).
+    /// `SCOOPY_GPUI_AUTO_CLIP_MENU` (see `app_windows::drive_auto_sidebar`).
     pub(crate) fn auto_clip_menu(
         &mut self,
         spec: &str,
@@ -9299,7 +9299,7 @@ impl EditorWindow {
             .when(!cfg!(target_os = "windows"), |header| {
                 header.child(div().h_full().w(px(82.)).flex_none())
             })
-            // The name field plus its literal `.cap` suffix, editable. The
+            // The name field plus its literal `.scoopy` suffix, editable. The
             // Solid version is an `<input>` overlaying a measuring `<span>`;
             // here the field paints its own text, so the span is not needed and
             // the `max-w-[200px]` sits on the field itself.
@@ -9952,8 +9952,8 @@ impl EditorWindow {
         // is one, which is what makes it a readout for the ghost playhead.
         let current = self.view.preview_time.unwrap_or(self.playhead).max(0.0);
         let live = self.transport.is_some() || self.preparing_controls_ready();
-        // `{!editorState.playing || isAtEnd() ? <IconCapPlay/> :
-        // <IconCapPause/>}` (`Player.tsx:388-392`).
+        // `{!editorState.playing || isAtEnd() ? <IconScoopyPlay/> :
+        // <IconScoopyPause/>}` (`Player.tsx:388-392`).
         let icon = if !self.playing || self.is_at_end() {
             "icons/play.svg"
         } else {
@@ -10122,8 +10122,8 @@ impl EditorWindow {
                             ),
                     )
                     .child(self.header_divider())
-                    // `IconCapZoomOut` -> `updateZoom(zoom * 1.1,
-                    // playbackTime)`; `IconCapZoomIn` -> `zoom / 1.1`
+                    // `IconScoopyZoomOut` -> `updateZoom(zoom * 1.1,
+                    // playbackTime)`; `IconScoopyZoomIn` -> `zoom / 1.1`
                     // (`Player.tsx:432-449`).
                     .child(self.zoom_button("transport-zoom-out", "icons/zoom-out.svg", 1.1, cx))
                     // `Slider class="w-24" minValue={0} maxValue={1}
@@ -11704,8 +11704,8 @@ fn import_audio_file(
 }
 
 fn aspect_ratio_eq(
-    left: &Option<cap_project::AspectRatio>,
-    right: &Option<cap_project::AspectRatio>,
+    left: &Option<scoopy_project::AspectRatio>,
+    right: &Option<scoopy_project::AspectRatio>,
 ) -> bool {
     match (left, right) {
         (None, None) => true,
@@ -11780,7 +11780,7 @@ pub fn request_frame(instance: &EditorInstance, frame_number: u32, resolution: X
 pub fn make_frame_callback(
     tx: flume::Sender<(EditorFrameOutput, FrameLayout)>,
     stats: Arc<PumpStats>,
-) -> cap_editor::EditorFrameCallback {
+) -> scoopy_editor::EditorFrameCallback {
     Box::new(move |output, layout| {
         stats.rendered.fetch_add(1, Ordering::Relaxed);
         #[cfg(target_os = "windows")]
@@ -11797,7 +11797,7 @@ pub fn make_frame_callback(
 }
 
 #[cfg(target_os = "macos")]
-pub(crate) fn surface_preview_frame(frame: cap_rendering::SurfaceFrame) -> EditorPreviewFrame {
+pub(crate) fn surface_preview_frame(frame: scoopy_rendering::SurfaceFrame) -> EditorPreviewFrame {
     let raw = frame.pixel_buffer.as_ref() as *const cidre::cv::PixelBuf as CVPixelBufferRef;
     let pixel_buffer = unsafe { CVPixelBuffer::wrap_under_get_rule(raw) };
     EditorPreviewFrame::Surface(pixel_buffer)
@@ -11815,9 +11815,9 @@ pub fn frame_image_timed(frame: &RenderedFrame, stats: &PumpStats) -> Option<Arc
     image
 }
 
-/// `hexToRgb` hands back RGBA bytes; `cap_project::Color` is `[u16; 3]` and
+/// `hexToRgb` hands back RGBA bytes; `scoopy_project::Color` is `[u16; 3]` and
 /// the alpha lives on the background source, not on the swatch.
-fn hex_to_color(rgba: [u8; 4]) -> cap_project::Color {
+fn hex_to_color(rgba: [u8; 4]) -> scoopy_project::Color {
     [rgba[0] as u16, rgba[1] as u16, rgba[2] as u16]
 }
 
@@ -11828,18 +11828,18 @@ mod tests {
     #[test]
     fn auto_zoom_loads_clicks_without_losing_take_indices() {
         let root =
-            std::env::temp_dir().join(format!("cap-auto-zoom-clicks-{}", std::process::id()));
+            std::env::temp_dir().join(format!("scoopy-auto-zoom-clicks-{}", std::process::id()));
         std::fs::create_dir_all(&root).unwrap();
-        let click = cap_project::CursorClickEvent {
+        let click = scoopy_project::CursorClickEvent {
             active_modifiers: vec!["Shift".into()],
             cursor_num: 1,
             cursor_id: "pointer".into(),
             time_ms: 4000.0,
             down: true,
         };
-        let events = cap_project::CursorEvents {
+        let events = scoopy_project::CursorEvents {
             clicks: vec![click.clone()],
-            moves: vec![cap_project::CursorMoveEvent {
+            moves: vec![scoopy_project::CursorMoveEvent {
                 active_modifiers: Vec::new(),
                 cursor_id: "arrow".into(),
                 time_ms: 4000.0,
@@ -11887,9 +11887,9 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "set CAP_AUTO_ZOOM_BENCH_PROJECT to a disposable recording bundle"]
+    #[ignore = "set SCOOPY_AUTO_ZOOM_BENCH_PROJECT to a disposable recording bundle"]
     fn auto_zoom_click_loading_benchmark() {
-        let path = PathBuf::from(std::env::var_os("CAP_AUTO_ZOOM_BENCH_PROJECT").unwrap());
+        let path = PathBuf::from(std::env::var_os("SCOOPY_AUTO_ZOOM_BENCH_PROJECT").unwrap());
         let meta = RecordingMeta::load_for_project(&path).unwrap();
         let RecordingMetaInner::Studio(studio) = &meta.inner else {
             panic!("benchmark requires a Studio recording");
@@ -11899,13 +11899,13 @@ mod tests {
                 let mut events = segment
                     .cursor
                     .as_ref()
-                    .map_or_else(cap_project::CursorEvents::default, |cursor| {
-                        cap_project::CursorEvents::load_from_file(&meta.path(cursor)).unwrap()
+                    .map_or_else(scoopy_project::CursorEvents::default, |cursor| {
+                        scoopy_project::CursorEvents::load_from_file(&meta.path(cursor)).unwrap()
                     });
                 let pointer_ids = studio.pointer_cursor_ids();
                 events.stabilize_short_lived_cursor_shapes(
                     (!pointer_ids.is_empty()).then_some(&pointer_ids),
-                    cap_project::cursor::SHORT_CURSOR_SHAPE_DEBOUNCE_MS,
+                    scoopy_project::cursor::SHORT_CURSOR_SHAPE_DEBOUNCE_MS,
                 );
                 vec![events.clicks]
             }
@@ -11915,7 +11915,7 @@ mod tests {
                 .map(|segment| segment.cursor_events(&meta).clicks)
                 .collect(),
         };
-        let times = |clips: Vec<Vec<cap_project::CursorClickEvent>>| {
+        let times = |clips: Vec<Vec<scoopy_project::CursorClickEvent>>| {
             clips
                 .into_iter()
                 .map(|clicks| {
@@ -11971,7 +11971,7 @@ mod tests {
         wav.extend_from_slice(&32_000_u32.to_le_bytes());
         wav.resize(32_044, 0);
         std::fs::write(&source, &wav).unwrap();
-        let project = root.join("project.cap");
+        let project = root.join("project.scoopy");
         let imported = import_audio_file(&project, &source).unwrap();
         assert!((imported.duration - 2.0).abs() < 0.001);
         assert_eq!(imported.name, "short");
@@ -12057,18 +12057,18 @@ mod tests {
     #[test]
     fn caption_split_and_delete_update_the_source_master() {
         let words = vec![
-            cap_project::CaptionWord {
+            scoopy_project::CaptionWord {
                 text: "hello".into(),
                 start: 1.0,
                 end: 2.0,
             },
-            cap_project::CaptionWord {
+            scoopy_project::CaptionWord {
                 text: "world".into(),
                 start: 3.0,
                 end: 4.0,
             },
         ];
-        let track = cap_project::CaptionTrackSegment {
+        let track = scoopy_project::CaptionTrackSegment {
             id: "spoken".into(),
             start: 1.0,
             end: 4.0,
@@ -12083,7 +12083,7 @@ mod tests {
         };
         let mut project = ProjectConfiguration {
             timeline: Some(TimelineConfiguration {
-                segments: vec![cap_project::TimelineSegment {
+                segments: vec![scoopy_project::TimelineSegment {
                     recording_clip: 0,
                     start: 0.0,
                     end: 10.0,
@@ -12105,8 +12105,8 @@ mod tests {
                 style_segments: Vec::new(),
                 image_segments: Vec::new(),
             }),
-            captions: Some(cap_project::CaptionsData {
-                segments: vec![cap_project::CaptionSegment {
+            captions: Some(scoopy_project::CaptionsData {
+                segments: vec![scoopy_project::CaptionSegment {
                     id: "spoken".into(),
                     start: 1.0,
                     end: 4.0,
@@ -12120,7 +12120,7 @@ mod tests {
         };
 
         assert!(split_caption_segment(&mut project, 0, 1.5, &[10.0]));
-        cap_project::synchronize_captions(&mut project, &[10.0]);
+        scoopy_project::synchronize_captions(&mut project, &[10.0]);
         let captions = project.captions.as_ref().unwrap();
         assert_eq!(captions.segments.len(), 2);
         assert_eq!(captions.segments[0].text, "hello");
@@ -12128,7 +12128,7 @@ mod tests {
         assert_eq!(project.timeline.as_ref().unwrap().caption_segments.len(), 2);
 
         assert!(delete_caption_segments(&mut project, &[1]));
-        cap_project::synchronize_captions(&mut project, &[10.0]);
+        scoopy_project::synchronize_captions(&mut project, &[10.0]);
         assert_eq!(project.captions.as_ref().unwrap().segments.len(), 1);
         assert_eq!(project.timeline.as_ref().unwrap().caption_segments.len(), 1);
     }
@@ -12138,7 +12138,7 @@ mod tests {
         let mut project = ProjectConfiguration {
             timeline: Some(TimelineConfiguration {
                 segments: vec![
-                    cap_project::TimelineSegment {
+                    scoopy_project::TimelineSegment {
                         recording_clip: 0,
                         start: 0.5,
                         end: 4.5,
@@ -12148,7 +12148,7 @@ mod tests {
                         hide_cursor: None,
                         volume: None,
                     },
-                    cap_project::TimelineSegment {
+                    scoopy_project::TimelineSegment {
                         recording_clip: 0,
                         start: 0.5,
                         end: 4.5,
@@ -12171,19 +12171,19 @@ mod tests {
                 style_segments: Vec::new(),
                 image_segments: Vec::new(),
             }),
-            captions: Some(cap_project::CaptionsData {
-                segments: vec![cap_project::CaptionSegment {
+            captions: Some(scoopy_project::CaptionsData {
+                segments: vec![scoopy_project::CaptionSegment {
                     id: "spoken".into(),
                     start: 1.0,
                     end: 4.0,
                     text: "hello world".into(),
                     words: vec![
-                        cap_project::CaptionWord {
+                        scoopy_project::CaptionWord {
                             text: "hello".into(),
                             start: 1.0,
                             end: 2.0,
                         },
-                        cap_project::CaptionWord {
+                        scoopy_project::CaptionWord {
                             text: "world".into(),
                             start: 3.0,
                             end: 4.0,
@@ -12195,7 +12195,7 @@ mod tests {
             }),
             ..Default::default()
         };
-        cap_project::synchronize_captions(&mut project, &[10.0]);
+        scoopy_project::synchronize_captions(&mut project, &[10.0]);
         assert_eq!(
             project.timeline.as_ref().unwrap().caption_segments[0].id,
             "spoken::edl0"
@@ -12205,7 +12205,7 @@ mod tests {
         let tail_source_id = project.captions.as_ref().unwrap().segments[1].id.clone();
         assert_ne!(tail_source_id, "spoken");
         assert_eq!(
-            cap_project::source_caption_id(&tail_source_id),
+            scoopy_project::source_caption_id(&tail_source_id),
             tail_source_id
         );
         assert_eq!(
@@ -12213,7 +12213,7 @@ mod tests {
             tail_source_id
         );
 
-        cap_project::synchronize_captions(&mut project, &[10.0]);
+        scoopy_project::synchronize_captions(&mut project, &[10.0]);
         assert_eq!(project.timeline.as_ref().unwrap().caption_segments.len(), 4);
         let tail_index = project
             .timeline
@@ -12221,10 +12221,10 @@ mod tests {
             .unwrap()
             .caption_segments
             .iter()
-            .position(|segment| cap_project::source_caption_id(&segment.id) == tail_source_id)
+            .position(|segment| scoopy_project::source_caption_id(&segment.id) == tail_source_id)
             .unwrap();
         assert!(delete_caption_segments(&mut project, &[tail_index]));
-        cap_project::synchronize_captions(&mut project, &[10.0]);
+        scoopy_project::synchronize_captions(&mut project, &[10.0]);
 
         assert_eq!(project.captions.as_ref().unwrap().segments.len(), 1);
         assert_eq!(project.captions.as_ref().unwrap().segments[0].id, "spoken");
@@ -12233,7 +12233,7 @@ mod tests {
         assert!(
             remaining
                 .iter()
-                .all(|segment| cap_project::source_caption_id(&segment.id) == "spoken")
+                .all(|segment| scoopy_project::source_caption_id(&segment.id) == "spoken")
         );
     }
 
@@ -12456,14 +12456,14 @@ mod tests {
     #[test]
     fn failed_predelete_save_keeps_the_pending_edit_for_retry() {
         let root = std::env::temp_dir().join(format!(
-            "cap-editor-save-delete-{}",
+            "scoopy-editor-save-delete-{}",
             crate::store::new_uuid_v4()
         ));
         std::fs::create_dir(&root).unwrap();
         let source = root.join("source.mp4");
         std::fs::write(&source, b"original recording").unwrap();
         let config = ProjectConfiguration {
-            aspect_ratio: Some(cap_project::AspectRatio::Square),
+            aspect_ratio: Some(scoopy_project::AspectRatio::Square),
             ..Default::default()
         };
         let mut pending = PendingProjectSave {
@@ -12481,7 +12481,7 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             saved.aspect_ratio,
-            Some(cap_project::AspectRatio::Square)
+            Some(scoopy_project::AspectRatio::Square)
         ));
         std::fs::remove_dir_all(root).unwrap();
     }
@@ -12584,7 +12584,7 @@ mod tests {
     /// panic on, has to come back as a message.
     #[test]
     fn preflight_rejects_a_missing_bundle() {
-        let error = preflight(std::path::Path::new("/nonexistent/nope.cap")).unwrap_err();
+        let error = preflight(std::path::Path::new("/nonexistent/nope.scoopy")).unwrap_err();
         assert!(error.contains("not found"), "{error}");
     }
 

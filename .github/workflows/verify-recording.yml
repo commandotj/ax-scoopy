@@ -1,6 +1,6 @@
 name: Verify recording (real capture)
 
-# Records a marker stimulus through Cap's real Studio and Instant pipelines
+# Records a marker stimulus through Scoopy's real Studio and Instant pipelines
 # (ScreenCaptureKit + VideoToolbox) on macOS runners and checks every frame
 # and audio marker against the host-clock truth. See
 # crates/verify/tests/recording.rs.
@@ -154,21 +154,21 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: ${{ inputs.soak_secs != '' && 180 || 45 }}
     env:
-      CAP_VERIFY_CAPTURE: display
-      CAP_VERIFY_REQUIRE_CAPTURE: "1"
-      CAP_VERIFY_TIER: ${{ needs.scope.outputs.tier }}
-      CAP_VERIFY_REPEAT: ${{ inputs.repeat || (github.event_name == 'schedule' && '3') || '1' }}
-      CAP_VERIFY_CASE: ${{ inputs.case_filter || '' }}
-      CAP_VERIFY_SOAK_SECS: ${{ inputs.soak_secs || '' }}
-      CAP_VERIFY_KEEP: ${{ inputs.keep_artifacts && '1' || '' }}
-      CAP_VERIFY_SCRATCH: ${{ github.workspace }}/verify-scratch
-      CAP_VERIFY_REPORT_DIR: ${{ github.workspace }}/verify-report
-      CAP_VERIFY_DUMP: ${{ github.workspace }}/verify-dump
-      CAP_VERIFY_HOST: ${{ startsWith(matrix.runner, 'blacksmith-') && 'blacksmith' || 'github-hosted' }}
+      SCOOPY_VERIFY_CAPTURE: display
+      SCOOPY_VERIFY_REQUIRE_CAPTURE: "1"
+      SCOOPY_VERIFY_TIER: ${{ needs.scope.outputs.tier }}
+      SCOOPY_VERIFY_REPEAT: ${{ inputs.repeat || (github.event_name == 'schedule' && '3') || '1' }}
+      SCOOPY_VERIFY_CASE: ${{ inputs.case_filter || '' }}
+      SCOOPY_VERIFY_SOAK_SECS: ${{ inputs.soak_secs || '' }}
+      SCOOPY_VERIFY_KEEP: ${{ inputs.keep_artifacts && '1' || '' }}
+      SCOOPY_VERIFY_SCRATCH: ${{ github.workspace }}/verify-scratch
+      SCOOPY_VERIFY_REPORT_DIR: ${{ github.workspace }}/verify-report
+      SCOOPY_VERIFY_DUMP: ${{ github.workspace }}/verify-dump
+      SCOOPY_VERIFY_HOST: ${{ startsWith(matrix.runner, 'blacksmith-') && 'blacksmith' || 'github-hosted' }}
       # A case this runner cannot run fails, except system audio as the only
       # audio while the stimulus stays silent (see below).
-      CAP_VERIFY_REQUIRE_SUPPORTED: "1"
-      CAP_VERIFY_UNSUPPORTED_ALLOW: ${{ !(startsWith(matrix.runner, 'blacksmith-') && inputs.system_audio) && 'recording/instant/system-only' || '' }}
+      SCOOPY_VERIFY_REQUIRE_SUPPORTED: "1"
+      SCOOPY_VERIFY_UNSUPPORTED_ALLOW: ${{ !(startsWith(matrix.runner, 'blacksmith-') && inputs.system_audio) && 'recording/instant/system-only' || '' }}
       # Hosted runners' output devices give ScreenCaptureKit only silence, so
       # system audio is not checked there. Blacksmith gets BlackHole (set up
       # below), which does carry the stimulus's audio on macOS 15 (not on
@@ -176,9 +176,9 @@ jobs:
       # 38843005408: system audio +31 to +44 ms against the mic, BlackHole
       # latency not in the truth), so by default the stimulus stays silent
       # there too; dispatch system_audio=true plays and requires it.
-      CAP_VERIFY_AUDIO_OUTPUT: ${{ startsWith(matrix.runner, 'blacksmith-') && 'BlackHole 2ch' || matrix.runner == 'macos-26' && 'Null Audio Device' || '' }}
-      CAP_VERIFY_STIMULUS_AUDIO: ${{ startsWith(matrix.runner, 'blacksmith-') && !inputs.system_audio && '0' || '' }}
-      CAP_VERIFY_REQUIRE_SYSTEM_AUDIO: ${{ startsWith(matrix.runner, 'blacksmith-') && inputs.system_audio && '1' || '' }}
+      SCOOPY_VERIFY_AUDIO_OUTPUT: ${{ startsWith(matrix.runner, 'blacksmith-') && 'BlackHole 2ch' || matrix.runner == 'macos-26' && 'Null Audio Device' || '' }}
+      SCOOPY_VERIFY_STIMULUS_AUDIO: ${{ startsWith(matrix.runner, 'blacksmith-') && !inputs.system_audio && '0' || '' }}
+      SCOOPY_VERIFY_REQUIRE_SYSTEM_AUDIO: ${{ startsWith(matrix.runner, 'blacksmith-') && inputs.system_audio && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -218,8 +218,8 @@ jobs:
       - name: Build
         run: |
           start=$(date +%s)
-          cargo build --locked -p cap-verify-stimulus
-          cargo test --locked -p cap-verify --test recording --no-run
+          cargo build --locked -p scoopy-verify-stimulus
+          cargo test --locked -p scoopy-verify --test recording --no-run
           echo "build seconds: $(( $(date +%s) - start ))"
 
       # Blacksmith runs a logged-in GUI session with SIP disabled, but:
@@ -253,12 +253,12 @@ jobs:
           echo "outputs:"; SwitchAudioSource -a -t output
           echo "default output: $(SwitchAudioSource -c -t output)"
 
-          { cargo build --locked -p cap-verify-stimulus --message-format=json 2>/dev/null; \
-            cargo test --locked -p cap-verify --test recording --no-run --message-format=json 2>/dev/null; } \
+          { cargo build --locked -p scoopy-verify-stimulus --message-format=json 2>/dev/null; \
+            cargo test --locked -p scoopy-verify --test recording --no-run --message-format=json 2>/dev/null; } \
             | python3 -c 'import json, sys
           for line in sys.stdin:
               m = json.loads(line)
-              if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["name"] in ("recording", "cap-verify-stimulus"):
+              if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["name"] in ("recording", "scoopy-verify-stimulus"):
                   print(m["executable"])' > "$RUNNER_TEMP/capture-binaries"
           test "$(wc -l < "$RUNNER_TEMP/capture-binaries")" -ge 2
           p=$$
@@ -296,20 +296,20 @@ jobs:
 
       - name: Real-capture recording oracle
         run: |
-          mkdir -p "$CAP_VERIFY_DUMP"
+          mkdir -p "$SCOOPY_VERIFY_DUMP"
           # One-second process samples (CPU, scheduler priority) so an
           # environment failure can be attributed.
           (while sleep 1; do
             date -u +%H:%M:%S
             ps -A -o pid,pri,%cpu,comm -r | head -14
-            for p in $(pgrep -f cap-verify-stimulus | head -1) $(pgrep -f 'deps/recording-' | head -1); do
+            for p in $(pgrep -f scoopy-verify-stimulus | head -1) $(pgrep -f 'deps/recording-' | head -1); do
               ps -M -p "$p" | awk 'NR == 1 || $4 > 0.5 || NR < 4' | cut -c1-90
             done
-          done) > "$CAP_VERIFY_DUMP/ps.log" 2>&1 &
+          done) > "$SCOOPY_VERIFY_DUMP/ps.log" 2>&1 &
           top_pid=$!
           start=$(date +%s)
           set +e
-          cargo test --locked -p cap-verify --test recording -- --nocapture
+          cargo test --locked -p scoopy-verify --test recording -- --nocapture
           status=$?
           set -e
           kill "$top_pid" || true
@@ -319,7 +319,7 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          python3 scripts/verify/summary.py --title "real capture ${{ matrix.runner }} ${{ needs.scope.outputs.tier }}" "$CAP_VERIFY_REPORT_DIR" >> "$GITHUB_STEP_SUMMARY" || true
+          python3 scripts/verify/summary.py --title "real capture ${{ matrix.runner }} ${{ needs.scope.outputs.tier }}" "$SCOOPY_VERIFY_REPORT_DIR" >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Upload artifacts
         if: always()

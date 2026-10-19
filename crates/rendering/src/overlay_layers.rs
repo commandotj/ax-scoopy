@@ -87,8 +87,8 @@ mod tests {
                 |project| project.keyboard = Some(Default::default()),
                 |project| project.hidden_text_segments.push(0),
                 |project| {
-                    project.overlay_order.push(cap_project::OverlayTrack {
-                        kind: cap_project::OverlayTrackKind::Mask,
+                    project.overlay_order.push(scoopy_project::OverlayTrack {
+                        kind: scoopy_project::OverlayTrackKind::Mask,
                         track: 0,
                     });
                 },
@@ -113,7 +113,7 @@ mod tests {
                 },
                 |project| {
                     project.timeline.as_mut().unwrap().image_segments.push(
-                        cap_project::ImageSegment {
+                        scoopy_project::ImageSegment {
                             enabled: false,
                             path: "unopened-overlay.png".into(),
                             ..Default::default()

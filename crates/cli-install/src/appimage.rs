@@ -10,7 +10,7 @@ use std::{
 };
 
 const SHIM_PREFIX: &[u8] = b"#!/bin/sh\nexec '";
-const SHIM_SUFFIX: &[u8] = b"' --cap-cli \"$@\"\n";
+const SHIM_SUFFIX: &[u8] = b"' --scoopy-cli \"$@\"\n";
 
 pub fn current_path() -> Option<PathBuf> {
     #[cfg(target_os = "linux")]
@@ -98,21 +98,21 @@ pub fn dispatch_cli() -> Result<(), String> {
     use std::os::unix::process::CommandExt;
 
     let mut arguments = std::env::args_os().skip(1);
-    if arguments.next().as_deref() != Some(std::ffi::OsStr::new("--cap-cli")) {
+    if arguments.next().as_deref() != Some(std::ffi::OsStr::new("--scoopy-cli")) {
         return Ok(());
     }
     if current_path().is_none() {
-        return Err("The --cap-cli launcher is only available inside a Cap AppImage".into());
+        return Err("The --scoopy-cli launcher is only available inside a Scoopy AppImage".into());
     }
     let executable = std::env::current_exe().map_err(|error| error.to_string())?;
     let directory = executable
         .parent()
         .ok_or_else(|| "Could not locate the AppImage executable directory".to_string())?;
     let original_directory = std::env::var_os("OWD").map(PathBuf::from);
-    let error = cli_command(&directory.join("cap-cli"), original_directory.as_deref())?
+    let error = cli_command(&directory.join("scoopy-cli"), original_directory.as_deref())?
         .args(arguments)
         .exec();
-    Err(format!("Could not launch the bundled Cap CLI: {error}"))
+    Err(format!("Could not launch the bundled Scoopy CLI: {error}"))
 }
 
 #[cfg(test)]
@@ -126,17 +126,17 @@ mod tests {
     fn ignores_appimage_environment_from_unrelated_applications() {
         assert_eq!(
             appimage_path(
-                Path::new("/home/user/Cap.AppImage"),
+                Path::new("/home/user/Scoopy.AppImage"),
                 Path::new("/tmp/.mount_cap"),
-                Path::new("/tmp/.mount_cap/usr/bin/Cap"),
+                Path::new("/tmp/.mount_cap/usr/bin/Scoopy"),
             ),
-            Some(PathBuf::from("/home/user/Cap.AppImage"))
+            Some(PathBuf::from("/home/user/Scoopy.AppImage"))
         );
         assert!(
             appimage_path(
-                Path::new("/home/user/Cap.AppImage"),
+                Path::new("/home/user/Scoopy.AppImage"),
                 Path::new("/tmp/.mount_cap"),
-                Path::new("/usr/bin/Cap"),
+                Path::new("/usr/bin/Scoopy"),
             )
             .is_none()
         );
@@ -145,17 +145,17 @@ mod tests {
     #[test]
     fn launcher_round_trips_shell_metacharacters_and_non_unicode_paths() {
         for raw in [
-            b"/home/user/Cap.AppImage".as_slice(),
-            b"/home/user/Cap's $(example) `command`.AppImage".as_slice(),
-            b"/home/user/Cap-\xff.AppImage".as_slice(),
+            b"/home/user/Scoopy.AppImage".as_slice(),
+            b"/home/user/Scoopy's $(example) `command`.AppImage".as_slice(),
+            b"/home/user/Scoopy-\xff.AppImage".as_slice(),
         ] {
             let target = PathBuf::from(OsString::from_vec(raw.to_vec()));
             assert_eq!(shim_target(&shim_contents(&target).unwrap()), Some(target));
         }
         assert!(shim_contents(Path::new("relative.AppImage")).is_err());
-        assert!(shim_target(b"#!/bin/sh\nexec '/tmp/Cap'bad' --cap-cli \"$@\"\n").is_none());
+        assert!(shim_target(b"#!/bin/sh\nexec '/tmp/Scoopy'bad' --scoopy-cli \"$@\"\n").is_none());
         assert!(
-            shim_target(b"#!/bin/sh\nexec '/tmp/Cap' --cap-cli \"$@\"\necho extra\n").is_none()
+            shim_target(b"#!/bin/sh\nexec '/tmp/Scoopy' --scoopy-cli \"$@\"\necho extra\n").is_none()
         );
     }
 
@@ -165,8 +165,8 @@ mod tests {
 
         let _process_guard = PROCESS_TEST_LOCK.lock().unwrap();
         let directory = tempfile::tempdir().unwrap();
-        let image = directory.path().join("Cap's portable.AppImage");
-        let shim = directory.path().join("cap");
+        let image = directory.path().join("Scoopy's portable.AppImage");
+        let shim = directory.path().join("scoopy");
         fs::write(&image, b"#!/bin/sh\nprintf '%s\\n' \"$@\"\nexit 23\n").unwrap();
         fs::set_permissions(&image, fs::Permissions::from_mode(0o755)).unwrap();
         write_shim(&shim, &image).unwrap();
@@ -177,7 +177,7 @@ mod tests {
         assert_eq!(output.status.code(), Some(23));
         assert_eq!(
             output.stdout,
-            b"--cap-cli\n--version\ntwo words\n$(literal)\n"
+            b"--scoopy-cli\n--version\ntwo words\n$(literal)\n"
         );
         fs::write(&image, b"#!/bin/sh\nprintf replacement\n").unwrap();
         let output = std::process::Command::new(&shim).output().unwrap();

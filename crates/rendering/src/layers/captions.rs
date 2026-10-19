@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use cap_project::{CaptionWord, XY};
+use scoopy_project::{CaptionWord, XY};
 use glyphon::cosmic_text::LayoutRunIter;
 use glyphon::{
     Attrs, Buffer, Cache, Color, Family, FontSystem, Metrics, Resolution, Shaping, SwashCache,
@@ -1083,10 +1083,10 @@ impl CaptionsLayer {
 }
 
 struct ActiveCaptionSegment<'a> {
-    segment: &'a cap_project::CaptionTrackSegment,
+    segment: &'a scoopy_project::CaptionTrackSegment,
 }
 
-fn caption_segment_effective_end(segment: &cap_project::CaptionTrackSegment) -> f64 {
+fn caption_segment_effective_end(segment: &scoopy_project::CaptionTrackSegment) -> f64 {
     match segment.words.last() {
         Some(last) => segment
             .end
@@ -1097,7 +1097,7 @@ fn caption_segment_effective_end(segment: &cap_project::CaptionTrackSegment) -> 
 
 fn find_active_caption_segment<'a>(
     time: f64,
-    segments: &'a [cap_project::CaptionTrackSegment],
+    segments: &'a [scoopy_project::CaptionTrackSegment],
     default_fade_duration: f32,
 ) -> Option<ActiveCaptionSegment<'a>> {
     for segment in segments {
@@ -1170,7 +1170,7 @@ mod tests {
         caption_segment_effective_end, find_active_caption_segment, find_active_word_index,
         word_byte_range,
     };
-    use cap_project::{CaptionTrackSegment, CaptionWord};
+    use scoopy_project::{CaptionTrackSegment, CaptionWord};
 
     fn segment(start: f64, end: f64, words: Vec<CaptionWord>) -> CaptionTrackSegment {
         CaptionTrackSegment {

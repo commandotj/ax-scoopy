@@ -57,10 +57,10 @@ def baseline(row, root):
 	media = root / "sources" / f"{vid}.m4a"
 	vtt = root / "sources" / f"{vid}.vtt"
 	if not vtt.exists():
-		execute(["cap", "caps", "transcript", vid, "--format", "vtt", "--output", str(vtt), "--json"])
+		execute(["scoopy", "caps", "transcript", vid, "--format", "vtt", "--output", str(vtt), "--json"])
 	if not media.exists():
 		part = media.with_suffix(".partial.m4a")
-		execute(["ffmpeg", "-v", "error", "-nostdin", "-y", "-i", f"https://cap.so/api/playlist?videoId={vid}&videoType=mp4", "-map", "0:a:0", "-vn", "-c:a", "copy", str(part)])
+		execute(["ffmpeg", "-v", "error", "-nostdin", "-y", "-i", f"https://example.com/api/playlist?videoId={vid}&videoType=mp4", "-map", "0:a:0", "-vn", "-c:a", "copy", str(part)])
 		part.rename(media)
 	metrics = measure(media)
 	metrics.update(speech_metrics(media, vtt.read_text()))

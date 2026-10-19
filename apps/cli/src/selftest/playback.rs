@@ -1,4 +1,4 @@
-//! `cap selftest playback` — verifies A/V sync of the editor's playback
+//! `scoopy selftest playback` — verifies A/V sync of the editor's playback
 //! path: what the renderer presents vs what the audio output plays.
 //!
 //! The harness opens a flash+beep recording with the real editor machinery
@@ -19,8 +19,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use cap_editor::{EditorFrameOutput, EditorInstance, HEADLESS_CHANNELS, HEADLESS_SAMPLE_RATE};
-use cap_project::XY;
+use scoopy_editor::{EditorFrameOutput, EditorInstance, HEADLESS_CHANNELS, HEADLESS_SAMPLE_RATE};
+use scoopy_project::XY;
 use clap::Args;
 use serde::Serialize;
 
@@ -78,7 +78,7 @@ const PLAYBACK_EXTRA_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Args)]
 pub struct PlaybackArgs {
-    /// Existing flash+beep .cap project to measure (defaults to generating a
+    /// Existing flash+beep .scoopy project to measure (defaults to generating a
     /// synthetic fixture through the real recording pipeline)
     #[arg(long)]
     project: Option<PathBuf>,
@@ -128,7 +128,7 @@ struct PlaybackReport {
 /// + the render margin.
 fn delta_early_tolerance_ms(fps: u32) -> f64 {
     1000.0 / f64::from(fps)
-        + 1000.0 * cap_editor::HEADLESS_BLOCK_FRAMES as f64 / f64::from(HEADLESS_SAMPLE_RATE)
+        + 1000.0 * scoopy_editor::HEADLESS_BLOCK_FRAMES as f64 / f64::from(HEADLESS_SAMPLE_RATE)
         + RENDER_MARGIN_MS
 }
 
@@ -149,7 +149,7 @@ pub async fn run_playback(args: PlaybackArgs, json: bool) -> Result<(), String> 
         Some(path) => (path.clone(), false),
         None => {
             let path = std::env::temp_dir().join(format!(
-                "cap-selftest-playback-{}.cap",
+                "scoopy-selftest-playback-{}.scoopy",
                 uuid::Uuid::new_v4()
             ));
             // The floor guarantees enough events for measure_sync's minimum
@@ -392,7 +392,7 @@ async fn measure_playback(
     let epoch = Instant::now();
 
     let video_events: Arc<Mutex<Vec<(f64, f64)>>> = Arc::new(Mutex::new(Vec::new()));
-    let frame_cb: cap_editor::EditorFrameCallback = Box::new({
+    let frame_cb: scoopy_editor::EditorFrameCallback = Box::new({
         let video_events = video_events.clone();
         move |output, _layout| {
             let now = Instant::now();
@@ -418,7 +418,7 @@ async fn measure_playback(
         base_secs: None,
         mono: Vec::new(),
     }));
-    let audio_tap: cap_editor::HeadlessAudioTap = Box::new({
+    let audio_tap: scoopy_editor::HeadlessAudioTap = Box::new({
         let state = audio_tap_state.clone();
         move |block: &[f32], deadline: Instant| {
             let Ok(mut state) = state.lock() else {
@@ -442,7 +442,7 @@ async fn measure_playback(
         }
     });
 
-    let audio_output = Arc::new(cap_editor::AudioOutput::new_headless(audio_tap));
+    let audio_output = Arc::new(scoopy_editor::AudioOutput::new_headless(audio_tap));
 
     let instance = EditorInstance::new_with_audio_output(
         project_path.to_path_buf(),
@@ -475,7 +475,7 @@ async fn measure_playback(
     let wait = tokio::time::timeout(expected_duration + PLAYBACK_EXTRA_TIMEOUT, async {
         loop {
             let event = *handle.receive_event().await;
-            if matches!(event, cap_editor::PlaybackEvent::Stop) {
+            if matches!(event, scoopy_editor::PlaybackEvent::Stop) {
                 break;
             }
         }
@@ -554,7 +554,7 @@ fn mean_center_luma_rgba(
     (count > 0).then(|| sum as f64 / count as f64)
 }
 
-/// Generates a real `.cap` studio project containing a flash+beep pattern by
+/// Generates a real `.scoopy` studio project containing a flash+beep pattern by
 /// driving the production recording pipeline with synthetic sources — the
 /// same real-time channel-source path the sync matrix uses. Only the media
 /// origin is synthetic; encoding, muxing and metadata are the real product
@@ -562,18 +562,18 @@ fn mean_center_luma_rgba(
 mod fixture {
     use std::{path::Path, time::Duration};
 
-    use cap_media_info::{AudioInfo, RawVideoFormat, Sample, Type, VideoInfo};
-    use cap_project::{
+    use scoopy_media_info::{AudioInfo, RawVideoFormat, Sample, Type, VideoInfo};
+    use scoopy_project::{
         AudioMeta, ClipConfiguration, MultipleSegment, MultipleSegments, Platform,
         ProjectConfiguration, RecordingMeta, RecordingMetaInner, StudioRecordingMeta,
         StudioRecordingStatus, TimelineConfiguration, TimelineSegment, VideoMeta,
     };
-    use cap_recording::{
+    use scoopy_recording::{
         AudioFrame, ChannelAudioSource, ChannelAudioSourceConfig, ChannelVideoSource,
         ChannelVideoSourceConfig, OutputPipeline,
         ffmpeg::{FFmpegVideoFrame, Mp4Muxer, OggMuxer},
     };
-    use cap_timestamp::{Timestamp, Timestamps};
+    use scoopy_timestamp::{Timestamp, Timestamps};
     use relative_path::RelativePathBuf;
 
     use super::{
@@ -793,7 +793,7 @@ mod fixture {
             .with_timestamps(timestamps)
             // System audio anchors at the recording epoch, exactly like the
             // studio recorder configures it.
-            .with_audio_anchor(cap_recording::AudioAnchor::PipelineEpoch)
+            .with_audio_anchor(scoopy_recording::AudioAnchor::PipelineEpoch)
             .build::<OggMuxer>(())
             .await
             .map_err(|e| format!("system audio pipeline: {e}"))?;
@@ -840,7 +840,7 @@ mod fixture {
             .ok_or("fixture video reported no timestamp span")?;
 
         let to_project_gap_summary =
-            |s: cap_recording::AudioGapSummary| cap_project::AudioGapSummary {
+            |s: scoopy_recording::AudioGapSummary| scoopy_project::AudioGapSummary {
                 total_overlap_trimmed_ms: s.total_overlap_trimmed_ms,
                 startup_overlap_trimmed_ms: s.startup_overlap_trimmed_ms,
                 overlap_dropped_frames: s.overlap_dropped_frames,

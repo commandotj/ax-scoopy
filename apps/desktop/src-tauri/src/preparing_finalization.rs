@@ -2,7 +2,7 @@ use super::{
     FinalizationAttempt, FinalizationOrigin, FinalizationProject, FinalizationToken,
     FinalizingRecordings, FinalizingRecordingsMap,
 };
-use cap_recording::{
+use scoopy_recording::{
     recovery::{PreparingStudioJob, PreparingStudioObserver},
     studio_recording::CompletedRecording,
 };
@@ -74,7 +74,7 @@ impl FinalizationPreparing {
 
     pub(crate) fn set_presentation(
         &self,
-        presentation: Result<cap_project::ProjectConfiguration, String>,
+        presentation: Result<scoopy_project::ProjectConfiguration, String>,
     ) {
         let recordings = self.recordings.lock().unwrap();
         if self.is_current(&recordings) {
@@ -92,7 +92,7 @@ impl FinalizationPreparing {
 
     pub(crate) async fn wait_for_presentation(
         &self,
-    ) -> Option<Arc<cap_project::ProjectConfiguration>> {
+    ) -> Option<Arc<scoopy_project::ProjectConfiguration>> {
         let mut presentation = self.attempt.preparing_presentation.subscribe();
         let mut result = self.attempt.result.subscribe();
         loop {
@@ -194,7 +194,7 @@ impl FinalizationPreparing {
 mod tests {
     use super::*;
     use crate::{FinalizationAccess, await_finalization_result, has_pending_finalizations};
-    use cap_project::RecordingMeta;
+    use scoopy_project::RecordingMeta;
     use std::path::Path;
     use std::time::Duration;
 

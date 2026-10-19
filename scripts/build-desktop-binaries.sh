@@ -39,5 +39,5 @@ build_sidecar() {
     done
 }
 
-build_sidecar "cap-muxer" "cap-muxer" "cap-muxer"
-build_sidecar "cap" "cap" "cap-cli" "cap-exporter"
+build_sidecar "scoopy-muxer" "scoopy-muxer" "scoopy-muxer"
+build_sidecar "scoopy" "scoopy" "scoopy-cli" "scoopy-exporter"

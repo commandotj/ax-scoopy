@@ -13,7 +13,7 @@ use tauri::{AppHandle, Manager, WebviewWindow};
 use tauri_specta::Event;
 use tokio::sync::Notify;
 
-use crate::{CurrentRecordingChanged, windows::CapWindowId};
+use crate::{CurrentRecordingChanged, windows::ScoopyWindowId};
 
 pub const STOP_SHORTCUT: &str = "Ctrl+Shift+F9";
 
@@ -46,7 +46,7 @@ impl Phase {
 pub struct Snapshot {
     pub generation: u32,
     pub phase: Option<Phase>,
-    pub mode: Option<cap_recording::RecordingMode>,
+    pub mode: Option<scoopy_recording::RecordingMode>,
     pub shortcut: Option<String>,
     pub error: Option<String>,
 }
@@ -73,7 +73,7 @@ pub(crate) enum StopRoute {
 }
 
 struct Lease {
-    mode: cap_recording::RecordingMode,
+    mode: scoopy_recording::RecordingMode,
     generation: u32,
     phase: Phase,
     pressed: bool,
@@ -283,7 +283,7 @@ impl Inner {
             self.generation == generation
                 && lease.generation == generation
                 && lease.phase == Phase::Restoring
-                && lease.mode == cap_recording::RecordingMode::Studio
+                && lease.mode == scoopy_recording::RecordingMode::Studio
                 && !lease.wayland
         })?;
         let registered_shortcut = lease.registered_shortcut;
@@ -312,7 +312,7 @@ impl Inner {
             || self.lease.as_ref().is_none_or(|lease| {
                 lease.generation != cleanup.generation
                     || lease.phase != Phase::Restoring
-                    || lease.mode != cap_recording::RecordingMode::Studio
+                    || lease.mode != scoopy_recording::RecordingMode::Studio
                     || lease.wayland
                     || lease.registered_shortcut != cleanup.registered_shortcut
             })
@@ -333,7 +333,7 @@ impl Inner {
         let lease = self.lease.as_mut().filter(|lease| {
             lease.generation == generation
                 && lease.phase == Phase::Restoring
-                && lease.mode == cap_recording::RecordingMode::Studio
+                && lease.mode == scoopy_recording::RecordingMode::Studio
                 && !lease.wayland
         })?;
         if !self.restored.as_ref().is_some_and(|receipt| {
@@ -598,17 +598,17 @@ impl Inner {
         if lease.wayland && wayland_blocks_mapping(lease.phase) {
             return false;
         }
-        match label.parse::<CapWindowId>() {
-            Ok(CapWindowId::Main) => {
+        match label.parse::<ScoopyWindowId>() {
+            Ok(ScoopyWindowId::Main) => {
                 matches!(
                     lease.phase,
                     Phase::AwaitingShortcut | Phase::Paused | Phase::Restoring
                 ) && (!lease.stop_requested || lease.phase == Phase::Restoring)
             }
             Ok(
-                CapWindowId::Camera
-                | CapWindowId::RecordingControls
-                | CapWindowId::TargetSelectOverlay { .. },
+                ScoopyWindowId::Camera
+                | ScoopyWindowId::RecordingControls
+                | ScoopyWindowId::TargetSelectOverlay { .. },
             ) => false,
             _ => true,
         }
@@ -663,7 +663,7 @@ pub fn cancel_closed_preflight(app: &AppHandle) {
     };
     lease.stop_requested = true;
     for saved in &mut lease.windows {
-        if saved.label == CapWindowId::Main.label() {
+        if saved.label == ScoopyWindowId::Main.label() {
             saved.visible = false;
         }
     }
@@ -807,7 +807,7 @@ pub(crate) fn queue_owned_studio_stop(
     let mut inner = state.inner.lock().unwrap();
     if inner.lease.as_ref().is_none_or(|lease| {
         lease.generation != generation
-            || lease.mode != cap_recording::RecordingMode::Studio
+            || lease.mode != scoopy_recording::RecordingMode::Studio
             || lease.recording_dir.as_deref() != Some(directory)
             || !(lease.phase.can_stop() || lease.phase == Phase::Stopping)
     }) {
@@ -854,7 +854,7 @@ fn handle_stop_input(app: &AppHandle, pressed: bool, route: Option<(u32, StopRou
     #[cfg(target_os = "linux")]
     if pressed
         && inner.lease.as_ref().is_some_and(|lease| {
-            (lease.mode == cap_recording::RecordingMode::Instant || lease.wayland)
+            (lease.mode == scoopy_recording::RecordingMode::Instant || lease.wayland)
                 && lease.phase == Phase::Restoring
         })
         && inner
@@ -879,7 +879,7 @@ fn handle_stop_input(app: &AppHandle, pressed: bool, route: Option<(u32, StopRou
     let studio_stop = pressed
         .then(|| {
             inner.lease.as_ref().and_then(|lease| {
-                (lease.mode == cap_recording::RecordingMode::Studio
+                (lease.mode == scoopy_recording::RecordingMode::Studio
                     && (lease.phase.can_stop() || lease.phase == Phase::Stopping))
                     .then(|| {
                         lease
@@ -935,7 +935,7 @@ fn reveal_now_with_options(
     }
     let Some(state) = app.try_state::<State>() else {
         #[cfg(target_os = "macos")]
-        if window.label() == CapWindowId::Main.label() {
+        if window.label() == ScoopyWindowId::Main.label() {
             crate::platform::constrain_main_window_to_visible_frame(&window.as_ref().window())
                 .map_err(|error| tauri::Error::Io(std::io::Error::other(error)))?;
         }
@@ -949,7 +949,7 @@ fn reveal_now_with_options(
             lease.wayland
                 && lease.generation == expected_generation
                 && lease.phase == Phase::Stopping
-                && matches!(window.label().parse(), Ok(CapWindowId::Editor { .. }))
+                && matches!(window.label().parse(), Ok(ScoopyWindowId::Editor { .. }))
         });
         drop(inner);
         #[cfg(target_os = "linux")]
@@ -964,7 +964,7 @@ fn reveal_now_with_options(
     // before starting. Do not retain this mutex across synchronous GTK callbacks.
     drop(inner);
     #[cfg(target_os = "macos")]
-    if window.label() == CapWindowId::Main.label() {
+    if window.label() == ScoopyWindowId::Main.label() {
         crate::platform::constrain_main_window_to_visible_frame(&window.as_ref().window())
             .map_err(|error| tauri::Error::Io(std::io::Error::other(error)))?;
     }
@@ -990,7 +990,7 @@ async fn reveal_with_options(
     unminimize: bool,
 ) -> Result<bool, String> {
     #[cfg(target_os = "linux")]
-    if window.label() == CapWindowId::Main.label()
+    if window.label() == ScoopyWindowId::Main.label()
         && let Some(attempt) = crate::recording::linux_instant::current(window.app_handle())
         && attempt.has_capture()
         && !attempt.ui_ready()
@@ -1236,7 +1236,7 @@ where
 }
 
 async fn restore_paused_main(app: &AppHandle, generation: u32, dir: PathBuf) -> Result<(), String> {
-    let main = CapWindowId::Main
+    let main = ScoopyWindowId::Main
         .get(app)
         .ok_or("Recording controls window is unavailable")?;
     let (tx, rx) = tokio::sync::oneshot::channel();
@@ -1300,7 +1300,7 @@ pub fn begin_restart(app: &AppHandle, dir: &std::path::Path) -> Result<Option<u3
 #[cfg(target_os = "linux")]
 fn native_id(window: &WebviewWindow) -> Result<u64, String> {
     use wgpu::rwh::{HasWindowHandle, RawWindowHandle};
-    if cap_recording::screenshot::uses_wayland_portal() {
+    if scoopy_recording::screenshot::uses_wayland_portal() {
         use gtk::prelude::*;
         return window
             .gtk_window()
@@ -1378,7 +1378,7 @@ pub(crate) fn instant_preflight_fixture(generation: u32) -> State {
         inner: Mutex::new(Inner {
             generation,
             lease: Some(Lease {
-                mode: cap_recording::RecordingMode::Instant,
+                mode: scoopy_recording::RecordingMode::Instant,
                 generation,
                 phase: Phase::AwaitingShortcut,
                 pressed: false,
@@ -1408,11 +1408,11 @@ pub(crate) fn deliver_preflight_shortcut(state: &State) {
 }
 
 fn capture_environment_is_x11(
-    mode: cap_recording::RecordingMode,
+    mode: scoopy_recording::RecordingMode,
     strict_x11: bool,
     uses_wayland_portal: bool,
 ) -> bool {
-    if mode == cap_recording::RecordingMode::Instant {
+    if mode == scoopy_recording::RecordingMode::Instant {
         !uses_wayland_portal
     } else {
         strict_x11
@@ -1420,13 +1420,13 @@ fn capture_environment_is_x11(
 }
 
 fn validate_capture_visibility(
-    mode: cap_recording::RecordingMode,
-    target: &cap_recording::screen_capture::ScreenCaptureTarget,
+    mode: scoopy_recording::RecordingMode,
+    target: &scoopy_recording::screen_capture::ScreenCaptureTarget,
     camera_requested: bool,
     uses_wayland_portal: bool,
     supported: bool,
 ) -> Result<bool, String> {
-    use cap_recording::{RecordingMode, screen_capture::ScreenCaptureTarget};
+    use scoopy_recording::{RecordingMode, screen_capture::ScreenCaptureTarget};
     let needs_visibility = match target {
         ScreenCaptureTarget::Display { .. } | ScreenCaptureTarget::Area { .. } => {
             matches!(mode, RecordingMode::Studio | RecordingMode::Instant)
@@ -1464,7 +1464,7 @@ pub async fn prepare(
         return Err("Finish or cancel the current recording before starting another".into());
     }
     #[cfg(target_os = "linux")]
-    let uses_wayland_portal = cap_recording::screenshot::uses_wayland_portal();
+    let uses_wayland_portal = scoopy_recording::screenshot::uses_wayland_portal();
     #[cfg(not(target_os = "linux"))]
     let uses_wayland_portal = false;
     if !validate_capture_visibility(
@@ -1489,7 +1489,7 @@ pub async fn prepare(
         return Ok(None);
     }
     #[cfg(target_os = "linux")]
-    let instant_attempt = if inputs.mode == cap_recording::RecordingMode::Instant {
+    let instant_attempt = if inputs.mode == scoopy_recording::RecordingMode::Instant {
         let attempt = crate::recording::linux_instant::current(app)
             .ok_or("Instant preflight owner was lost")?;
         attempt.checked(Ok(()))?;
@@ -1497,7 +1497,7 @@ pub async fn prepare(
     } else {
         None
     };
-    let main = CapWindowId::Main
+    let main = ScoopyWindowId::Main
         .get(app)
         .ok_or("Open Scoopy before starting this recording")?;
 
@@ -1572,7 +1572,7 @@ pub async fn prepare(
         if uses_wayland_portal {
             crate::tray::set_clean_stop_mode(app, generation, true).await?;
         }
-        if inputs.mode == cap_recording::RecordingMode::Studio {
+        if inputs.mode == scoopy_recording::RecordingMode::Studio {
             hide(app, generation).await?;
         }
         Ok(Some(generation))
@@ -1595,11 +1595,11 @@ fn hide_windows(app: &AppHandle) -> Result<(), String> {
     }
     for (label, window) in app.webview_windows() {
         if matches!(
-            label.parse::<CapWindowId>(),
-            Ok(CapWindowId::Main
-                | CapWindowId::Camera
-                | CapWindowId::RecordingControls
-                | CapWindowId::TargetSelectOverlay { .. })
+            label.parse::<ScoopyWindowId>(),
+            Ok(ScoopyWindowId::Main
+                | ScoopyWindowId::Camera
+                | ScoopyWindowId::RecordingControls
+                | ScoopyWindowId::TargetSelectOverlay { .. })
         ) {
             native_id(&window)?;
             set_native_visibility(&window, false)?;
@@ -1627,8 +1627,8 @@ pub async fn hide(app: &AppHandle, generation: u32) -> Result<(), String> {
     .map_err(|e| e.to_string())?;
     tokio::time::timeout(Duration::from_secs(2), rx)
         .await
-        .map_err(|_| "Timed out hiding Cap windows".to_string())?
-        .map_err(|_| "Cap window hide task was cancelled".to_string())??;
+        .map_err(|_| "Timed out hiding Scoopy windows".to_string())?
+        .map_err(|_| "Scoopy window hide task was cancelled".to_string())??;
     #[cfg(target_os = "linux")]
     if wayland_generation(app) == Some(generation) {
         wayland_fence(app, generation, true).await?;
@@ -1645,7 +1645,7 @@ pub(crate) struct InstantSeal {
     pub generation: u32,
     pub attempt: crate::recording::linux_instant::Attempt,
     pub requested: crate::RequestedInputs,
-    pub target: cap_recording::screen_capture::ScreenCaptureTarget,
+    pub target: scoopy_recording::screen_capture::ScreenCaptureTarget,
     pub capture: crate::linux_instant_camera::PhysicalRect,
     pub presentation: Option<crate::linux_instant_camera::PreparedPresentation>,
 }
@@ -1668,7 +1668,7 @@ fn validate_instant_seal(app: &AppHandle, seal: &InstantSeal) -> Result<(), Stri
         return Err("Capture bounds changed while preparing Instant recording".into());
     }
     if let Some(presentation) = &seal.presentation {
-        let window = CapWindowId::Camera
+        let window = ScoopyWindowId::Camera
             .get(app)
             .ok_or("Camera window disappeared")?;
         presentation.validate_before_hide(&window)?;
@@ -1782,7 +1782,7 @@ async fn restore_instant_windows(
                 requested.as_ref().map_err(Clone::clone)?;
             }
             for saved in windows {
-                let main = saved.label == CapWindowId::Main.label();
+                let main = saved.label == ScoopyWindowId::Main.label();
                 if main != main_only {
                     continue;
                 }
@@ -2056,10 +2056,10 @@ fn release_inner(
             return;
         };
         if editor_took_foreground
-            && (lease.wayland || lease.mode == cap_recording::RecordingMode::Studio)
+            && (lease.wayland || lease.mode == scoopy_recording::RecordingMode::Studio)
         {
             for window in &mut lease.windows {
-                if window.label == CapWindowId::Main.label() {
+                if window.label == ScoopyWindowId::Main.label() {
                     window.visible = false;
                 }
             }
@@ -2077,7 +2077,7 @@ fn release_inner(
         .as_ref()
         .is_some_and(|lease| {
             lease.generation == generation
-                && (lease.mode == cap_recording::RecordingMode::Instant || lease.wayland)
+                && (lease.mode == scoopy_recording::RecordingMode::Instant || lease.wayland)
         })
     {
         spawn_instant_restore(app.clone(), generation, restore_inputs);
@@ -2093,7 +2093,7 @@ fn release_inner(
         .as_ref()
         .is_some_and(|lease| {
             lease.generation == generation
-                && lease.mode == cap_recording::RecordingMode::Studio
+                && lease.mode == scoopy_recording::RecordingMode::Studio
                 && !lease.wayland
         })
     {
@@ -2127,7 +2127,7 @@ fn release_inner(
                             lease
                                 .windows
                                 .iter()
-                                .find(|saved| saved.label == CapWindowId::Main.label())
+                                .find(|saved| saved.label == ScoopyWindowId::Main.label())
                                 .cloned(),
                             owned,
                         )
@@ -2171,10 +2171,10 @@ fn release_inner(
                 lease.windows.clone()
             };
             for saved in windows {
-                if saved.label == CapWindowId::Main.label() {
+                if saved.label == ScoopyWindowId::Main.label() {
                     continue;
                 }
-                if matches!(saved.label.parse::<CapWindowId>(), Ok(CapWindowId::Camera))
+                if matches!(saved.label.parse::<ScoopyWindowId>(), Ok(ScoopyWindowId::Camera))
                     && (requested.camera.value.is_none()
                         || requested.camera.pending
                         || requested.camera.error.is_some()
@@ -2220,10 +2220,10 @@ pub async fn reveal_capture_window(
     target_overlay: Option<String>,
 ) -> Result<bool, String> {
     if let Some(label) = target_overlay {
-        if window.label() != CapWindowId::Main.label()
+        if window.label() != ScoopyWindowId::Main.label()
             || !matches!(
-                label.parse::<CapWindowId>(),
-                Ok(CapWindowId::TargetSelectOverlay { .. })
+                label.parse::<ScoopyWindowId>(),
+                Ok(ScoopyWindowId::TargetSelectOverlay { .. })
             )
         {
             return Err("Only Main can restore a target selection overlay".into());
@@ -2235,14 +2235,14 @@ pub async fn reveal_capture_window(
         return reveal(target, generation).await;
     }
     if !matches!(
-        window.label().parse::<CapWindowId>(),
-        Ok(CapWindowId::Main | CapWindowId::Camera | CapWindowId::RecordingControls)
+        window.label().parse::<ScoopyWindowId>(),
+        Ok(ScoopyWindowId::Main | ScoopyWindowId::Camera | ScoopyWindowId::RecordingControls)
     ) {
-        return Err("Only Cap recording windows can use this command".into());
+        return Err("Only Scoopy recording windows can use this command".into());
     }
     if matches!(
-        window.label().parse::<CapWindowId>(),
-        Ok(CapWindowId::RecordingControls)
+        window.label().parse::<ScoopyWindowId>(),
+        Ok(ScoopyWindowId::RecordingControls)
     ) && window
         .app_handle()
         .state::<crate::ArcLock<crate::App>>()
@@ -2253,7 +2253,7 @@ pub async fn reveal_capture_window(
     {
         return Ok(false);
     }
-    let main = matches!(window.label().parse::<CapWindowId>(), Ok(CapWindowId::Main));
+    let main = matches!(window.label().parse::<ScoopyWindowId>(), Ok(ScoopyWindowId::Main));
     reveal_with_options(window, generation, main, main).await
 }
 
@@ -2506,7 +2506,7 @@ mod instant_activation_tests {
         Inner {
             generation: 7,
             lease: Some(Lease {
-                mode: cap_recording::RecordingMode::Instant,
+                mode: scoopy_recording::RecordingMode::Instant,
                 generation: 7,
                 phase: Phase::Restoring,
                 pressed: false,
@@ -2616,8 +2616,8 @@ async fn save_windows(app: &AppHandle, generation: u32) -> Result<Vec<SavedWindo
             for (label, window) in handle.webview_windows() {
                 if save_all
                     || matches!(
-                        label.parse::<CapWindowId>(),
-                        Ok(CapWindowId::Main | CapWindowId::Camera)
+                        label.parse::<ScoopyWindowId>(),
+                        Ok(ScoopyWindowId::Main | ScoopyWindowId::Camera)
                     )
                 {
                     #[cfg(target_os = "linux")]
@@ -2683,7 +2683,7 @@ async fn wayland_fence(app: &AppHandle, generation: u32, hidden: bool) -> Result
             if !is_current(&handle, generation) {
                 return Err("Recording visibility fence was superseded".to_string());
             }
-            let gtk = if let Some(window) = CapWindowId::Main.get(&handle) {
+            let gtk = if let Some(window) = ScoopyWindowId::Main.get(&handle) {
                 window.gtk_window().map_err(|error| error.to_string())?
             } else if !hidden && phase(&handle) == Some(Phase::Restoring) {
                 WAYLAND_WINDOWS
@@ -2864,7 +2864,7 @@ pub(crate) fn wayland_stop_lost(app: &AppHandle, generation: u32, route: StopRou
         return;
     };
     let stop = lease.lose_stop_route(route);
-    let studio_stop = (lease.mode == cap_recording::RecordingMode::Studio
+    let studio_stop = (lease.mode == scoopy_recording::RecordingMode::Studio
         && (stop || lease.stop_requested && lease.phase == Phase::Stopping))
         .then(|| lease.recording_dir.clone())
         .flatten();
@@ -2893,7 +2893,7 @@ fn verify_wayland_hidden(app: &AppHandle, generation: u32) -> Result<(), String>
     if !is_current(app, generation) || stop_requested(app, generation) {
         return Err("Recording hide acknowledgement was superseded or cancelled".into());
     }
-    let main = CapWindowId::Main
+    let main = ScoopyWindowId::Main
         .get(app)
         .ok_or("Main recording window disappeared")?
         .gtk_window()
@@ -2901,7 +2901,7 @@ fn verify_wayland_hidden(app: &AppHandle, generation: u32) -> Result<(), String>
     let display = main.display();
     for window in wayland_application(app)?.windows() {
         if window.display() != display || window.is_visible() || window.is_mapped() {
-            return Err("A Cap window is visible or uses another display connection".into());
+            return Err("A Scoopy window is visible or uses another display connection".into());
         }
     }
     Ok(())
@@ -2912,7 +2912,7 @@ fn verify_wayland_restored(app: &AppHandle, generation: u32) -> Result<(), Strin
     use gtk::prelude::*;
     for (saved, wanted) in wayland_restore_plan(app, generation, true)? {
         if saved.window.is_visible() != wanted || saved.window.is_mapped() != wanted {
-            return Err("The compositor restore acknowledgement did not match Cap windows".into());
+            return Err("The compositor restore acknowledgement did not match Scoopy windows".into());
         }
     }
     Ok(())
@@ -2928,12 +2928,12 @@ fn wayland_blocks_mapping(phase: Phase) -> bool {
 #[cfg(any(target_os = "linux", test))]
 fn restore_floating_window(label: Option<&str>) -> bool {
     !matches!(
-        label.and_then(|label| label.parse::<CapWindowId>().ok()),
+        label.and_then(|label| label.parse::<ScoopyWindowId>().ok()),
         Some(
-            CapWindowId::RecordingControls
-                | CapWindowId::TargetSelectOverlay { .. }
-                | CapWindowId::WindowCaptureOccluder { .. }
-                | CapWindowId::CaptureArea
+            ScoopyWindowId::RecordingControls
+                | ScoopyWindowId::TargetSelectOverlay { .. }
+                | ScoopyWindowId::WindowCaptureOccluder { .. }
+                | ScoopyWindowId::CaptureArea
         )
     )
 }
@@ -2957,7 +2957,7 @@ thread_local! {
 #[cfg(target_os = "linux")]
 fn wayland_application(app: &AppHandle) -> Result<gtk::Application, String> {
     use gtk::prelude::*;
-    CapWindowId::Main
+    ScoopyWindowId::Main
         .get(app)
         .ok_or("Main recording window disappeared")?
         .gtk_window()
@@ -3081,7 +3081,7 @@ fn hide_wayland_windows(app: &AppHandle, generation: u32) -> Result<(), String> 
     for window in wayland_application(app)?.windows() {
         window.hide();
         if window.is_visible() || window.is_mapped() {
-            return Err("GTK could not hide a Cap window".into());
+            return Err("GTK could not hide a Scoopy window".into());
         }
     }
     Ok(())
@@ -3117,7 +3117,7 @@ fn wayland_restore_plan(
         lease
             .windows
             .iter()
-            .find(|window| window.label == CapWindowId::Main.label())
+            .find(|window| window.label == ScoopyWindowId::Main.label())
             .cloned()
     };
     let requested = if require_inputs {
@@ -3145,11 +3145,11 @@ fn wayland_restore_plan(
         let camera = saved
             .label
             .as_deref()
-            .is_some_and(|label| matches!(label.parse(), Ok(CapWindowId::Camera)));
+            .is_some_and(|label| matches!(label.parse(), Ok(ScoopyWindowId::Camera)));
         let editor = saved
             .label
             .as_deref()
-            .is_some_and(|label| matches!(label.parse(), Ok(CapWindowId::Editor { .. })));
+            .is_some_and(|label| matches!(label.parse(), Ok(ScoopyWindowId::Editor { .. })));
         let mut wanted = (saved.visible || (editor && saved.requested_during_stop))
             && restore_floating_window(saved.label.as_deref())
             && (!camera
@@ -3160,10 +3160,10 @@ fn wayland_restore_plan(
             wanted = saved_main.as_ref().is_some_and(|saved| saved.visible);
         }
         if wanted && label_changed {
-            return Err("A retained Cap window changed identity".into());
+            return Err("A retained Scoopy window changed identity".into());
         }
         if wanted && !current.contains(&saved.window) {
-            return Err("A retained Cap window disappeared before restoration".into());
+            return Err("A retained Scoopy window disappeared before restoration".into());
         }
         result.push((saved, wanted));
     }
@@ -3193,7 +3193,7 @@ fn restore_wayland_windows(
                 && saved
                     .label
                     .as_deref()
-                    .is_some_and(|label| matches!(label.parse(), Ok(CapWindowId::Editor { .. })))
+                    .is_some_and(|label| matches!(label.parse(), Ok(ScoopyWindowId::Editor { .. })))
             {
                 saved.window.present();
             }
@@ -3201,7 +3201,7 @@ fn restore_wayland_windows(
             saved.window.hide();
         }
         if saved.window.is_visible() != wanted || (!wanted && saved.window.is_mapped()) {
-            return Err("GTK did not acknowledge Cap window restoration".into());
+            return Err("GTK did not acknowledge Scoopy window restoration".into());
         }
     }
     Ok(())
@@ -3214,8 +3214,8 @@ mod tests {
     #[test]
     fn wayland_blocks_all_floating_labels_while_capture_can_run() {
         for mode in [
-            cap_recording::RecordingMode::Studio,
-            cap_recording::RecordingMode::Instant,
+            scoopy_recording::RecordingMode::Studio,
+            scoopy_recording::RecordingMode::Instant,
         ] {
             for phase in [
                 Phase::Starting,
@@ -3520,8 +3520,8 @@ mod tests {
     #[test]
     fn x11_studio_completion_does_not_accept_instant_or_wayland_leases() {
         for (mode, wayland) in [
-            (cap_recording::RecordingMode::Instant, false),
-            (cap_recording::RecordingMode::Studio, true),
+            (scoopy_recording::RecordingMode::Instant, false),
+            (scoopy_recording::RecordingMode::Studio, true),
         ] {
             let state = x11_studio_restoring_fixture();
             {
@@ -3641,7 +3641,7 @@ mod tests {
             #[cfg(target_os = "linux")]
             x11_cleanup: None,
             lease: Some(Lease {
-                mode: cap_recording::RecordingMode::Studio,
+                mode: scoopy_recording::RecordingMode::Studio,
                 generation: 1,
                 phase: Phase::AwaitingShortcut,
                 pressed: false,
@@ -3800,7 +3800,7 @@ mod tests {
 
     #[test]
     fn instant_uses_capture_backend_without_loosening_studio_environment() {
-        use cap_recording::RecordingMode;
+        use scoopy_recording::RecordingMode;
         for strict_x11 in [false, true] {
             assert!(capture_environment_is_x11(
                 RecordingMode::Instant,
@@ -3839,7 +3839,7 @@ mod tests {
 
     #[test]
     fn monitor_visibility_requires_x11_for_both_recording_modes() {
-        use cap_recording::{RecordingMode, screen_capture::ScreenCaptureTarget};
+        use scoopy_recording::{RecordingMode, screen_capture::ScreenCaptureTarget};
         let display = ScreenCaptureTarget::Display {
             id: "1".parse().unwrap(),
         };
@@ -3880,7 +3880,7 @@ mod tests {
 
     #[test]
     fn window_camera_visibility_is_required_only_for_x11_instant() {
-        use cap_recording::{RecordingMode, screen_capture::ScreenCaptureTarget};
+        use scoopy_recording::{RecordingMode, screen_capture::ScreenCaptureTarget};
         let target = ScreenCaptureTarget::Window {
             id: "1".parse().unwrap(),
         };

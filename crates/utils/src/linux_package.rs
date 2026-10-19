@@ -37,7 +37,7 @@ pub fn appimage_alsa_config_path() -> Option<OsString> {
     {
         return None;
     }
-    let config = appdir.join("usr/lib/cap/alsa-pulse.conf");
+    let config = appdir.join("usr/lib/scoopy/alsa-pulse.conf");
     let plugin = appdir.join("usr/lib/alsa-lib/libasound_module_pcm_pulse.so");
     if !config.is_file() || !plugin.is_file() {
         return None;
@@ -88,16 +88,16 @@ fn target_for(format: PackageFormat, arch: &str) -> Result<String, String> {
         PackageFormat::Deb => "deb",
         PackageFormat::AppImage => "appimage",
         PackageFormat::Rpm => {
-            return Err("Update Scoopy through your RPM package manager or install the latest RPM from cap.so/download.".into());
+            return Err("Update Scoopy through your RPM package manager or install the latest RPM from example.com/download.".into());
         }
         PackageFormat::Arch => {
-            return Err("Update Scoopy through your Arch package manager or install the latest Arch package from cap.so/download.".into());
+            return Err("Update Scoopy through your Arch package manager or install the latest Arch package from example.com/download.".into());
         }
         PackageFormat::ExtractedAppImage => {
             return Err("Launch the original Scoopy AppImage to use automatic updates. An extracted AppImage cannot update itself.".into());
         }
         PackageFormat::Unknown => {
-            return Err("Automatic updates are unavailable for this Scoopy installation. Update it through your package manager or cap.so/download.".into());
+            return Err("Automatic updates are unavailable for this Scoopy installation. Update it through your package manager or example.com/download.".into());
         }
     };
     Ok(format!("linux-{arch}-{suffix}"))
@@ -108,10 +108,10 @@ pub fn updater_target(arch: &str) -> Result<String, String> {
     let marker = executable
         .parent()
         .and_then(Path::parent)
-        .and_then(|directory| fs::read_to_string(directory.join("lib/cap/package-format")).ok());
+        .and_then(|directory| fs::read_to_string(directory.join("lib/scoopy/package-format")).ok());
     let appimage = env::var_os("APPIMAGE").map(PathBuf::from);
     let appdir = env::var_os("APPDIR").map(PathBuf::from);
-    let debian_files = fs::read_to_string("/var/lib/dpkg/info/cap.list").ok();
+    let debian_files = fs::read_to_string("/var/lib/dpkg/info/scoopy.list").ok();
     target_for(
         package_format(
             &executable,
@@ -130,12 +130,12 @@ mod tests {
 
     #[test]
     fn appimage_audio_preserves_host_and_custom_configuration() {
-        let config = Path::new("/tmp/.mount_cap/usr/lib/cap/alsa-pulse.conf");
+        let config = Path::new("/tmp/.mount_cap/usr/lib/scoopy/alsa-pulse.conf");
         for existing in [None, Some(OsStr::new(""))] {
             assert_eq!(
                 append_alsa_config(config, existing).unwrap(),
                 OsString::from(
-                    "/usr/share/alsa/alsa.conf:/tmp/.mount_cap/usr/lib/cap/alsa-pulse.conf"
+                    "/usr/share/alsa/alsa.conf:/tmp/.mount_cap/usr/lib/scoopy/alsa-pulse.conf"
                 )
             );
         }
@@ -144,7 +144,7 @@ mod tests {
         assert_eq!(
             combined,
             OsString::from(
-                "/home/user/audio.conf:/home/user/devices.conf:/tmp/.mount_cap/usr/lib/cap/alsa-pulse.conf"
+                "/home/user/audio.conf:/home/user/devices.conf:/tmp/.mount_cap/usr/lib/scoopy/alsa-pulse.conf"
             )
         );
         assert!(append_alsa_config(config, Some(&combined)).is_none());
@@ -153,11 +153,11 @@ mod tests {
 
     #[test]
     fn appimage_updates_require_the_current_executable_inside_its_appdir() {
-        let root = std::env::temp_dir().join("cap-linux-package-test");
-        let image = root.join("Cap.AppImage");
+        let root = std::env::temp_dir().join("scoopy-linux-package-test");
+        let image = root.join("Scoopy.AppImage");
         let directory = root.join(".mount_cap");
         let format = package_format(
-            &directory.join("usr/bin/Cap"),
+            &directory.join("usr/bin/Scoopy"),
             Some("appimage\n"),
             Some(&image),
             Some(&directory),
@@ -168,7 +168,7 @@ mod tests {
             "linux-x86_64-appimage"
         );
         let format = package_format(
-            &root.join("usr/bin/Cap"),
+            &root.join("usr/bin/Scoopy"),
             Some("rpm\n"),
             Some(&image),
             Some(&directory),
@@ -186,22 +186,22 @@ mod tests {
             ("appimage", PackageFormat::ExtractedAppImage),
             ("other", PackageFormat::Unknown),
         ] {
-            let format = package_format(Path::new("/usr/bin/Cap"), Some(marker), None, None, None);
+            let format = package_format(Path::new("/usr/bin/Scoopy"), Some(marker), None, None, None);
             assert_eq!(format, expected);
             assert!(target_for(format, "aarch64").is_err());
         }
-        let format = package_format(Path::new("/usr/bin/Cap"), Some("deb\n"), None, None, None);
+        let format = package_format(Path::new("/usr/bin/Scoopy"), Some("deb\n"), None, None, None);
         assert_eq!(target_for(format, "aarch64").unwrap(), "linux-aarch64-deb");
     }
 
     #[test]
     fn legacy_debian_packages_require_executable_ownership() {
-        let files = Some("/usr/bin/Scoopy\n/usr/bin/scoopy\n/usr/bin/Cap\n/usr/bin/cap-gpui\n");
+        let files = Some("/usr/bin/Scoopy\n/usr/bin/scoopy\n/usr/bin/Scoopy\n/usr/bin/scoopy-gpui\n");
         for executable in [
             "/usr/bin/Scoopy",
             "/usr/bin/scoopy",
-            "/usr/bin/Cap",
-            "/usr/bin/cap-gpui",
+            "/usr/bin/Scoopy",
+            "/usr/bin/scoopy-gpui",
         ] {
             assert_eq!(
                 package_format(Path::new(executable), None, None, None, files),
@@ -209,7 +209,7 @@ mod tests {
             );
         }
         assert_eq!(
-            package_format(Path::new("/tmp/Cap"), None, None, None, files),
+            package_format(Path::new("/tmp/Scoopy"), None, None, None, files),
             PackageFormat::Unknown
         );
     }

@@ -1,6 +1,6 @@
 //! Persisted state: this app's own, and the Tauri app's settings store.
 //!
-//! Two files, both inside `so.cap.desktop`'s app-data dir:
+//! Two files, both inside `me.systembug.scoopy`'s app-data dir:
 //!
 //! - `gpui-state.json` -- ours. The Tauri app keeps the camera window's chrome
 //!   state in the webview's `localStorage` (`cameraWindowState`); there is no
@@ -141,13 +141,13 @@ pub struct ExportPrefs {
     pub advanced_open: bool,
 }
 
-/// `so.cap.desktop`'s app-data dir -- where both stores live.
+/// `me.systembug.scoopy`'s app-data dir -- where both stores live.
 ///
-/// Same identifier the Tauri app uses (`so.cap.desktop`), resolved the way
+/// Same identifier the Tauri app uses (`me.systembug.scoopy`), resolved the way
 /// each OS's app-data convention spells it so a recording made on Windows or
 /// Linux lands in the folder both apps already agree on.
 pub fn app_data_dir() -> PathBuf {
-    if let Ok(dir) = std::env::var("CAP_GPUI_APP_DATA_DIR")
+    if let Ok(dir) = std::env::var("SCOOPY_GPUI_APP_DATA_DIR")
         && !dir.trim().is_empty()
     {
         return PathBuf::from(dir);
@@ -156,14 +156,14 @@ pub fn app_data_dir() -> PathBuf {
     #[cfg(target_os = "macos")]
     {
         PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into()))
-            .join("Library/Application Support/so.cap.desktop")
+            .join("Library/Application Support/me.systembug.scoopy")
     }
     #[cfg(target_os = "windows")]
     {
         std::env::var_os("APPDATA")
             .map(PathBuf::from)
             .unwrap_or_else(|| PathBuf::from("."))
-            .join("so.cap.desktop")
+            .join("me.systembug.scoopy")
     }
     #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
     {
@@ -173,13 +173,13 @@ pub fn app_data_dir() -> PathBuf {
                 PathBuf::from(std::env::var_os("HOME").unwrap_or_else(|| ".".into()))
                     .join(".local/share")
             });
-        base.join("so.cap.desktop")
+        base.join("me.systembug.scoopy")
     }
 }
 
 pub(crate) fn bundled_resource_dirs() -> Vec<PathBuf> {
     let executable = std::env::current_exe().ok();
-    let override_dir = std::env::var_os("CAP_GPUI_RESOURCES_DIR").map(PathBuf::from);
+    let override_dir = std::env::var_os("SCOOPY_GPUI_RESOURCES_DIR").map(PathBuf::from);
     bundled_resource_dirs_for(executable.as_deref(), override_dir.as_deref())
 }
 
@@ -247,14 +247,14 @@ fn clear_handoff_marker_at(path: &Path) {
     }
 }
 
-/// A dev-checkout switch-back has no `Cap.app` to `open`: the classic app only
+/// A dev-checkout switch-back has no `Scoopy.app` to `open`: the classic app only
 /// runs inside its `tauri dev` harness, which exited with the hand-off. This
 /// sentinel asks whatever supervises the dev session (`scripts/dev-desktop.mjs`
 /// watches for it) to start that harness again; with no supervisor listening it
 /// is inert, and the flag written alongside it still routes the next
 /// `bun run dev:desktop` to the classic app.
 pub fn classic_reopen_path() -> PathBuf {
-    app_data_dir().join("cap-classic.reopen")
+    app_data_dir().join("scoopy-classic.reopen")
 }
 
 pub fn request_classic_reopen() -> std::io::Result<()> {
@@ -266,7 +266,7 @@ pub fn request_classic_reopen() -> std::io::Result<()> {
 }
 
 pub fn classic_pending_path() -> PathBuf {
-    app_data_dir().join("cap-classic.pending")
+    app_data_dir().join("scoopy-classic.pending")
 }
 
 pub fn mark_classic_pending() -> std::io::Result<()> {
@@ -338,7 +338,7 @@ thread_local! {
 
 /// The tauri-plugin-store file, shared with the shipping app.
 ///
-/// `CAP_GPUI_TAURI_STORE` redirects it at a copy, which is how the tests --
+/// `SCOOPY_GPUI_TAURI_STORE` redirects it at a copy, which is how the tests --
 /// and any verification run that must not touch the user's real settings --
 /// work.
 pub fn tauri_store_path() -> PathBuf {
@@ -347,7 +347,7 @@ pub fn tauri_store_path() -> PathBuf {
         return path;
     }
 
-    match std::env::var("CAP_GPUI_TAURI_STORE") {
+    match std::env::var("SCOOPY_GPUI_TAURI_STORE") {
         Ok(path) if !path.is_empty() => PathBuf::from(path),
         // `Store.load("store")`: no extension, and the sibling `store.json`
         // is a different (stale) file.
@@ -632,7 +632,7 @@ settings_enum! {
     default = Balanced
 }
 
-impl From<StudioQuality> for cap_recording::StudioQuality {
+impl From<StudioQuality> for scoopy_recording::StudioQuality {
     fn from(quality: StudioQuality) -> Self {
         match quality {
             StudioQuality::Compatibility => Self::Compatibility,
@@ -839,9 +839,9 @@ pub fn excluded_windows_to_json(windows: &[WindowExclusion]) -> Value {
     Value::Array(windows.iter().map(WindowExclusion::to_json).collect())
 }
 
-/// `https://cap.so` -- `default_server_url()` in `general_settings.rs`, which
+/// `https://example.com` -- `default_server_url()` in `general_settings.rs`, which
 /// is also what `clientEnv.VITE_SERVER_URL` resolves to in a release build.
-pub const DEFAULT_SERVER_URL: &str = "https://cap.so";
+pub const DEFAULT_SERVER_URL: &str = "https://example.com";
 
 /// `DEFAULT_FILENAME_TEMPLATE` in `src-tauri/src/recording.rs`, spelled the
 /// same way `general.tsx` spells it.
@@ -928,7 +928,7 @@ pub fn set_studio_sound_by_default(enabled: bool) -> bool {
     )
 }
 
-pub fn studio_sound_isolation() -> cap_project::VoiceIsolation {
+pub fn studio_sound_isolation() -> scoopy_project::VoiceIsolation {
     store_section(AUDIO_ENHANCEMENT)
         .get("isolation")
         .cloned()
@@ -936,7 +936,7 @@ pub fn studio_sound_isolation() -> cap_project::VoiceIsolation {
         .unwrap_or_default()
 }
 
-pub fn set_studio_sound_isolation(isolation: cap_project::VoiceIsolation) -> bool {
+pub fn set_studio_sound_isolation(isolation: scoopy_project::VoiceIsolation) -> bool {
     set_store_setting(
         AUDIO_ENHANCEMENT,
         "isolation",
@@ -944,7 +944,7 @@ pub fn set_studio_sound_isolation(isolation: cap_project::VoiceIsolation) -> boo
     )
 }
 
-pub fn set_studio_sound_defaults(enabled: bool, isolation: cap_project::VoiceIsolation) -> bool {
+pub fn set_studio_sound_defaults(enabled: bool, isolation: scoopy_project::VoiceIsolation) -> bool {
     let mut section = store_section(AUDIO_ENHANCEMENT);
     section.insert(STUDIO_SOUND_BY_DEFAULT_KEY.into(), Value::Bool(enabled));
     section.insert("isolation".into(), serde_json::to_value(isolation).unwrap());
@@ -956,15 +956,15 @@ pub const RECORDING_SETTINGS: &str = "recording_settings";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct RecordingDeviceSettings {
-    pub camera: Option<cap_recording::feeds::camera::CameraDeviceSettings>,
-    pub microphone: Option<cap_recording::feeds::microphone::MicrophoneDeviceSettings>,
+    pub camera: Option<scoopy_recording::feeds::camera::CameraDeviceSettings>,
+    pub microphone: Option<scoopy_recording::feeds::microphone::MicrophoneDeviceSettings>,
 }
 
 impl RecordingDeviceSettings {
     pub fn for_camera(
         device_id: &str,
-        model_id: Option<&cap_camera::ModelID>,
-    ) -> Option<cap_recording::feeds::camera::CameraDeviceSettings> {
+        model_id: Option<&scoopy_camera::ModelID>,
+    ) -> Option<scoopy_recording::feeds::camera::CameraDeviceSettings> {
         let settings = store_section(RECORDING_SETTINGS);
         let formats = settings.get("cameraDeviceSettings")?;
         std::iter::once(format!("device:{device_id}"))
@@ -979,7 +979,7 @@ impl RecordingDeviceSettings {
 
     pub fn for_microphone(
         name: &str,
-    ) -> Option<cap_recording::feeds::microphone::MicrophoneDeviceSettings> {
+    ) -> Option<scoopy_recording::feeds::microphone::MicrophoneDeviceSettings> {
         store_section(RECORDING_SETTINGS)
             .get("microphoneDeviceSettings")?
             .get(name)
@@ -990,8 +990,8 @@ impl RecordingDeviceSettings {
 
 pub fn set_camera_device_settings(
     device_id: &str,
-    model_id: Option<&cap_camera::ModelID>,
-    settings: cap_recording::feeds::camera::CameraDeviceSettings,
+    model_id: Option<&scoopy_camera::ModelID>,
+    settings: scoopy_recording::feeds::camera::CameraDeviceSettings,
 ) -> bool {
     let keys = std::iter::once(format!("device:{device_id}"))
         .chain(model_id.map(|model| format!("model:{model}")));
@@ -1000,7 +1000,7 @@ pub fn set_camera_device_settings(
 
 pub fn set_microphone_device_settings(
     name: &str,
-    settings: cap_recording::feeds::microphone::MicrophoneDeviceSettings,
+    settings: scoopy_recording::feeds::microphone::MicrophoneDeviceSettings,
 ) -> bool {
     set_device_format_settings("microphoneDeviceSettings", [name.to_string()], settings)
 }
@@ -1047,7 +1047,7 @@ fn set_device_format_settings(
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RecordingInputSettings {
-    pub camera_id: Option<cap_recording::feeds::camera::DeviceOrModelID>,
+    pub camera_id: Option<scoopy_recording::feeds::camera::DeviceOrModelID>,
     pub microphone_name: Option<String>,
 }
 
@@ -1065,8 +1065,8 @@ impl RecordingInputSettings {
     }
 }
 
-fn recording_camera_id(value: &Value) -> Option<cap_recording::feeds::camera::DeviceOrModelID> {
-    use cap_recording::feeds::camera::DeviceOrModelID;
+fn recording_camera_id(value: &Value) -> Option<scoopy_recording::feeds::camera::DeviceOrModelID> {
+    use scoopy_recording::feeds::camera::DeviceOrModelID;
 
     let object = value.as_object()?;
     if object.len() != 1 {
@@ -1076,12 +1076,12 @@ fn recording_camera_id(value: &Value) -> Option<cap_recording::feeds::camera::De
         return (!id.is_empty()).then(|| DeviceOrModelID::DeviceID(id.to_string()));
     }
     let model = object.get("ModelID")?.as_str()?.to_string();
-    cap_camera::ModelID::try_from(model)
+    scoopy_camera::ModelID::try_from(model)
         .ok()
         .map(DeviceOrModelID::ModelID)
 }
 
-pub fn set_recording_camera_id(id: Option<&cap_recording::feeds::camera::DeviceOrModelID>) -> bool {
+pub fn set_recording_camera_id(id: Option<&scoopy_recording::feeds::camera::DeviceOrModelID>) -> bool {
     let Ok(value) = serde_json::to_value(id) else {
         return false;
     };
@@ -1109,7 +1109,7 @@ pub fn set_recording_microphone_name(name: Option<&str>) -> bool {
     )
 }
 
-/// `RecordingSettingsStore.mode`, i.e. `cap_recording::RecordingMode` under
+/// `RecordingSettingsStore.mode`, i.e. `scoopy_recording::RecordingMode` under
 /// `#[serde(rename_all = "camelCase")]` -- one lowercase word per variant
 /// (`studio`, `instant`, `screenshot`). `None` when the key is absent, which
 /// `get_current_mode` turns into `RecordingMode::default()` (Instant).
@@ -1542,7 +1542,7 @@ mod tests {
 
     #[test]
     fn device_format_preferences_use_tauri_keys_and_preserve_other_fields() {
-        use cap_recording::feeds::{
+        use scoopy_recording::feeds::{
             camera::CameraDeviceSettings, microphone::MicrophoneDeviceSettings,
         };
         let store = TempStore::new(
@@ -1552,7 +1552,7 @@ mod tests {
             ),
         );
         let before = store.read();
-        let model = cap_camera::ModelID::try_from("vendor:product".to_string()).unwrap();
+        let model = scoopy_camera::ModelID::try_from("vendor:product".to_string()).unwrap();
         let snapshot = RecordingDeviceSettings {
             camera: RecordingDeviceSettings::for_camera("camera-1", Some(&model)),
             microphone: RecordingDeviceSettings::for_microphone("Desk"),
@@ -1635,7 +1635,7 @@ mod tests {
 
     #[test]
     fn recording_inputs_round_trip_without_replacing_unknown_settings() {
-        use cap_recording::feeds::camera::DeviceOrModelID;
+        use scoopy_recording::feeds::camera::DeviceOrModelID;
 
         let store = TempStore::new(
             "recording-inputs-round-trip",
@@ -1644,7 +1644,7 @@ mod tests {
             ),
         );
         let original = store.read();
-        let model = cap_camera::ModelID::try_from("vendor:product".to_string()).unwrap();
+        let model = scoopy_camera::ModelID::try_from("vendor:product".to_string()).unwrap();
         assert_eq!(
             RecordingInputSettings::load(),
             RecordingInputSettings {
@@ -1715,7 +1715,7 @@ mod tests {
         );
         assert_eq!(
             first.camera_id,
-            Some(cap_recording::feeds::camera::DeviceOrModelID::DeviceID(
+            Some(scoopy_recording::feeds::camera::DeviceOrModelID::DeviceID(
                 "unplugged-camera".into()
             ))
         );
@@ -1749,7 +1749,7 @@ mod tests {
 
     #[test]
     fn temporary_stores_are_thread_local_without_mutating_process_environment() {
-        let original = std::env::var_os("CAP_GPUI_TAURI_STORE");
+        let original = std::env::var_os("SCOOPY_GPUI_TAURI_STORE");
         let barrier = std::sync::Arc::new(std::sync::Barrier::new(4));
         let workers = (0..4)
             .map(|index| {
@@ -1765,7 +1765,7 @@ mod tests {
                     ));
                     barrier.wait();
                     assert_eq!(GeneralSettings::load().max_fps, 24 + index);
-                    assert_eq!(std::env::var_os("CAP_GPUI_TAURI_STORE"), original);
+                    assert_eq!(std::env::var_os("SCOOPY_GPUI_TAURI_STORE"), original);
                 })
             })
             .collect::<Vec<_>>();
@@ -1773,7 +1773,7 @@ mod tests {
         for worker in workers {
             worker.join().unwrap();
         }
-        assert_eq!(std::env::var_os("CAP_GPUI_TAURI_STORE"), original);
+        assert_eq!(std::env::var_os("SCOOPY_GPUI_TAURI_STORE"), original);
     }
 
     /// The compatibility contract: writing one setting must leave every key
@@ -1877,8 +1877,8 @@ mod tests {
     "custom_cursor_capture2": false,
     "defaultZoomAmount": 2.5,
     "maxFps": 120,
-    "serverUrl": "https://cap.example.com",
-    "excludedWindows": [{ "bundleIdentifier": null, "ownerName": null, "windowTitle": "Cap" }]
+    "serverUrl": "https://example.com",
+    "excludedWindows": [{ "bundleIdentifier": null, "ownerName": null, "windowTitle": "Scoopy" }]
   }
 }"#,
             ),
@@ -1896,9 +1896,9 @@ mod tests {
         assert!(!settings.custom_cursor_capture);
         assert_eq!(settings.default_zoom_amount, Some(2.5));
         assert_eq!(settings.max_fps, 120);
-        assert_eq!(settings.server_url, "https://cap.example.com");
+        assert_eq!(settings.server_url, "https://example.com");
         assert_eq!(settings.excluded_windows.len(), 1);
-        assert_eq!(settings.excluded_windows[0].primary_label(), "Cap");
+        assert_eq!(settings.excluded_windows[0].primary_label(), "Scoopy");
         // Absent keys take the page's defaults, not the struct's zero values.
         assert!(settings.enable_notifications);
         assert!(settings.crash_recovery_recording);
@@ -2007,15 +2007,15 @@ mod tests {
     #[test]
     fn transcription_hints_normalize_like_the_web_app() {
         assert_eq!(
-            normalize_transcription_hints(["  Cap ", "Cap", "", "\0", "Type\0Script", "cap"]),
-            ["Cap", "TypeScript", "cap"]
+            normalize_transcription_hints(["  Scoopy ", "Scoopy", "", "\0", "Type\0Script", "scoopy"]),
+            ["Scoopy", "TypeScript", "scoopy"]
         );
 
         let _store = TempStore::new(
             "hints",
-            Some(r#"{ "general_settings": { "transcriptionHints": ["Cap", "Acme"] } }"#),
+            Some(r#"{ "general_settings": { "transcriptionHints": ["Scoopy", "Acme"] } }"#),
         );
-        assert_eq!(transcription_hints(), ["Cap", "Acme"]);
+        assert_eq!(transcription_hints(), ["Scoopy", "Acme"]);
     }
 
     /// An absent `transcriptionHints` key shows the four defaults
@@ -2092,47 +2092,47 @@ mod tests {
     #[test]
     fn exclusion_matches_by_each_field_and_owner_title_requires_both() {
         let title = WindowExclusion {
-            window_title: Some("Cap Camera".into()),
+            window_title: Some("Scoopy Camera".into()),
             ..Default::default()
         };
-        assert!(title.matches(None, None, Some("Cap Camera")));
+        assert!(title.matches(None, None, Some("Scoopy Camera")));
         assert!(!title.matches(None, None, Some("Other Window")));
         assert!(!title.matches(None, None, None));
 
         let bundle = WindowExclusion {
-            bundle_identifier: Some("com.cap.desktop".into()),
+            bundle_identifier: Some("com.scoopy.desktop".into()),
             ..Default::default()
         };
-        assert!(bundle.matches(Some("com.cap.desktop"), None, None));
+        assert!(bundle.matches(Some("com.scoopy.desktop"), None, None));
         assert!(!bundle.matches(Some("com.other.app"), None, None));
 
         let owner = WindowExclusion {
-            owner_name: Some("Cap".into()),
+            owner_name: Some("Scoopy".into()),
             ..Default::default()
         };
-        assert!(owner.matches(None, Some("Cap"), None));
+        assert!(owner.matches(None, Some("Scoopy"), None));
         assert!(!owner.matches(None, Some("Other"), None));
 
         let owner_and_title = WindowExclusion {
-            owner_name: Some("Cap".into()),
-            window_title: Some("Cap Camera".into()),
+            owner_name: Some("Scoopy".into()),
+            window_title: Some("Scoopy Camera".into()),
             ..Default::default()
         };
-        assert!(owner_and_title.matches(None, Some("Cap"), Some("Cap Camera")));
-        assert!(!owner_and_title.matches(None, Some("Cap"), Some("Wrong Title")));
-        assert!(!owner_and_title.matches(None, Some("Wrong Owner"), Some("Cap Camera")));
-        assert!(!owner_and_title.matches(None, None, Some("Cap Camera")));
+        assert!(owner_and_title.matches(None, Some("Scoopy"), Some("Scoopy Camera")));
+        assert!(!owner_and_title.matches(None, Some("Scoopy"), Some("Wrong Title")));
+        assert!(!owner_and_title.matches(None, Some("Wrong Owner"), Some("Scoopy Camera")));
+        assert!(!owner_and_title.matches(None, None, Some("Scoopy Camera")));
 
         let empty = WindowExclusion::default();
         assert!(!empty.matches(None, None, None));
         assert!(!empty.matches(Some("any"), Some("any"), Some("any")));
 
         let bundle_first = WindowExclusion {
-            bundle_identifier: Some("com.cap.desktop".into()),
-            window_title: Some("Cap Camera".into()),
+            bundle_identifier: Some("com.scoopy.desktop".into()),
+            window_title: Some("Scoopy Camera".into()),
             ..Default::default()
         };
-        assert!(bundle_first.matches(Some("com.cap.desktop"), None, Some("Wrong")));
+        assert!(bundle_first.matches(Some("com.scoopy.desktop"), None, Some("Wrong")));
     }
 
     /// Key absent -> the default exclusion list (the Rust struct's serde

@@ -32,12 +32,12 @@ function Get-PayloadDefinitions {
 			Path = Join-Path $WorkspaceRoot "apps/desktop-gpui/target/$Target/release/scoopy.exe"
 		},
 		[pscustomobject]@{
-			Name = "cap-cli.exe"
-			Path = Join-Path $WorkspaceRoot "apps/desktop/src-tauri/binaries/cap-cli-$Target.exe"
+			Name = "scoopy-cli.exe"
+			Path = Join-Path $WorkspaceRoot "apps/desktop/src-tauri/binaries/scoopy-cli-$Target.exe"
 		},
 		[pscustomobject]@{
-			Name = "cap-muxer.exe"
-			Path = Join-Path $WorkspaceRoot "apps/desktop/src-tauri/binaries/cap-muxer-$Target.exe"
+			Name = "scoopy-muxer.exe"
+			Path = Join-Path $WorkspaceRoot "apps/desktop/src-tauri/binaries/scoopy-muxer-$Target.exe"
 		}
 	)
 }

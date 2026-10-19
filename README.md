@@ -12,8 +12,7 @@
 
 Scoopy records your screen, camera and microphone, and edits the result into a finished video
 file on your own machine. It is local-first and local-only: no server, no remote service, and
-everything stays on your disk. Scoopy is inspired by [Cap](https://github.com/CapSoftware/Cap) and
-designed for local only.
+everything stays on your disk.
 
 Use it for product demos, bug reports, onboarding, tutorials, design reviews, engineering
 walkthroughs, async standups, or any moment where showing the work beats scheduling another call.
@@ -68,7 +67,7 @@ Install and set up the repo:
 
 ```bash
 bun install
-bun run cap-setup
+bun run scoopy-setup
 ```
 
 The GPUI app patches `gpui` to a local checkout of a pinned upstream revision. Restore it once
@@ -95,11 +94,11 @@ Common commands:
 Rust builds need FFmpeg headers. On macOS with Homebrew:
 
 ```bash
-PKG_CONFIG_PATH="$(brew --prefix ffmpeg@6)/lib/pkgconfig" cargo check -p cap
+PKG_CONFIG_PATH="$(brew --prefix ffmpeg@6)/lib/pkgconfig" cargo check -p scoopy
 ```
 
 `apps/desktop-gpui` is its own Cargo workspace; build it with
-`cargo build --manifest-path apps/desktop-gpui/Cargo.toml --bin cap-gpui`.
+`cargo build --manifest-path apps/desktop-gpui/Cargo.toml --bin scoopy-gpui`.
 
 ## Repository Map
 

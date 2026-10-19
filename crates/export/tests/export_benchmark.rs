@@ -9,11 +9,11 @@ use std::{
     time::{Duration, Instant, SystemTime},
 };
 
-use cap_export::{
+use scoopy_export::{
     ExporterBase,
     mp4::{ExportCompression, Mp4ExportSettings},
 };
-use cap_project::XY;
+use scoopy_project::XY;
 
 async fn run_export(project_path: PathBuf) -> Result<(PathBuf, Duration, u32), String> {
     let exporter_base = ExporterBase::builder(project_path.clone())
@@ -61,7 +61,7 @@ async fn export_latest_recording_benchmark() -> Result<(), Box<dyn std::error::E
 
     if recordings.is_empty() {
         return Err(
-            "No recordings found. Add a Cap recording before running this benchmark.".into(),
+            "No recordings found. Add a Scoopy recording before running this benchmark.".into(),
         );
     }
 
@@ -88,15 +88,15 @@ async fn export_latest_recording_benchmark() -> Result<(), Box<dyn std::error::E
 pub fn get_recordings_dir() -> Option<PathBuf> {
     let mut candidates: Vec<PathBuf> = Vec::new();
 
-    for app_name in ["Cap - Development", "Cap"] {
-        if let Some(proj_dirs) = ProjectDirs::from("so", "cap", app_name) {
+    for app_name in ["Scoopy - Development", "Scoopy"] {
+        if let Some(proj_dirs) = ProjectDirs::from("so", "scoopy", app_name) {
             candidates.push(proj_dirs.data_dir().join("recordings"));
         }
     }
 
     if let Some(base_dirs) = BaseDirs::new() {
         let data_dir = base_dirs.data_dir();
-        for identifier in ["so.cap.desktop.dev", "so.cap.desktop"] {
+        for identifier in ["me.systembug.scoopy.dev", "me.systembug.scoopy"] {
             candidates.push(data_dir.join(identifier).join("recordings"));
         }
     }

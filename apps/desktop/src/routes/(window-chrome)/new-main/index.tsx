@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { useNavigate } from "@solidjs/router";
 import {
 	createMutation,
@@ -96,8 +96,8 @@ import {
 } from "~/utils/tauri";
 import { openTeleprompter } from "~/utils/teleprompter";
 import { restartAfterUpdate } from "~/utils/updater";
-import IconCapLogoFull from "~icons/cap/logo-full";
-import IconCapLogoFullDark from "~icons/cap/logo-full-dark";
+import IconScoopyLogoFull from "~icons/scoopy/logo-full";
+import IconScoopyLogoFullDark from "~icons/scoopy/logo-full-dark";
 import IconLucideAppWindowMac from "~icons/lucide/app-window-mac";
 import IconLucideArrowLeft from "~icons/lucide/arrow-left";
 import IconLucideBug from "~icons/lucide/bug";
@@ -462,7 +462,7 @@ function CameraListItem(props: {
 				class="flex flex-col gap-0.5 px-3 py-2.5 min-w-0 flex-1 text-left outline-none"
 			>
 				<div class="flex items-center gap-3 w-full">
-					<IconCapCamera class="size-4 shrink-0" />
+					<IconScoopyCamera class="size-4 shrink-0" />
 					<span class="truncate flex-1">{props.camera.display_name}</span>
 					<Show when={props.isSelected}>
 						<IconLucideCheck class="size-4 shrink-0" />
@@ -557,7 +557,7 @@ function MicrophoneListItem(props: {
 				class="relative flex flex-col gap-0.5 px-3 py-2.5 min-w-0 flex-1 text-left outline-none"
 			>
 				<div class="relative flex items-center gap-3 w-full">
-					<IconCapMicrophone class="size-4 shrink-0" />
+					<IconScoopyMicrophone class="size-4 shrink-0" />
 					<span class="truncate flex-1">{props.mic.name}</span>
 					<Show when={props.isSelected}>
 						<IconLucideCheck class="size-4 shrink-0" />
@@ -1568,10 +1568,10 @@ function TargetMenuPanel(props: TargetMenuPanelProps & SharedTargetMenuProps) {
 						<Show
 							when={props.variant === "camera"}
 							fallback={
-								<IconCapMicrophone class="size-4 shrink-0 text-gray-11" />
+								<IconScoopyMicrophone class="size-4 shrink-0 text-gray-11" />
 							}
 						>
-							<IconCapCamera class="size-4 shrink-0 text-gray-11" />
+							<IconScoopyCamera class="size-4 shrink-0 text-gray-11" />
 						</Show>
 						<div class="min-w-0 flex-1 leading-tight">
 							<div class="text-sm font-medium text-gray-12 truncate">
@@ -2361,10 +2361,10 @@ function Page() {
 			document.activeElement.blur();
 		}
 
-		const { __CAP__ } = window as typeof window & {
-			__CAP__?: { initialTargetMode?: RecordingTargetMode | null };
+		const { __SCOOPY__ } = window as typeof window & {
+			__SCOOPY__?: { initialTargetMode?: RecordingTargetMode | null };
 		};
-		const targetMode = __CAP__?.initialTargetMode ?? null;
+		const targetMode = __SCOOPY__?.initialTargetMode ?? null;
 		const currentWindow = getCurrentWindow();
 		await commands.restoreMainWindowGeometry().catch(async (error) => {
 			console.error("Failed to restore main window geometry:", error);
@@ -3154,8 +3154,8 @@ function Page() {
 											: serverUrl()
 									}
 								>
-									<IconCapLogoFullDark class="hidden dark:block" />
-									<IconCapLogoFull class="block dark:hidden" />
+									<IconScoopyLogoFullDark class="hidden dark:block" />
+									<IconScoopyLogoFull class="block dark:hidden" />
 								</a>
 								<ErrorBoundary fallback={null}>
 									<Suspense>
@@ -3187,7 +3187,7 @@ function Page() {
 						{(flow) => (
 							<div class="flex min-w-0 flex-1 items-center gap-2.5 pr-3 animate-in fade-in slide-in-from-left-1 duration-200">
 								<div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-3 text-blue-10 dark:bg-blue-4">
-									<IconCapClapperboard class="size-4" />
+									<IconScoopyClapperboard class="size-4" />
 								</div>
 								<div class="flex min-w-0 flex-col leading-tight">
 									<span class="truncate text-[13px] font-medium text-gray-12">
@@ -3204,7 +3204,7 @@ function Page() {
 										aria-label="Back to editor"
 										class="flex size-6 shrink-0 items-center justify-center rounded-full text-gray-10 transition-colors hover:bg-gray-4 hover:text-gray-12 focus:outline-hidden"
 									>
-										<IconCapX class="size-2.5" />
+										<IconScoopyX class="size-2.5" />
 									</button>
 								</Tooltip>
 							</div>
@@ -3425,7 +3425,7 @@ function Page() {
 								when={!stopRequested()}
 								fallback={<IconLucideLoader2 class="size-4 animate-spin" />}
 							>
-								<IconCapStopCircle class="size-4" />
+								<IconScoopyStopCircle class="size-4" />
 							</Show>
 							<span>Stop Recording</span>
 						</button>

@@ -1,4 +1,4 @@
-use cap_project::XY;
+use scoopy_project::XY;
 
 use std::sync::Arc;
 

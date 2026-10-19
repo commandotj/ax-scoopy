@@ -396,7 +396,7 @@ export default function Teleprompter() {
 				if (event.key === "Escape") setSettingsOpen(false);
 			}}
 			class={cx(
-				"cap-window-shell relative flex h-screen w-screen flex-col overflow-hidden text-gray-12",
+				"scoopy-window-shell relative flex h-screen w-screen flex-col overflow-hidden text-gray-12",
 				!isMacOS &&
 					"rounded-2xl border border-gray-5 bg-gray-1/90 shadow-2xl backdrop-blur-2xl",
 			)}
@@ -408,7 +408,7 @@ export default function Teleprompter() {
 		>
 			<header
 				data-tauri-drag-region
-				class="cap-window-header flex h-9 shrink-0 items-center"
+				class="scoopy-window-header flex h-9 shrink-0 items-center"
 			>
 				<Show when={isLinux}>
 					<CaptionControlsMacOS
@@ -439,7 +439,7 @@ export default function Teleprompter() {
 				</Show>
 			</header>
 
-			<main class="cap-window-body relative min-h-0 flex-1 overflow-hidden">
+			<main class="scoopy-window-body relative min-h-0 flex-1 overflow-hidden">
 				<Show when={state().showCueMarkers}>
 					<div class="pointer-events-none absolute inset-x-3 top-1/2 z-20 flex -translate-y-1/2 items-center justify-between text-blue-10/75 drop-shadow-sm">
 						<IconLucideChevronRight class="size-4" />

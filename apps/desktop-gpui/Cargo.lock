@@ -1381,603 +1381,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cap-audio"
-version = "0.1.0"
-dependencies = [
- "cap-enc-ffmpeg",
- "cap-rnnoise",
- "cidre",
- "cpal 0.15.3 (git+https://github.com/CapSoftware/cpal?rev=6013cb5f8bd3)",
- "ffmpeg-next",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "windows 0.60.0",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-camera"
-version = "0.1.0"
-dependencies = [
- "cap-camera-avfoundation",
- "cap-camera-windows",
- "cidre",
- "objc2-av-foundation",
- "serde",
- "specta",
- "thiserror 1.0.69",
- "tracing",
- "v4l",
- "windows 0.60.0",
- "windows-core 0.60.1",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-camera-avfoundation"
-version = "0.1.0"
-dependencies = [
- "cidre",
- "tracing",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-camera-directshow"
-version = "0.1.0"
-dependencies = [
- "thiserror 1.0.69",
- "tracing",
- "windows 0.60.0",
- "windows-core 0.60.1",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-camera-effects"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bytemuck",
- "cidre",
- "libc",
- "libloading 0.9.0",
- "ndarray 0.16.1",
- "ort",
- "tracing",
- "wgpu 25.0.2",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-camera-ffmpeg"
-version = "0.1.0"
-dependencies = [
- "cap-camera",
- "cap-camera-avfoundation",
- "cap-camera-windows",
- "cidre",
- "ffmpeg-next",
- "thiserror 1.0.69",
- "tracing",
- "windows 0.60.0",
- "windows-core 0.60.1",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-camera-mediafoundation"
-version = "0.1.0"
-dependencies = [
- "cap-mediafoundation-utils",
- "parking_lot",
- "thiserror 1.0.69",
- "tracing",
- "windows 0.60.0",
- "windows-core 0.60.1",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-camera-windows"
-version = "0.1.0"
-dependencies = [
- "cap-camera-directshow",
- "cap-camera-mediafoundation",
- "cap-mediafoundation-utils",
- "inquire",
- "thiserror 1.0.69",
- "windows 0.60.0",
- "windows-core 0.60.1",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-cursor-capture"
-version = "0.1.0"
-dependencies = [
- "core-graphics 0.24.0",
- "device_query",
- "scap-targets",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-cursor-info"
-version = "0.0.0"
-dependencies = [
- "serde",
- "sha2",
- "specta",
- "strum 0.27.2",
- "windows 0.60.0",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-d3d-adapter"
-version = "0.1.0"
-dependencies = [
- "tracing",
- "windows 0.60.0",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-editor"
-version = "0.1.0"
-dependencies = [
- "axum",
- "cap-audio",
- "cap-media",
- "cap-media-info",
- "cap-project",
- "cap-rendering",
- "cap-utils",
- "cpal 0.15.3 (git+https://github.com/CapSoftware/cpal?rev=6013cb5f8bd3)",
- "ffmpeg-next",
- "flume 0.11.1",
- "futures",
- "image 0.25.10",
- "lru",
- "ringbuf",
- "sentry",
- "serde",
- "serde_json",
- "specta",
- "tempfile",
- "tokio",
- "tokio-util",
- "tracing",
- "tracing-subscriber",
- "windows 0.60.0",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-enc-avfoundation"
-version = "0.1.0"
-dependencies = [
- "cap-media-info",
- "cidre",
- "ffmpeg-next",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "tracing",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-enc-ffmpeg"
-version = "0.1.0"
-dependencies = [
- "cap-frame-converter",
- "cap-media-info",
- "ffmpeg-next",
- "serde",
- "serde_json",
- "sysinfo 0.32.1",
- "thiserror 1.0.69",
- "tracing",
- "windows 0.60.0",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-enc-gif"
-version = "0.1.0"
-dependencies = [
- "gifski",
- "imgref",
- "rgb",
- "thiserror 1.0.69",
- "tracing",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-enc-mediafoundation"
-version = "0.1.0"
-dependencies = [
- "cap-d3d-adapter",
- "cap-media-info",
- "futures",
- "scap-direct3d",
- "thiserror 1.0.69",
- "tracing",
- "windows 0.60.0",
- "windows-core 0.60.1",
- "windows-numerics 0.2.0",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-export"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "cap-editor",
- "cap-enc-ffmpeg",
- "cap-enc-gif",
- "cap-flags",
- "cap-media",
- "cap-media-info",
- "cap-project",
- "cap-rendering",
- "cap-utils",
- "ffmpeg-next",
- "futures",
- "gifski",
- "image 0.25.10",
- "imgref",
- "mp4",
- "rgb",
- "serde",
- "serde_json",
- "specta",
- "tempfile",
- "thiserror 1.0.69",
- "tokio",
- "tracing",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-fail"
-version = "0.1.0"
-dependencies = [
- "inventory",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-flags"
-version = "0.1.0"
-dependencies = [
- "serde",
- "specta",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-frame-converter"
-version = "0.1.0"
-dependencies = [
- "cap-media-info",
- "crossbeam-channel",
- "ffmpeg-next",
- "flume 0.11.1",
- "parking_lot",
- "thiserror 1.0.69",
- "thread_local",
- "tracing",
- "windows 0.60.0",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-gpui-kernels"
-version = "0.1.0"
-dependencies = [
- "cap-audio",
- "cap-project",
- "crc32fast",
- "flate2",
- "image 0.25.10",
- "md-5",
- "simd-adler32",
- "tracing",
-]
-
-[[package]]
-name = "cap-media"
-version = "0.1.0"
-dependencies = [
- "cap-media-info",
- "ffmpeg-next",
- "thiserror 1.0.69",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-media-info"
-version = "0.1.0"
-dependencies = [
- "cpal 0.15.3 (git+https://github.com/CapSoftware/cpal?rev=6013cb5f8bd3)",
- "ffmpeg-next",
- "thiserror 1.0.69",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-mediafoundation-ffmpeg"
-version = "0.1.0"
-dependencies = [
- "cap-media-info",
- "cap-mediafoundation-utils",
- "ffmpeg-next",
- "flume 0.11.1",
- "thiserror 1.0.69",
- "tracing",
- "windows 0.60.0",
- "windows-numerics 0.2.0",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-mediafoundation-utils"
-version = "0.1.0"
-dependencies = [
- "windows 0.60.0",
- "windows-core 0.60.1",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-muxer-protocol"
-version = "0.1.0"
-dependencies = [
- "byteorder",
- "crc32fast",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "cap-project"
-version = "0.1.0"
-dependencies = [
- "bincode",
- "cap-cursor-info",
- "either",
- "log",
- "relative-path",
- "serde",
- "serde_json",
- "specta",
- "tempfile",
- "tracing",
- "uuid",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-recording"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ashpd 0.11.1",
- "blake3",
- "cap-audio",
- "cap-camera",
- "cap-camera-ffmpeg",
- "cap-camera-windows",
- "cap-cursor-capture",
- "cap-cursor-info",
- "cap-d3d-adapter",
- "cap-enc-avfoundation",
- "cap-enc-ffmpeg",
- "cap-enc-mediafoundation",
- "cap-fail",
- "cap-flags",
- "cap-frame-converter",
- "cap-media",
- "cap-media-info",
- "cap-mediafoundation-ffmpeg",
- "cap-mediafoundation-utils",
- "cap-muxer-protocol",
- "cap-project",
- "cap-rendering",
- "cap-timestamp",
- "cap-utils",
- "chrono",
- "cidre",
- "cocoa 0.26.0",
- "core-foundation 0.10.1",
- "core-graphics 0.24.0",
- "coreaudio-rs",
- "cpal 0.15.3 (git+https://github.com/CapSoftware/cpal?rev=6013cb5f8bd3)",
- "device_query",
- "either",
- "ffmpeg-next",
- "flume 0.11.1",
- "foreign-types-shared 0.3.1",
- "futures",
- "hex",
- "image 0.25.10",
- "indexmap 2.14.0",
- "inquire",
- "kameo",
- "libc",
- "objc",
- "objc2 0.6.4",
- "objc2-app-kit 0.3.2",
- "parking_lot",
- "pipewire",
- "relative-path",
- "replace_with",
- "retry",
- "ringbuf",
- "scap-cpal",
- "scap-direct3d",
- "scap-ffmpeg",
- "scap-screencapturekit",
- "scap-targets",
- "screencapturekit 0.3.6",
- "serde",
- "serde_json",
- "sha2",
- "specta",
- "sysinfo 0.35.2",
- "thiserror 1.0.69",
- "tokio",
- "tokio-util",
- "tracing",
- "tracing-subscriber",
- "uuid",
- "windows 0.60.0",
- "workspace-hack",
- "x11rb",
-]
-
-[[package]]
-name = "cap-rendering"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ash",
- "bezier_easing",
- "build-time",
- "bytemuck",
- "cap-camera-effects",
- "cap-cursor-info",
- "cap-enc-ffmpeg",
- "cap-flags",
- "cap-project",
- "cap-video-decode",
- "cidre",
- "clap",
- "dirs 5.0.1",
- "ffmpeg-hw-device",
- "ffmpeg-next",
- "foreign-types 0.5.0",
- "futures",
- "futures-intrusive",
- "glyphon",
- "image 0.25.10",
- "libloading 0.8.9",
- "log",
- "metal 0.31.0",
- "objc2 0.6.4",
- "rayon",
- "reactive_graph",
- "resvg 0.45.1",
- "serde",
- "serde_json",
- "specta",
- "thiserror 1.0.69",
- "tiny-skia",
- "tokio",
- "tracing",
- "wgpu 25.0.2",
- "wgpu-core 25.0.2",
- "wgpu-hal 25.0.2",
- "windows 0.58.0",
- "windows 0.60.0",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-rnnoise"
-version = "0.1.0"
-dependencies = [
- "cc",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-timestamp"
-version = "0.1.0"
-dependencies = [
- "cidre",
- "cpal 0.15.3 (git+https://github.com/CapSoftware/cpal?rev=6013cb5f8bd3)",
- "windows 0.60.0",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-utils"
-version = "0.1.0"
-dependencies = [
- "aho-corasick",
- "directories",
- "flume 0.11.1",
- "futures",
- "libc",
- "nix 0.29.0",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "uuid",
- "windows 0.58.0",
- "windows-sys 0.52.0",
- "workspace-hack",
- "zbus",
-]
-
-[[package]]
-name = "cap-verify"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "cap-enc-avfoundation",
- "cap-media-info",
- "cap-project",
- "cap-recording",
- "cap-timestamp",
- "cap-verify-expect",
- "cidre",
- "ffmpeg-next",
- "flume 0.11.1",
- "futures",
- "relative-path",
- "rustfft",
- "serde",
- "serde_json",
- "tokio",
- "workspace-hack",
-]
-
-[[package]]
-name = "cap-verify-expect"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "toml 0.8.23",
-]
-
-[[package]]
-name = "cap-video-decode"
-version = "0.1.0"
-dependencies = [
- "cap-d3d-adapter",
- "cap-enc-ffmpeg",
- "cidre",
- "ffmpeg-hw-device",
- "ffmpeg-next",
- "num_cpus",
- "tempfile",
- "tokio",
- "tracing",
- "windows 0.60.0",
- "workspace-hack",
-]
-
-[[package]]
 name = "cargo-platform"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9296,7 +8699,7 @@ dependencies = [
 name = "scap-direct3d"
 version = "0.1.0"
 dependencies = [
- "cap-d3d-adapter",
+ "scoopy-d3d-adapter",
  "thiserror 1.0.69",
  "tracing",
  "windows 0.60.0",
@@ -9448,21 +8851,6 @@ dependencies = [
  "ashpd 0.11.1",
  "base64 0.22.1",
  "bytes",
- "cap-audio",
- "cap-camera",
- "cap-camera-effects",
- "cap-cursor-info",
- "cap-editor",
- "cap-enc-ffmpeg",
- "cap-export",
- "cap-gpui-kernels",
- "cap-media-info",
- "cap-project",
- "cap-recording",
- "cap-rendering",
- "cap-timestamp",
- "cap-utils",
- "cap-verify",
  "chrono",
  "cidre",
  "clipboard-rs",
@@ -9494,6 +8882,21 @@ dependencies = [
  "rodio",
  "sanitize-filename",
  "scap-targets",
+ "scoopy-audio",
+ "scoopy-camera",
+ "scoopy-camera-effects",
+ "scoopy-cursor-info",
+ "scoopy-editor",
+ "scoopy-enc-ffmpeg",
+ "scoopy-export",
+ "scoopy-gpui-kernels",
+ "scoopy-media-info",
+ "scoopy-project",
+ "scoopy-recording",
+ "scoopy-rendering",
+ "scoopy-timestamp",
+ "scoopy-utils",
+ "scoopy-verify",
  "semver",
  "serde",
  "serde_json",
@@ -9513,6 +8916,603 @@ dependencies = [
  "whisper-rs",
  "windows-sys 0.59.0",
  "x11rb",
+]
+
+[[package]]
+name = "scoopy-audio"
+version = "0.1.0"
+dependencies = [
+ "cidre",
+ "cpal 0.15.3 (git+https://github.com/CapSoftware/cpal?rev=6013cb5f8bd3)",
+ "ffmpeg-next",
+ "scoopy-enc-ffmpeg",
+ "scoopy-rnnoise",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "windows 0.60.0",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-camera"
+version = "0.1.0"
+dependencies = [
+ "cidre",
+ "objc2-av-foundation",
+ "scoopy-camera-avfoundation",
+ "scoopy-camera-windows",
+ "serde",
+ "specta",
+ "thiserror 1.0.69",
+ "tracing",
+ "v4l",
+ "windows 0.60.0",
+ "windows-core 0.60.1",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-camera-avfoundation"
+version = "0.1.0"
+dependencies = [
+ "cidre",
+ "tracing",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-camera-directshow"
+version = "0.1.0"
+dependencies = [
+ "thiserror 1.0.69",
+ "tracing",
+ "windows 0.60.0",
+ "windows-core 0.60.1",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-camera-effects"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "cidre",
+ "libc",
+ "libloading 0.9.0",
+ "ndarray 0.16.1",
+ "ort",
+ "tracing",
+ "wgpu 25.0.2",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-camera-ffmpeg"
+version = "0.1.0"
+dependencies = [
+ "cidre",
+ "ffmpeg-next",
+ "scoopy-camera",
+ "scoopy-camera-avfoundation",
+ "scoopy-camera-windows",
+ "thiserror 1.0.69",
+ "tracing",
+ "windows 0.60.0",
+ "windows-core 0.60.1",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-camera-mediafoundation"
+version = "0.1.0"
+dependencies = [
+ "parking_lot",
+ "scoopy-mediafoundation-utils",
+ "thiserror 1.0.69",
+ "tracing",
+ "windows 0.60.0",
+ "windows-core 0.60.1",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-camera-windows"
+version = "0.1.0"
+dependencies = [
+ "inquire",
+ "scoopy-camera-directshow",
+ "scoopy-camera-mediafoundation",
+ "scoopy-mediafoundation-utils",
+ "thiserror 1.0.69",
+ "windows 0.60.0",
+ "windows-core 0.60.1",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-cursor-capture"
+version = "0.1.0"
+dependencies = [
+ "core-graphics 0.24.0",
+ "device_query",
+ "scap-targets",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-cursor-info"
+version = "0.0.0"
+dependencies = [
+ "serde",
+ "sha2",
+ "specta",
+ "strum 0.27.2",
+ "windows 0.60.0",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-d3d-adapter"
+version = "0.1.0"
+dependencies = [
+ "tracing",
+ "windows 0.60.0",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-editor"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "cpal 0.15.3 (git+https://github.com/CapSoftware/cpal?rev=6013cb5f8bd3)",
+ "ffmpeg-next",
+ "flume 0.11.1",
+ "futures",
+ "image 0.25.10",
+ "lru",
+ "ringbuf",
+ "scoopy-audio",
+ "scoopy-media",
+ "scoopy-media-info",
+ "scoopy-project",
+ "scoopy-rendering",
+ "scoopy-utils",
+ "sentry",
+ "serde",
+ "serde_json",
+ "specta",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+ "windows 0.60.0",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-enc-avfoundation"
+version = "0.1.0"
+dependencies = [
+ "cidre",
+ "ffmpeg-next",
+ "scoopy-media-info",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tracing",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-enc-ffmpeg"
+version = "0.1.0"
+dependencies = [
+ "ffmpeg-next",
+ "scoopy-frame-converter",
+ "scoopy-media-info",
+ "serde",
+ "serde_json",
+ "sysinfo 0.32.1",
+ "thiserror 1.0.69",
+ "tracing",
+ "windows 0.60.0",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-enc-gif"
+version = "0.1.0"
+dependencies = [
+ "gifski",
+ "imgref",
+ "rgb",
+ "thiserror 1.0.69",
+ "tracing",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-enc-mediafoundation"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "scap-direct3d",
+ "scoopy-d3d-adapter",
+ "scoopy-media-info",
+ "thiserror 1.0.69",
+ "tracing",
+ "windows 0.60.0",
+ "windows-core 0.60.1",
+ "windows-numerics 0.2.0",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-export"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "ffmpeg-next",
+ "futures",
+ "gifski",
+ "image 0.25.10",
+ "imgref",
+ "mp4",
+ "rgb",
+ "scoopy-editor",
+ "scoopy-enc-ffmpeg",
+ "scoopy-enc-gif",
+ "scoopy-flags",
+ "scoopy-media",
+ "scoopy-media-info",
+ "scoopy-project",
+ "scoopy-rendering",
+ "scoopy-utils",
+ "serde",
+ "serde_json",
+ "specta",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-fail"
+version = "0.1.0"
+dependencies = [
+ "inventory",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-flags"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "specta",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-frame-converter"
+version = "0.1.0"
+dependencies = [
+ "crossbeam-channel",
+ "ffmpeg-next",
+ "flume 0.11.1",
+ "parking_lot",
+ "scoopy-media-info",
+ "thiserror 1.0.69",
+ "thread_local",
+ "tracing",
+ "windows 0.60.0",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-gpui-kernels"
+version = "0.1.0"
+dependencies = [
+ "crc32fast",
+ "flate2",
+ "image 0.25.10",
+ "md-5",
+ "scoopy-audio",
+ "scoopy-project",
+ "simd-adler32",
+ "tracing",
+]
+
+[[package]]
+name = "scoopy-media"
+version = "0.1.0"
+dependencies = [
+ "ffmpeg-next",
+ "scoopy-media-info",
+ "thiserror 1.0.69",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-media-info"
+version = "0.1.0"
+dependencies = [
+ "cpal 0.15.3 (git+https://github.com/CapSoftware/cpal?rev=6013cb5f8bd3)",
+ "ffmpeg-next",
+ "thiserror 1.0.69",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-mediafoundation-ffmpeg"
+version = "0.1.0"
+dependencies = [
+ "ffmpeg-next",
+ "flume 0.11.1",
+ "scoopy-media-info",
+ "scoopy-mediafoundation-utils",
+ "thiserror 1.0.69",
+ "tracing",
+ "windows 0.60.0",
+ "windows-numerics 0.2.0",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-mediafoundation-utils"
+version = "0.1.0"
+dependencies = [
+ "windows 0.60.0",
+ "windows-core 0.60.1",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-muxer-protocol"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "crc32fast",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "scoopy-project"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "either",
+ "log",
+ "relative-path",
+ "scoopy-cursor-info",
+ "serde",
+ "serde_json",
+ "specta",
+ "tempfile",
+ "tracing",
+ "uuid",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-recording"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ashpd 0.11.1",
+ "blake3",
+ "chrono",
+ "cidre",
+ "cocoa 0.26.0",
+ "core-foundation 0.10.1",
+ "core-graphics 0.24.0",
+ "coreaudio-rs",
+ "cpal 0.15.3 (git+https://github.com/CapSoftware/cpal?rev=6013cb5f8bd3)",
+ "device_query",
+ "either",
+ "ffmpeg-next",
+ "flume 0.11.1",
+ "foreign-types-shared 0.3.1",
+ "futures",
+ "hex",
+ "image 0.25.10",
+ "indexmap 2.14.0",
+ "inquire",
+ "kameo",
+ "libc",
+ "objc",
+ "objc2 0.6.4",
+ "objc2-app-kit 0.3.2",
+ "parking_lot",
+ "pipewire",
+ "relative-path",
+ "replace_with",
+ "retry",
+ "ringbuf",
+ "scap-cpal",
+ "scap-direct3d",
+ "scap-ffmpeg",
+ "scap-screencapturekit",
+ "scap-targets",
+ "scoopy-audio",
+ "scoopy-camera",
+ "scoopy-camera-ffmpeg",
+ "scoopy-camera-windows",
+ "scoopy-cursor-capture",
+ "scoopy-cursor-info",
+ "scoopy-d3d-adapter",
+ "scoopy-enc-avfoundation",
+ "scoopy-enc-ffmpeg",
+ "scoopy-enc-mediafoundation",
+ "scoopy-fail",
+ "scoopy-flags",
+ "scoopy-frame-converter",
+ "scoopy-media",
+ "scoopy-media-info",
+ "scoopy-mediafoundation-ffmpeg",
+ "scoopy-mediafoundation-utils",
+ "scoopy-muxer-protocol",
+ "scoopy-project",
+ "scoopy-rendering",
+ "scoopy-timestamp",
+ "scoopy-utils",
+ "screencapturekit 0.3.6",
+ "serde",
+ "serde_json",
+ "sha2",
+ "specta",
+ "sysinfo 0.35.2",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "windows 0.60.0",
+ "workspace-hack",
+ "x11rb",
+]
+
+[[package]]
+name = "scoopy-rendering"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ash",
+ "bezier_easing",
+ "build-time",
+ "bytemuck",
+ "cidre",
+ "clap",
+ "dirs 5.0.1",
+ "ffmpeg-hw-device",
+ "ffmpeg-next",
+ "foreign-types 0.5.0",
+ "futures",
+ "futures-intrusive",
+ "glyphon",
+ "image 0.25.10",
+ "libloading 0.8.9",
+ "log",
+ "metal 0.31.0",
+ "objc2 0.6.4",
+ "rayon",
+ "reactive_graph",
+ "resvg 0.45.1",
+ "scoopy-camera-effects",
+ "scoopy-cursor-info",
+ "scoopy-enc-ffmpeg",
+ "scoopy-flags",
+ "scoopy-project",
+ "scoopy-video-decode",
+ "serde",
+ "serde_json",
+ "specta",
+ "thiserror 1.0.69",
+ "tiny-skia",
+ "tokio",
+ "tracing",
+ "wgpu 25.0.2",
+ "wgpu-core 25.0.2",
+ "wgpu-hal 25.0.2",
+ "windows 0.58.0",
+ "windows 0.60.0",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-rnnoise"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-timestamp"
+version = "0.1.0"
+dependencies = [
+ "cidre",
+ "cpal 0.15.3 (git+https://github.com/CapSoftware/cpal?rev=6013cb5f8bd3)",
+ "windows 0.60.0",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-utils"
+version = "0.1.0"
+dependencies = [
+ "aho-corasick",
+ "directories",
+ "flume 0.11.1",
+ "futures",
+ "libc",
+ "nix 0.29.0",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "uuid",
+ "windows 0.58.0",
+ "windows-sys 0.52.0",
+ "workspace-hack",
+ "zbus",
+]
+
+[[package]]
+name = "scoopy-verify"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cidre",
+ "ffmpeg-next",
+ "flume 0.11.1",
+ "futures",
+ "relative-path",
+ "rustfft",
+ "scoopy-enc-avfoundation",
+ "scoopy-media-info",
+ "scoopy-project",
+ "scoopy-recording",
+ "scoopy-timestamp",
+ "scoopy-verify-expect",
+ "serde",
+ "serde_json",
+ "tokio",
+ "workspace-hack",
+]
+
+[[package]]
+name = "scoopy-verify-expect"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
+]
+
+[[package]]
+name = "scoopy-video-decode"
+version = "0.1.0"
+dependencies = [
+ "cidre",
+ "ffmpeg-hw-device",
+ "ffmpeg-next",
+ "num_cpus",
+ "scoopy-d3d-adapter",
+ "scoopy-enc-ffmpeg",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "windows 0.60.0",
+ "workspace-hack",
 ]
 
 [[package]]

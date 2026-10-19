@@ -7,7 +7,7 @@ import {
 	buildSample,
 	DEFAULTS,
 	evaluateCycles,
-	findCapMainProcess,
+	findScoopyMainProcess,
 	formatMb,
 	parsePsOutput,
 	pickSettledSample,
@@ -35,7 +35,7 @@ const APPLE_KEY_CODES = {
 	KeyT: 17,
 };
 
-const INSTALLED_APP_COMMAND_PREFIX = "/Applications/Cap.app/Contents/MacOS/Cap";
+const INSTALLED_APP_COMMAND_PREFIX = "/Applications/Scoopy.app/Contents/MacOS/Scoopy";
 
 function parseArgs(argv) {
 	const options = {
@@ -159,7 +159,7 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-	console.log("Cap desktop memory soak test");
+	console.log("Scoopy desktop memory soak test");
 	console.log("");
 	console.log("Usage:");
 	console.log("  bun run --cwd apps/desktop test:memory [options]");
@@ -215,10 +215,10 @@ function printHelp() {
 	);
 	console.log("");
 	console.log(
-		"The script launches the target Cap binary, rewrites the selected store with temporary hotkeys, tracks Cap, WindowServer, related WebKit helpers, and camera/audio daemons, and restores the store afterward.",
+		"The script launches the target Scoopy binary, rewrites the selected store with temporary hotkeys, tracks Scoopy, WindowServer, related WebKit helpers, and camera/audio daemons, and restores the store afterward.",
 	);
 	console.log(
-		"Quit any other Cap instance before running this so WindowServer noise stays attributable to the dev build.",
+		"Quit any other Scoopy instance before running this so WindowServer noise stays attributable to the dev build.",
 	);
 }
 
@@ -257,7 +257,7 @@ async function collectPhase(name, seconds, intervalSeconds, tracked, options) {
 			sample.newPids.length > 0 ? ` new:${sample.newPids.join(",")}` : "";
 
 		console.log(
-			`${name} ${index + 1}/${totalSamples} cap=${formatMb(sample.capTotalKb)} ws=${formatMb(sample.windowServerTotalKb)} media=${formatMb(sample.mediaTotalKb)} total=${formatMb(sample.grandTotalKb)}${newPidSummary}`,
+			`${name} ${index + 1}/${totalSamples} scoopy=${formatMb(sample.scoopyTotalKb)} ws=${formatMb(sample.windowServerTotalKb)} media=${formatMb(sample.mediaTotalKb)} total=${formatMb(sample.grandTotalKb)}${newPidSummary}`,
 		);
 		console.log(`  ${renderTopProcesses(sample)}`);
 
@@ -333,7 +333,7 @@ function sleepDisplay() {
 	execFileSync("pmset", ["displaysleepnow"]);
 }
 
-function listOtherCapProcesses(options) {
+function listOtherScoopyProcesses(options) {
 	return readProcesses().filter(
 		(processInfo) =>
 			processInfo.command !== options.appCommandPrefix &&
@@ -343,7 +343,7 @@ function listOtherCapProcesses(options) {
 				processInfo.command.startsWith(
 					`${INSTALLED_APP_COMMAND_PREFIX} --crash-reporter-server=`,
 				) ||
-				processInfo.command.endsWith("/target/debug/cap-desktop")),
+				processInfo.command.endsWith("/target/debug/scoopy-desktop")),
 	);
 }
 
@@ -351,7 +351,7 @@ async function waitForApp(options) {
 	const deadline = Date.now() + options.launchTimeoutSeconds * 1000;
 
 	while (Date.now() < deadline) {
-		const app = findCapMainProcess(readProcesses(), options.appCommandPrefix);
+		const app = findScoopyMainProcess(readProcesses(), options.appCommandPrefix);
 
 		if (app) return app;
 
@@ -359,7 +359,7 @@ async function waitForApp(options) {
 	}
 
 	throw new Error(
-		`Cap did not launch within ${options.launchTimeoutSeconds} seconds: ${options.appCommandPrefix}`,
+		`Scoopy did not launch within ${options.launchTimeoutSeconds} seconds: ${options.appCommandPrefix}`,
 	);
 }
 
@@ -425,7 +425,7 @@ async function main() {
 		return;
 	}
 
-	const existingTargetProcess = findCapMainProcess(
+	const existingTargetProcess = findScoopyMainProcess(
 		readProcesses(),
 		options.appCommandPrefix,
 	);
@@ -435,10 +435,10 @@ async function main() {
 		);
 	}
 
-	const otherCapProcesses = listOtherCapProcesses(options);
-	if (otherCapProcesses.length > 0) {
+	const otherScoopyProcesses = listOtherScoopyProcesses(options);
+	if (otherScoopyProcesses.length > 0) {
 		throw new Error(
-			`Quit other Cap processes before running the soak test: ${otherCapProcesses.map((processInfo) => processInfo.command).join(", ")}`,
+			`Quit other Scoopy processes before running the soak test: ${otherScoopyProcesses.map((processInfo) => processInfo.command).join(", ")}`,
 		);
 	}
 
@@ -500,7 +500,7 @@ async function main() {
 
 		const baseline = baselinePhase.settled;
 		console.log(
-			`Baseline settled total=${formatMb(baseline.grandTotalKb)} cap=${formatMb(baseline.capTotalKb)} ws=${formatMb(baseline.windowServerTotalKb)} media=${formatMb(baseline.mediaTotalKb)}`,
+			`Baseline settled total=${formatMb(baseline.grandTotalKb)} scoopy=${formatMb(baseline.scoopyTotalKb)} ws=${formatMb(baseline.windowServerTotalKb)} media=${formatMb(baseline.mediaTotalKb)}`,
 		);
 
 		const cycleSettledTotals = [];
@@ -509,7 +509,7 @@ async function main() {
 			const phase = options.manual
 				? await rl
 						.question(
-							`Cycle ${cycle}/${options.cycles}: start and stop a recording in Cap, then press Enter.`,
+							`Cycle ${cycle}/${options.cycles}: start and stop a recording in Scoopy, then press Enter.`,
 						)
 						.then(() =>
 							collectPhase(
@@ -537,7 +537,7 @@ async function main() {
 				.map((row) => row.pid);
 
 			console.log(
-				`Settled cycle ${cycle}: total=${formatMb(settled.grandTotalKb)} cap=${formatMb(settled.capTotalKb)} ws=${formatMb(settled.windowServerTotalKb)} media=${formatMb(settled.mediaTotalKb)} delta-prev=${formatMb(cycleDeltaKb)} delta-baseline=${formatMb(totalDeltaKb)}`,
+				`Settled cycle ${cycle}: total=${formatMb(settled.grandTotalKb)} scoopy=${formatMb(settled.scoopyTotalKb)} ws=${formatMb(settled.windowServerTotalKb)} media=${formatMb(settled.mediaTotalKb)} delta-prev=${formatMb(cycleDeltaKb)} delta-baseline=${formatMb(totalDeltaKb)}`,
 			);
 
 			if (newWebContent.length > 0) {

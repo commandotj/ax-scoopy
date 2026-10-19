@@ -5,17 +5,17 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use cap_export::estimates::{ExportEstimates, estimate_export};
-use cap_export::gif::GifExportSettings;
-use cap_export::mov::MovExportSettings;
-use cap_export::mp4::{ExportCompression, Mp4ExportSettings};
-use cap_export::preview::{
+use scoopy_export::estimates::{ExportEstimates, estimate_export};
+use scoopy_export::gif::GifExportSettings;
+use scoopy_export::mov::MovExportSettings;
+use scoopy_export::mp4::{ExportCompression, Mp4ExportSettings};
+use scoopy_export::preview::{
     ExportPreviewSettings, render_preview_with_config, render_preview_with_editor,
 };
-use cap_export::settings::ExportSettings;
-use cap_export::{ExporterBase, make_cursor_only_project};
-use cap_project::{BackgroundSource, RecordingMeta, XY};
-use cap_utils::export_resources::{
+use scoopy_export::settings::ExportSettings;
+use scoopy_export::{ExporterBase, make_cursor_only_project};
+use scoopy_project::{BackgroundSource, RecordingMeta, XY};
+use scoopy_utils::export_resources::{
     DiskBudget, ExportResources, estimated_working_bytes, is_resource_stop,
 };
 use gpui::{
@@ -363,7 +363,7 @@ impl ExportUi {
     }
 }
 
-fn has_transparent_background(project: &cap_project::ProjectConfiguration) -> bool {
+fn has_transparent_background(project: &scoopy_project::ProjectConfiguration) -> bool {
     matches!(
         project.background.source,
         BackgroundSource::Color { alpha, .. } if alpha < 255
@@ -410,7 +410,7 @@ fn format_estimate_range(range: [f64; 2], time: bool) -> String {
 }
 
 fn decode_jpeg_bytes(bytes: &[u8]) -> Option<Arc<RenderImage>> {
-    let rgba = cap_gpui_kernels::codec::decode_jpeg_to_bgra(bytes)?;
+    let rgba = scoopy_gpui_kernels::codec::decode_jpeg_to_bgra(bytes)?;
     Some(Arc::new(RenderImage::new(smallvec::smallvec![
         image::Frame::new(rgba)
     ])))
@@ -697,7 +697,7 @@ impl EditorWindow {
                     "mp4"
                 };
                 let default = format!("{pretty_name}.{ext}");
-                let chosen: Result<Option<PathBuf>, String> = match std::env::var_os("CAP_GPUI_AUTO_EXPORT") {
+                let chosen: Result<Option<PathBuf>, String> = match std::env::var_os("SCOOPY_GPUI_AUTO_EXPORT") {
                     Some(path) => Ok(Some(PathBuf::from(path))),
                     None => {
                         #[cfg(target_os = "macos")]
@@ -2196,7 +2196,7 @@ impl Drop for TimerResolution {
 #[allow(clippy::too_many_arguments)]
 async fn run_export(
     project_path: PathBuf,
-    project: cap_project::ProjectConfiguration,
+    project: scoopy_project::ProjectConfiguration,
     format: ExportFormatKind,
     cursor_only: bool,
     fps: u32,
@@ -2227,7 +2227,7 @@ async fn run_export(
     }
 
     enum PreparedBase {
-        Mp4(cap_export::Mp4ExporterBase),
+        Mp4(scoopy_export::Mp4ExporterBase),
         Other(ExporterBase),
     }
     let (base, total) = if !cursor_only && format != ExportFormatKind::Gif {

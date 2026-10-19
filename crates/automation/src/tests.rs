@@ -175,7 +175,7 @@ fn studio_export_rule() -> AutomationRule {
             profile: ExportProfile {
                 format: ExportFormat::Mp4,
                 fps: 60,
-                resolution_base: cap_project::XY { x: 1920, y: 1080 },
+                resolution_base: scoopy_project::XY { x: 1920, y: 1080 },
                 compression: Some(AutomationExportCompression::Web),
                 preset_name: None,
             },
@@ -509,14 +509,14 @@ fn serialize_all_condition_and_action_shapes_roundtrip() {
                 source: ClipboardSource::Rendered,
             },
             Action::SaveToLocation {
-                dir: "/tmp/cap".to_string(),
+                dir: "/tmp/scoopy".to_string(),
                 filename_template: Some("{date}-{window}".to_string()),
             },
             Action::Export {
                 profile: ExportProfile {
                     format: ExportFormat::Mp4,
                     fps: 60,
-                    resolution_base: cap_project::XY { x: 1920, y: 1080 },
+                    resolution_base: scoopy_project::XY { x: 1920, y: 1080 },
                     compression: Some(AutomationExportCompression::Web),
                     preset_name: Some("My Preset".to_string()),
                 },
@@ -767,7 +767,7 @@ async fn upload_completed_trigger_requires_proof_even_with_a_share_link() {
         host.upload_verification = verification;
         let store = upload_cleanup_store(Trigger::UploadCompleted, vec![Action::DeleteLocalFiles]);
         let ctx = TriggerContext::new()
-            .with_share_link("https://cap.test/s/owned".to_string())
+            .with_share_link("https://example.com/s/owned".to_string())
             .with_share_id("owned".to_string());
         let results = run(&host, &store, &Trigger::UploadCompleted, &ctx).await;
         assert_eq!(results[0].action_results[0].success, verified);

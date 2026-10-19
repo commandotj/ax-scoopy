@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Save-to-relaunch dev loop: rebuilds on change and swaps the running app only
 # when the build succeeds, so the old UI stays up through compile errors. The
-# app persists its window state through CAP_GPUI_DEV_RESTORE and reopens where
+# app persists its window state through SCOOPY_GPUI_DEV_RESTORE and reopens where
 # it was, and the swap waits out an in-flight recording (see dev_restore.rs).
 set -uo pipefail
 cd "$(dirname "$0")" || exit 1
 
 STATE_FILE="$PWD/target/dev-restore.json"
-BIN="$PWD/target/debug/cap-gpui"
+BIN="$PWD/target/debug/scoopy-gpui"
 BUILD=cargo
 
 WATCH_PATHS=(src kernels/src kernels/Cargo.toml assets Cargo.toml ../desktop/src-tauri/sounds)
@@ -16,7 +16,7 @@ for crate in camera scap-targets recording timestamp utils project rendering edi
 	[ -d "../../crates/$crate/src" ] && WATCH_PATHS+=("../../crates/$crate/src")
 done
 for crate in gpui gpui_platform gpui_tokio; do
-	[ -d "../../../zed-cap/crates/$crate/src" ] && WATCH_PATHS+=("../../../zed-cap/crates/$crate/src")
+	[ -d "../../../zed-scoopy/crates/$crate/src" ] && WATCH_PATHS+=("../../../zed-scoopy/crates/$crate/src")
 done
 
 fingerprint() {
@@ -27,7 +27,7 @@ fingerprint() {
 
 APP_PID=""
 
-SHARED_DIR="$HOME/Library/Application Support/so.cap.desktop"
+SHARED_DIR="$HOME/Library/Application Support/me.systembug.scoopy"
 
 # Launching unconditionally would put this app on screen next to the classic
 # one every session: under the experimental switch the two share ownership of
@@ -39,8 +39,8 @@ gpui_owns_session() {
 
 instance_live() {
 	local pid
-	pid=$(cat "$SHARED_DIR/cap-gpui.pid" 2>/dev/null) || return 1
-	[ -n "$pid" ] && ps -p "$pid" -o comm= 2>/dev/null | grep -q cap-gpui
+	pid=$(cat "$SHARED_DIR/scoopy-gpui.pid" 2>/dev/null) || return 1
+	[ -n "$pid" ] && ps -p "$pid" -o comm= 2>/dev/null | grep -q scoopy-gpui
 }
 
 stop_app() {
@@ -59,7 +59,7 @@ stop_app() {
 }
 
 start_app() {
-	CAP_GPUI_DEV_RESTORE="$STATE_FILE" RUST_LOG="${RUST_LOG:-cap_gpui=info}" "$BIN" &
+	SCOOPY_GPUI_DEV_RESTORE="$STATE_FILE" RUST_LOG="${RUST_LOG:-scoopy_gpui=info}" "$BIN" &
 	APP_PID=$!
 	echo "[dev] app running (pid $APP_PID)"
 }

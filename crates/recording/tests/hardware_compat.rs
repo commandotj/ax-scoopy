@@ -39,7 +39,7 @@ fn test_software_encoding_always_available() {
 fn test_swscale_conversion_works() {
     test_utils::init_tracing();
 
-    let config = cap_frame_converter::ConversionConfig::new(
+    let config = scoopy_frame_converter::ConversionConfig::new(
         ffmpeg::format::Pixel::BGRA,
         1920,
         1080,
@@ -48,7 +48,7 @@ fn test_swscale_conversion_works() {
         1080,
     );
 
-    let result = cap_frame_converter::create_converter_with_details(config);
+    let result = scoopy_frame_converter::create_converter_with_details(config);
     assert!(
         result.is_ok(),
         "Frame converter should always succeed (with swscale fallback)"
@@ -65,7 +65,7 @@ fn test_swscale_conversion_works() {
 fn test_system_diagnostics_collection() {
     test_utils::init_tracing();
 
-    let diagnostics = cap_recording::diagnostics::collect_diagnostics();
+    let diagnostics = scoopy_recording::diagnostics::collect_diagnostics();
 
     println!("=== System Diagnostics ===");
 
@@ -147,7 +147,7 @@ fn test_windows_version_detection() {
         println!("Feature detection (is_supported) is the reliable method, and it returns true.");
     } else if !version.meets_minimum_requirements() {
         println!("Warning: Windows version appears to be below requirements.");
-        println!("If Cap works correctly, this may be a version detection issue.");
+        println!("If Scoopy works correctly, this may be a version detection issue.");
     }
 }
 
@@ -155,7 +155,7 @@ fn test_windows_version_detection() {
 fn test_gpu_detection() {
     test_utils::init_tracing();
 
-    let gpu_info = cap_frame_converter::detect_primary_gpu();
+    let gpu_info = scoopy_frame_converter::detect_primary_gpu();
 
     if let Some(info) = gpu_info {
         println!("=== GPU Information ===");
@@ -168,25 +168,25 @@ fn test_gpu_detection() {
         );
 
         match info.vendor {
-            cap_frame_converter::GpuVendor::Nvidia => {
+            scoopy_frame_converter::GpuVendor::Nvidia => {
                 println!("  -> NVIDIA GPU: NVENC encoding expected");
             }
-            cap_frame_converter::GpuVendor::Amd => {
+            scoopy_frame_converter::GpuVendor::Amd => {
                 println!("  -> AMD GPU: AMF encoding expected");
             }
-            cap_frame_converter::GpuVendor::Intel => {
+            scoopy_frame_converter::GpuVendor::Intel => {
                 println!("  -> Intel GPU: QSV encoding expected");
             }
-            cap_frame_converter::GpuVendor::Qualcomm => {
+            scoopy_frame_converter::GpuVendor::Qualcomm => {
                 println!("  -> Qualcomm GPU: Software encoding expected");
             }
-            cap_frame_converter::GpuVendor::Arm => {
+            scoopy_frame_converter::GpuVendor::Arm => {
                 println!("  -> ARM GPU: Software encoding expected");
             }
-            cap_frame_converter::GpuVendor::Microsoft => {
+            scoopy_frame_converter::GpuVendor::Microsoft => {
                 println!("  -> Microsoft WARP: Software rendering/encoding");
             }
-            cap_frame_converter::GpuVendor::Unknown(id) => {
+            scoopy_frame_converter::GpuVendor::Unknown(id) => {
                 println!("  -> Unknown GPU vendor (0x{id:04X}): Software fallback");
             }
         }
@@ -221,7 +221,7 @@ fn test_graphics_capture_support() {
 fn test_camera_enumeration() {
     test_utils::init_tracing();
 
-    let cameras: Vec<cap_camera::CameraInfo> = cap_camera::list_cameras().collect();
+    let cameras: Vec<scoopy_camera::CameraInfo> = scoopy_camera::list_cameras().collect();
 
     println!("=== Camera Enumeration ===");
     println!("Found {} camera(s)", cameras.len());
@@ -299,16 +299,16 @@ fn test_encoder_availability_matrix() {
         println!("  {status} {description} ({name})");
     }
 
-    let gpu = cap_frame_converter::detect_primary_gpu();
+    let gpu = scoopy_frame_converter::detect_primary_gpu();
     println!("\n=== Recommended Encoder Priority ===");
     match gpu.map(|g| g.vendor) {
-        Some(cap_frame_converter::GpuVendor::Nvidia) => {
+        Some(scoopy_frame_converter::GpuVendor::Nvidia) => {
             println!("  NVIDIA detected: h264_nvenc -> h264_mf -> h264_qsv -> h264_amf -> libx264");
         }
-        Some(cap_frame_converter::GpuVendor::Amd) => {
+        Some(scoopy_frame_converter::GpuVendor::Amd) => {
             println!("  AMD detected: h264_amf -> h264_mf -> h264_nvenc -> h264_qsv -> libx264");
         }
-        Some(cap_frame_converter::GpuVendor::Intel) => {
+        Some(scoopy_frame_converter::GpuVendor::Intel) => {
             println!("  Intel detected: h264_qsv -> h264_mf -> h264_nvenc -> h264_amf -> libx264");
         }
         _ => {
@@ -363,9 +363,9 @@ fn test_d3d11_converter_capability() {
 
     for (name, input, output, width, height) in test_configs {
         let config =
-            cap_frame_converter::ConversionConfig::new(input, width, height, output, width, height);
+            scoopy_frame_converter::ConversionConfig::new(input, width, height, output, width, height);
 
-        match cap_frame_converter::create_converter_with_details(config) {
+        match scoopy_frame_converter::create_converter_with_details(config) {
             Ok(result) => {
                 let hw = if result.converter.is_hardware_accelerated() {
                     "GPU"
@@ -400,7 +400,7 @@ fn test_supported_pixel_formats() {
 
     println!("=== D3D11 Pixel Format Support ===");
     for (format, name) in formats {
-        let supported = cap_frame_converter::is_format_supported(format);
+        let supported = scoopy_frame_converter::is_format_supported(format);
         let status = if supported { "✓" } else { "✗" };
         println!("  {status} {name}");
     }
@@ -411,10 +411,10 @@ fn test_supported_pixel_formats() {
 fn test_nvidia_nvenc_encoding() {
     test_utils::init_tracing();
 
-    let gpu = cap_frame_converter::detect_primary_gpu();
+    let gpu = scoopy_frame_converter::detect_primary_gpu();
     if !matches!(
         gpu.map(|g| g.vendor),
-        Some(cap_frame_converter::GpuVendor::Nvidia)
+        Some(scoopy_frame_converter::GpuVendor::Nvidia)
     ) {
         println!("Skipping: No NVIDIA GPU detected");
         return;
@@ -446,10 +446,10 @@ fn test_nvidia_nvenc_encoding() {
 fn test_amd_amf_encoding() {
     test_utils::init_tracing();
 
-    let gpu = cap_frame_converter::detect_primary_gpu();
+    let gpu = scoopy_frame_converter::detect_primary_gpu();
     if !matches!(
         gpu.map(|g| g.vendor),
-        Some(cap_frame_converter::GpuVendor::Amd)
+        Some(scoopy_frame_converter::GpuVendor::Amd)
     ) {
         println!("Skipping: No AMD GPU detected");
         return;
@@ -478,10 +478,10 @@ fn test_amd_amf_encoding() {
 fn test_intel_qsv_encoding() {
     test_utils::init_tracing();
 
-    let gpu = cap_frame_converter::detect_primary_gpu();
+    let gpu = scoopy_frame_converter::detect_primary_gpu();
     if !matches!(
         gpu.map(|g| g.vendor),
-        Some(cap_frame_converter::GpuVendor::Intel)
+        Some(scoopy_frame_converter::GpuVendor::Intel)
     ) {
         println!("Skipping: No Intel GPU detected");
         return;
@@ -513,7 +513,7 @@ fn test_intel_qsv_encoding() {
 fn test_camera_capture_basic() {
     test_utils::init_tracing();
 
-    let cameras: Vec<cap_camera::CameraInfo> = cap_camera::list_cameras().collect();
+    let cameras: Vec<scoopy_camera::CameraInfo> = scoopy_camera::list_cameras().collect();
     if cameras.is_empty() {
         println!("No cameras available for capture test");
         return;
@@ -577,7 +577,7 @@ fn test_camera_capture_basic() {
 fn test_virtual_camera_detection() {
     test_utils::init_tracing();
 
-    let cameras: Vec<cap_camera::CameraInfo> = cap_camera::list_cameras().collect();
+    let cameras: Vec<scoopy_camera::CameraInfo> = scoopy_camera::list_cameras().collect();
 
     let virtual_camera_keywords = ["obs", "virtual", "snap", "manycam", "xsplit", "droidcam"];
 
@@ -617,7 +617,7 @@ fn test_virtual_camera_detection() {
 fn test_capture_card_detection() {
     test_utils::init_tracing();
 
-    let cameras: Vec<cap_camera::CameraInfo> = cap_camera::list_cameras().collect();
+    let cameras: Vec<scoopy_camera::CameraInfo> = scoopy_camera::list_cameras().collect();
 
     let capture_card_keywords = [
         "elgato",
@@ -664,8 +664,8 @@ fn test_hardware_compatibility_summary() {
     println!("╠════════════════════════════════════════════════════════════════╣");
 
     let version = scap_direct3d::WindowsVersion::detect();
-    let gpu = cap_frame_converter::detect_primary_gpu();
-    let diagnostics = cap_recording::diagnostics::collect_diagnostics();
+    let gpu = scoopy_frame_converter::detect_primary_gpu();
+    let diagnostics = scoopy_recording::diagnostics::collect_diagnostics();
 
     let windows_status = if diagnostics.graphics_capture_supported {
         if let Some(v) = &version {
@@ -718,7 +718,7 @@ fn test_hardware_compatibility_summary() {
     };
     println!("║ Encoding: {encoder_status:<51} ║");
 
-    let cameras: Vec<cap_camera::CameraInfo> = cap_camera::list_cameras().collect();
+    let cameras: Vec<scoopy_camera::CameraInfo> = scoopy_camera::list_cameras().collect();
     let camera_status = format!("{} camera(s) detected", cameras.len());
     println!("║ Cameras: {camera_status:<52} ║");
 
@@ -752,7 +752,7 @@ fn truncate_string(s: &str, max_len: usize) -> String {
 fn test_frame_conversion_performance() {
     test_utils::init_tracing();
 
-    let config = cap_frame_converter::ConversionConfig::new(
+    let config = scoopy_frame_converter::ConversionConfig::new(
         ffmpeg::format::Pixel::BGRA,
         1920,
         1080,
@@ -761,7 +761,7 @@ fn test_frame_conversion_performance() {
         1080,
     );
 
-    let result = cap_frame_converter::create_converter_with_details(config.clone());
+    let result = scoopy_frame_converter::create_converter_with_details(config.clone());
     if result.is_err() {
         println!("Could not create converter: {:?}", result.err());
         return;
@@ -815,7 +815,7 @@ fn test_multi_gpu_detection() {
     println!("=== Multi-GPU Detection ===");
     println!("Primary GPU detection uses DXGI EnumAdapters(0)");
 
-    if let Some(gpu) = cap_frame_converter::detect_primary_gpu() {
+    if let Some(gpu) = scoopy_frame_converter::detect_primary_gpu() {
         println!("Primary adapter: {}", gpu.description);
         println!("Vendor: {} (0x{:04X})", gpu.vendor_name(), gpu.vendor_id);
 
@@ -885,14 +885,14 @@ fn test_minimum_requirements_check() {
     }
 
     println!("\nRecommended:");
-    if cap_frame_converter::detect_primary_gpu().is_some() {
+    if scoopy_frame_converter::detect_primary_gpu().is_some() {
         println!("  ✓ Dedicated or integrated GPU");
     } else {
         println!("  ⚠ No GPU detected (will use software rendering)");
         warnings.push("Performance may be reduced without GPU acceleration");
     }
 
-    let diagnostics = cap_recording::diagnostics::collect_diagnostics();
+    let diagnostics = scoopy_recording::diagnostics::collect_diagnostics();
     let hw_encoders: Vec<&str> = diagnostics
         .available_encoders
         .iter()
@@ -923,7 +923,7 @@ fn test_minimum_requirements_check() {
             println!("  - {warning}");
         }
     } else {
-        println!("✗ Missing required components - Cap may not function correctly");
+        println!("✗ Missing required components - Scoopy may not function correctly");
     }
 
     assert!(requirements_met, "Minimum requirements not met");

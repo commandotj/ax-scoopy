@@ -16,33 +16,33 @@ const stamp = new Date()
 	.replace("T", "-");
 const runDir = path.join(root, "target", "recording-verification", stamp);
 const summaryPath = path.join(runDir, "summary.json");
-const capBin = process.env.CAP_BIN || path.join(root, "target", "debug", "cap");
+const scoopyBin = process.env.SCOOPY_BIN || path.join(root, "target", "debug", "scoopy");
 const ffprobeBin = process.env.FFPROBE_BIN || "ffprobe";
-const recordingSeconds = Number(process.env.CAP_VERIFY_SECONDS || "4");
+const recordingSeconds = Number(process.env.SCOOPY_VERIFY_SECONDS || "4");
 const desktopRecordingSeconds = Number(
-	process.env.CAP_VERIFY_DESKTOP_SECONDS || recordingSeconds + 4,
+	process.env.SCOOPY_VERIFY_DESKTOP_SECONDS || recordingSeconds + 4,
 );
-const includeSystemAudio = process.env.CAP_VERIFY_SYSTEM_AUDIO !== "0";
-const desktopEnabled = process.env.CAP_VERIFY_DESKTOP === "1";
-const skipCli = process.env.CAP_VERIFY_SKIP_CLI === "1";
-const desktopExecPath = process.env.CAP_VERIFY_DESKTOP_EXEC_PATH
-	? path.resolve(process.env.CAP_VERIFY_DESKTOP_EXEC_PATH)
+const includeSystemAudio = process.env.SCOOPY_VERIFY_SYSTEM_AUDIO !== "0";
+const desktopEnabled = process.env.SCOOPY_VERIFY_DESKTOP === "1";
+const skipCli = process.env.SCOOPY_VERIFY_SKIP_CLI === "1";
+const desktopExecPath = process.env.SCOOPY_VERIFY_DESKTOP_EXEC_PATH
+	? path.resolve(process.env.SCOOPY_VERIFY_DESKTOP_EXEC_PATH)
 	: null;
-const desktopAppPath = process.env.CAP_VERIFY_DESKTOP_APP_PATH
-	? path.resolve(process.env.CAP_VERIFY_DESKTOP_APP_PATH)
+const desktopAppPath = process.env.SCOOPY_VERIFY_DESKTOP_APP_PATH
+	? path.resolve(process.env.SCOOPY_VERIFY_DESKTOP_APP_PATH)
 	: desktopExecPath
 		? appPathFromExecutable(desktopExecPath)
 		: null;
 const desktopBundleId =
-	process.env.CAP_VERIFY_DESKTOP_BUNDLE_ID ||
-	(desktopAppPath?.endsWith("Cap - Development.app")
-		? "so.cap.desktop.dev"
-		: "so.cap.desktop");
-const signDesktopApp = process.env.CAP_VERIFY_SIGN_DESKTOP !== "0";
-const desktopEntitlementsPath = process.env.CAP_VERIFY_DESKTOP_ENTITLEMENTS
-	? path.resolve(process.env.CAP_VERIFY_DESKTOP_ENTITLEMENTS)
+	process.env.SCOOPY_VERIFY_DESKTOP_BUNDLE_ID ||
+	(desktopAppPath?.endsWith("Scoopy - Development.app")
+		? "me.systembug.scoopy.dev"
+		: "me.systembug.scoopy");
+const signDesktopApp = process.env.SCOOPY_VERIFY_SIGN_DESKTOP !== "0";
+const desktopEntitlementsPath = process.env.SCOOPY_VERIFY_DESKTOP_ENTITLEMENTS
+	? path.resolve(process.env.SCOOPY_VERIFY_DESKTOP_ENTITLEMENTS)
 	: path.join(root, "apps", "desktop", "src-tauri", "Entitlements.plist");
-const desktopLogDirs = ["so.cap.desktop.dev", "so.cap.desktop"].map((name) =>
+const desktopLogDirs = ["me.systembug.scoopy.dev", "me.systembug.scoopy"].map((name) =>
 	path.join(os.homedir(), "Library", "Logs", name),
 );
 const desktopRecordingDirs = [
@@ -50,14 +50,14 @@ const desktopRecordingDirs = [
 		os.homedir(),
 		"Library",
 		"Application Support",
-		"so.cap.desktop.dev",
+		"me.systembug.scoopy.dev",
 		"recordings",
 	),
 	path.join(
 		os.homedir(),
 		"Library",
 		"Application Support",
-		"so.cap.desktop",
+		"me.systembug.scoopy",
 		"recordings",
 	),
 ].filter((value, index, values) => values.indexOf(value) === index);
@@ -109,7 +109,7 @@ async function runCommand(name, command, args, options = {}) {
 	const env = { ...process.env, ...(options.env || {}) };
 	const timeoutMs =
 		options.timeoutMs ??
-		Number(process.env.CAP_VERIFY_COMMAND_TIMEOUT_MS || "180000");
+		Number(process.env.SCOOPY_VERIFY_COMMAND_TIMEOUT_MS || "180000");
 	const stdoutPath = outputPath(name, "stdout");
 	const stderrPath = outputPath(name, "stderr");
 	const statusPath = outputPath(name, "status.json");
@@ -252,46 +252,46 @@ function findLastEvent(text, type) {
 }
 
 async function buildCap() {
-	if (process.env.CAP_VERIFY_SKIP_BUILD === "1" && fs.existsSync(capBin)) {
+	if (process.env.SCOOPY_VERIFY_SKIP_BUILD === "1" && fs.existsSync(scoopyBin)) {
 		return;
 	}
-	await runCommand("cargo-build-cap", "cargo", ["build", "-p", "cap"]);
+	await runCommand("cargo-build-cap", "cargo", ["build", "-p", "scoopy"]);
 }
 
 async function getTargets() {
 	const targetsTimeoutMs = Number(
-		process.env.CAP_VERIFY_TARGETS_TIMEOUT_MS || "30000",
+		process.env.SCOOPY_VERIFY_TARGETS_TIMEOUT_MS || "30000",
 	);
 	const screens =
 		parseJsonOutput(
 			(
 				await runCommand(
 					"targets-screens",
-					capBin,
+					scoopyBin,
 					["--json", "targets", "screens"],
 					{ timeoutMs: targetsTimeoutMs },
 				)
 			).stdout,
 		) || [];
-	const cameras = process.env.CAP_VERIFY_CAMERA_ID
-		? [{ deviceId: process.env.CAP_VERIFY_CAMERA_ID }]
+	const cameras = process.env.SCOOPY_VERIFY_CAMERA_ID
+		? [{ deviceId: process.env.SCOOPY_VERIFY_CAMERA_ID }]
 		: parseJsonOutput(
 				(
 					await runCommand(
 						"targets-cameras",
-						capBin,
+						scoopyBin,
 						["--json", "targets", "cameras"],
 						{ timeoutMs: targetsTimeoutMs },
 					)
 				).stdout,
 			) || [];
-	const mics = process.env.CAP_VERIFY_MIC_NAME
-		? [{ name: process.env.CAP_VERIFY_MIC_NAME }]
+	const mics = process.env.SCOOPY_VERIFY_MIC_NAME
+		? [{ name: process.env.SCOOPY_VERIFY_MIC_NAME }]
 		: parseJsonOutput(
 				(
 					await runCommand(
 						"targets-mics",
-						capBin,
+						scoopyBin,
 						["--json", "targets", "mics"],
 						{ timeoutMs: targetsTimeoutMs },
 					)
@@ -302,26 +302,26 @@ async function getTargets() {
 
 function selectTargets(targets) {
 	const screenId =
-		process.env.CAP_VERIFY_SCREEN_ID || targets.screens[0]?.id?.toString();
+		process.env.SCOOPY_VERIFY_SCREEN_ID || targets.screens[0]?.id?.toString();
 	const screenName =
-		process.env.CAP_VERIFY_DESKTOP_SCREEN_NAME || targets.screens[0]?.name;
+		process.env.SCOOPY_VERIFY_DESKTOP_SCREEN_NAME || targets.screens[0]?.name;
 	const cameraId =
-		process.env.CAP_VERIFY_CAMERA_ID || targets.cameras[0]?.deviceId;
-	const micName = process.env.CAP_VERIFY_MIC_NAME || targets.mics[0]?.name;
+		process.env.SCOOPY_VERIFY_CAMERA_ID || targets.cameras[0]?.deviceId;
+	const micName = process.env.SCOOPY_VERIFY_MIC_NAME || targets.mics[0]?.name;
 
 	if (!screenId) {
 		throw new Error(
-			"No screen target found. Set CAP_VERIFY_SCREEN_ID to run screen recording verification.",
+			"No screen target found. Set SCOOPY_VERIFY_SCREEN_ID to run screen recording verification.",
 		);
 	}
 	if (!cameraId) {
 		throw new Error(
-			"No camera target found. Set CAP_VERIFY_CAMERA_ID to run camera verification.",
+			"No camera target found. Set SCOOPY_VERIFY_CAMERA_ID to run camera verification.",
 		);
 	}
 	if (!micName) {
 		throw new Error(
-			"No microphone target found. Set CAP_VERIFY_MIC_NAME to run microphone verification.",
+			"No microphone target found. Set SCOOPY_VERIFY_MIC_NAME to run microphone verification.",
 		);
 	}
 
@@ -329,8 +329,8 @@ function selectTargets(targets) {
 }
 
 async function recordForeground(selected) {
-	const projectPath = path.join(runDir, "cli-foreground.cap");
-	await runCommand("cli-foreground-record", capBin, [
+	const projectPath = path.join(runDir, "cli-foreground.scoopy");
+	await runCommand("cli-foreground-record", scoopyBin, [
 		"--log-level",
 		"debug",
 		"--json",
@@ -350,8 +350,8 @@ async function recordForeground(selected) {
 }
 
 async function recordDetached(selected) {
-	const projectPath = path.join(runDir, "cli-detached.cap");
-	const started = await runCommand("cli-detached-start", capBin, [
+	const projectPath = path.join(runDir, "cli-detached.scoopy");
+	const started = await runCommand("cli-detached-start", scoopyBin, [
 		"--log-level",
 		"debug",
 		"--json",
@@ -375,7 +375,7 @@ async function recordDetached(selected) {
 		);
 	}
 	await sleep(recordingSeconds * 1000);
-	await runCommand("cli-detached-stop", capBin, [
+	await runCommand("cli-detached-stop", scoopyBin, [
 		"--log-level",
 		"debug",
 		"--json",
@@ -395,7 +395,7 @@ async function recordDetached(selected) {
 }
 
 async function recordCameraMic(selected) {
-	const projectPath = path.join(runDir, "cli-screen-camera-mic.cap");
+	const projectPath = path.join(runDir, "cli-screen-camera-mic.scoopy");
 	const args = [
 		"--log-level",
 		"debug",
@@ -418,7 +418,7 @@ async function recordCameraMic(selected) {
 	if (includeSystemAudio) {
 		args.push("--system-audio");
 	}
-	await runCommand("cli-screen-camera-mic-record", capBin, args);
+	await runCommand("cli-screen-camera-mic-record", scoopyBin, args);
 	summary.flows.push({
 		name: "cli-screen-camera-mic",
 		projectPath,
@@ -429,8 +429,8 @@ async function recordCameraMic(selected) {
 
 async function validateProject(projectPath) {
 	const result = await runCommand(
-		`validate-${path.basename(projectPath, ".cap")}`,
-		capBin,
+		`validate-${path.basename(projectPath, ".scoopy")}`,
+		scoopyBin,
 		["--json", "project", "validate", projectPath],
 	);
 	const parsed = parseJsonOutput(result.stdout);
@@ -440,7 +440,7 @@ async function validateProject(projectPath) {
 async function probeMedia(projectPath) {
 	const mediaFiles = await listMedia(projectPath);
 	for (const mediaPath of mediaFiles) {
-		const name = `ffprobe-${path.basename(projectPath, ".cap")}-${path.basename(mediaPath).replaceAll(".", "-")}`;
+		const name = `ffprobe-${path.basename(projectPath, ".scoopy")}-${path.basename(mediaPath).replaceAll(".", "-")}`;
 		const result = await runCommand(name, ffprobeBin, [
 			"-v",
 			"error",
@@ -459,10 +459,10 @@ async function probeMedia(projectPath) {
 }
 
 async function exportProject(projectPath) {
-	const output = path.join(runDir, `${path.basename(projectPath, ".cap")}.mp4`);
+	const output = path.join(runDir, `${path.basename(projectPath, ".scoopy")}.mp4`);
 	const result = await runCommand(
-		`export-${path.basename(projectPath, ".cap")}`,
-		capBin,
+		`export-${path.basename(projectPath, ".scoopy")}`,
+		scoopyBin,
 		[
 			"--log-level",
 			"debug",
@@ -474,7 +474,7 @@ async function exportProject(projectPath) {
 		],
 	);
 	const probeResult = await runCommand(
-		`ffprobe-export-${path.basename(projectPath, ".cap")}`,
+		`ffprobe-export-${path.basename(projectPath, ".scoopy")}`,
 		ffprobeBin,
 		[
 			"-v",
@@ -511,9 +511,9 @@ async function listMedia(dir) {
 async function snapshotDesktopLogs() {
 	const date = new Date().toISOString().slice(0, 10);
 	const paths = desktopLogDirs.flatMap((desktopLogDir) => [
-		path.join(desktopLogDir, `cap-desktop.log.${date}`),
-		path.join(desktopLogDir, `cap-desktop-errors.log.${date}`),
-		path.join(desktopLogDir, "cap-desktop-panics.log"),
+		path.join(desktopLogDir, `scoopy-desktop.log.${date}`),
+		path.join(desktopLogDir, `scoopy-desktop-errors.log.${date}`),
+		path.join(desktopLogDir, "scoopy-desktop-panics.log"),
 	]);
 	const snapshot = new Map();
 	for (const filePath of paths) {
@@ -548,7 +548,7 @@ async function listProjects(dirs) {
 	for (const dir of dirs) {
 		const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
 		for (const entry of entries) {
-			if (entry.isDirectory() && entry.name.endsWith(".cap")) {
+			if (entry.isDirectory() && entry.name.endsWith(".scoopy")) {
 				projects.push(path.join(dir, entry.name));
 			}
 		}
@@ -562,7 +562,7 @@ async function verifyDesktop(selected, desktopLogSnapshot) {
 	}
 	if (!selected.screenName) {
 		throw new Error(
-			"Desktop verification needs a screen name. Set CAP_VERIFY_DESKTOP_SCREEN_NAME.",
+			"Desktop verification needs a screen name. Set SCOOPY_VERIFY_DESKTOP_SCREEN_NAME.",
 		);
 	}
 
@@ -586,7 +586,7 @@ async function verifyDesktop(selected, desktopLogSnapshot) {
 	await openDeepLink("desktop-open-editor", {
 		open_editor: { project_path: projectPath },
 	});
-	await sleep(Number(process.env.CAP_VERIFY_EDITOR_WAIT_MS || "5000"));
+	await sleep(Number(process.env.SCOOPY_VERIFY_EDITOR_WAIT_MS || "5000"));
 
 	const logSlices = await captureDesktopLogSlices(desktopLogSnapshot);
 	summary.desktop.projects.push(projectPath);
@@ -650,7 +650,7 @@ async function signDesktopAppIfNeeded() {
 
 async function openDeepLink(name, action) {
 	const value = JSON.stringify(action);
-	const url = `cap-desktop://action?value=${encodeURIComponent(value)}`;
+	const url = `scoopy-desktop://action?value=${encodeURIComponent(value)}`;
 	if (desktopExecPath) {
 		await runCommand(name, desktopExecPath, [url]);
 		return;
@@ -681,7 +681,7 @@ async function launchDesktopApp() {
 		child.unref();
 		summary.desktop.execPid = child.pid;
 		await sleep(
-			Number(process.env.CAP_VERIFY_DESKTOP_LAUNCH_WAIT_MS || "5000"),
+			Number(process.env.SCOOPY_VERIFY_DESKTOP_LAUNCH_WAIT_MS || "5000"),
 		);
 		return;
 	}
@@ -691,12 +691,12 @@ async function launchDesktopApp() {
 	}
 
 	await runCommand("desktop-launch-app", "open", [desktopAppPath]);
-	await sleep(Number(process.env.CAP_VERIFY_DESKTOP_LAUNCH_WAIT_MS || "5000"));
+	await sleep(Number(process.env.SCOOPY_VERIFY_DESKTOP_LAUNCH_WAIT_MS || "5000"));
 }
 
 async function waitForDesktopProject(before) {
 	const deadline =
-		Date.now() + Number(process.env.CAP_VERIFY_DESKTOP_TIMEOUT_MS || "120000");
+		Date.now() + Number(process.env.SCOOPY_VERIFY_DESKTOP_TIMEOUT_MS || "120000");
 	while (Date.now() < deadline) {
 		const projects = await listProjects(desktopRecordingDirs);
 		const next = projects.filter((projectPath) => !before.has(projectPath));
@@ -772,7 +772,7 @@ let desktopLogSnapshot;
 try {
 	await buildCap();
 	desktopLogSnapshot = await snapshotDesktopLogs();
-	const doctorResult = await runCommand("doctor", capBin, ["--json", "doctor"]);
+	const doctorResult = await runCommand("doctor", scoopyBin, ["--json", "doctor"]);
 	summary.doctor = parseJsonOutput(doctorResult.stdout);
 	if (!skipCli && summary.doctor?.captureReady === false) {
 		await writeSummary();

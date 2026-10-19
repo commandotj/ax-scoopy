@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { createSignal, onMount, Show } from "solid-js";
 import { commands } from "~/utils/tauri";

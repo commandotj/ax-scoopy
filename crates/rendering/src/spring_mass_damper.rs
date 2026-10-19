@@ -1,4 +1,4 @@
-use cap_project::XY;
+use scoopy_project::XY;
 
 #[derive(Clone, Copy)]
 pub struct SpringMassDamperSimulationConfig {

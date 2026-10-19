@@ -80,7 +80,7 @@ use crate::theme::Theme;
 // -- Actions and key bindings -------------------------------------------------
 
 actions!(
-    cap_text_input,
+    scoopy_text_input,
     [
         /// Delete backwards one grapheme, or the selection.
         Backspace,
@@ -1783,7 +1783,7 @@ impl TextInput {
     ///
     /// `NameEditor` is an `<input>` laid over a hidden `<span>` whose only job
     /// is to measure the value (`Header.tsx:284-290, 325-329`), so the field is
-    /// exactly as wide as its text and the literal `.cap` hugs it. The field
+    /// exactly as wide as its text and the literal `.scoopy` hugs it. The field
     /// here paints its own glyphs, so it can measure itself and the span is not
     /// needed -- but the *sizing* has to be the span's, not the parent's.
     pub fn fit_content(mut self) -> Self {

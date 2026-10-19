@@ -1,4 +1,4 @@
-import { moveRecordingSpoolToInMemoryBackup } from "@cap/recorder-core/recording-spool-fallback";
+import { moveRecordingSpoolToInMemoryBackup } from "@scoopy/recorder-core/recording-spool-fallback";
 import { describe, expect, it, vi } from "vitest";
 
 const blobToText = async (blob: Blob) =>

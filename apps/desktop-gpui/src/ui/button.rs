@@ -164,7 +164,7 @@ impl Button {
     }
 
     /// The main window: `Theme::body_*` already folds the panel material's
-    /// `.cap-window-body` remaps into the Radix steps, so this is `plain` with
+    /// `.scoopy-window-body` remaps into the Radix steps, so this is `plain` with
     /// the fills read back through those helpers.
     pub fn body(
         theme: &Theme,
@@ -248,7 +248,7 @@ impl Button {
         self
     }
 
-    /// The plain surface's `:disabled`. `@cap/ui-solid`'s `Button` carries
+    /// The plain surface's `:disabled`. `@scoopy/ui-solid`'s `Button` carries
     /// `disabled:opacity-50 disabled:cursor-not-allowed` on every variant, so
     /// this dims rather than repainting.
     pub fn disabled(mut self, disabled: bool) -> Self {

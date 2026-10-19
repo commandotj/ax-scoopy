@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { DropdownMenu as KDropdownMenu } from "@kobalte/core/dropdown-menu";
 import { cx } from "cva";
 import {
@@ -400,7 +400,7 @@ export function OrganizationDropdown() {
 				<EditorButton<typeof KDropdownMenu.Trigger>
 					as={KDropdownMenu.Trigger}
 					leftIcon={<IconLucideBuilding2 class="size-4" />}
-					rightIcon={<IconCapChevronDown />}
+					rightIcon={<IconScoopyChevronDown />}
 					title={triggerLabel()}
 					aria-label={`Organization: ${triggerLabel()}`}
 				>

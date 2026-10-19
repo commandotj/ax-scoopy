@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-zed_dir="$repo_root/../zed-cap"
+zed_dir="$repo_root/../zed-scoopy"
 patch_paths=(
 	"apps/desktop-gpui/patches/zed-gpui.patch"
 	"apps/desktop-gpui/patches/zed-windows.patch"
@@ -27,7 +27,7 @@ verify_checkout() (
 		echo "error: $zed_dir does not contain GPUI base $base_revision" >&2
 		exit 1
 	fi
-	verification_dir="$(mktemp -d "${TMPDIR:-/tmp}/cap-gpui-verify.XXXXXX")"
+	verification_dir="$(mktemp -d "${TMPDIR:-/tmp}/scoopy-gpui-verify.XXXXXX")"
 	trap 'rm -rf -- "$verification_dir"' EXIT
 	git init --quiet "$verification_dir"
 	git -C "$zed_dir" apply --numstat -z "${patch_files[@]}" > "$verification_dir/patch-paths"
@@ -35,7 +35,7 @@ verify_checkout() (
 	for ((patch_index=${#patch_files[@]}-1; patch_index>=0; patch_index--)); do
 		patch_file="${patch_files[patch_index]}"
 		if ! git -C "$verification_dir" apply --reverse --unidiff-zero "$patch_file"; then
-			echo "error: $zed_dir does not contain Cap's pinned GPUI patch: $patch_file" >&2
+			echo "error: $zed_dir does not contain Scoopy's pinned GPUI patch: $patch_file" >&2
 			exit 1
 		fi
 	done
@@ -47,7 +47,7 @@ verify_checkout() (
 # Anything else (local edits, a different base) is left for verify to reject.
 update_stale_checkout() (
 	git -C "$repo_root" rev-parse --verify --quiet HEAD > /dev/null || exit 1
-	work_dir="$(mktemp -d "${TMPDIR:-/tmp}/cap-gpui-update.XXXXXX")"
+	work_dir="$(mktemp -d "${TMPDIR:-/tmp}/scoopy-gpui-update.XXXXXX")"
 	trap 'rm -rf -- "$work_dir"' EXIT
 	revisions="$(git -C "$repo_root" log --format=%H -n 50 -- "${patch_paths[@]}")"
 	for revision in $revisions; do
@@ -102,7 +102,7 @@ update_stale_checkout() (
 				rm -- "$zed_dir/$patched_path"
 			fi
 		done < "$candidate_dir/patch-paths"
-		echo "Updated $zed_dir from Cap's GPUI patches at ${revision:0:12} to the current ones" >&2
+		echo "Updated $zed_dir from Scoopy's GPUI patches at ${revision:0:12} to the current ones" >&2
 		exit 0
 	done
 	exit 1

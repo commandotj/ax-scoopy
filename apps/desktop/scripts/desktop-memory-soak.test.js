@@ -9,25 +9,25 @@ import {
 } from "./desktop-memory-soak-lib.js";
 
 describe("desktop-memory-soak", () => {
-	it("classifies Cap and media processes", () => {
+	it("classifies Scoopy and media processes", () => {
 		expect(classifyProcess(DEFAULTS.appCommandPrefix)).toMatchObject({
-			group: "cap",
-			kind: "cap-main",
+			group: "scoopy",
+			kind: "scoopy-main",
 		});
 		expect(
 			classifyProcess(
 				`${DEFAULTS.appCommandPrefix} --crash-reporter-server=/tmp/socket`,
 			),
 		).toMatchObject({
-			group: "cap",
-			kind: "cap-crash",
+			group: "scoopy",
+			kind: "scoopy-crash",
 		});
 		expect(
 			classifyProcess(
 				"/System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent",
 			),
 		).toMatchObject({
-			group: "cap",
+			group: "scoopy",
 			kind: "webkit-webcontent",
 		});
 		expect(classifyProcess("/usr/sbin/coreaudiod")).toMatchObject({
@@ -57,7 +57,7 @@ describe("desktop-memory-soak", () => {
 
 		const sample = buildSample(processes, new Map(), DEFAULTS);
 
-		expect(sample.capTotalKb).toBe(815000);
+		expect(sample.scoopyTotalKb).toBe(815000);
 		expect(sample.mediaTotalKb).toBe(70000);
 		expect(sample.windowServerTotalKb).toBe(1200000);
 		expect(sample.grandTotalKb).toBe(2085000);

@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { createWritableMemo } from "@solid-primitives/memo";
 import { useMutation } from "@tanstack/solid-query";
 import { createResource, Show, Suspense } from "solid-js";
@@ -155,7 +155,7 @@ export default function S3ConfigPage() {
 	);
 
 	return (
-		<div class="cap-settings-page flex flex-col h-full custom-scroll">
+		<div class="scoopy-settings-page flex flex-col h-full custom-scroll">
 			<SettingsPageContent>
 				<IntegrationConfigHeader title="S3 Config" />
 				<Section
@@ -165,7 +165,7 @@ export default function S3ConfigPage() {
 							It should take under 10 minutes to set up and connect your storage
 							bucket to Scoopy. View the{" "}
 							<a
-								href="https://cap.so/docs/s3-config"
+								href="https://example.com/docs/s3-config"
 								target="_blank"
 								class="underline text-gray-12"
 								rel="noopener"
@@ -180,7 +180,7 @@ export default function S3ConfigPage() {
 						<Suspense
 							fallback={
 								<div class="flex justify-center items-center w-full h-screen">
-									<IconCapLogo class="animate-spin size-16" />
+									<IconScoopyLogo class="animate-spin size-16" />
 								</div>
 							}
 						>

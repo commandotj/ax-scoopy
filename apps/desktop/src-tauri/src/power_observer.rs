@@ -78,11 +78,11 @@ mod macos {
 
     define_class!(
         #[unsafe(super(NSObject))]
-        #[name = "CapPowerObserver"]
+        #[name = "ScoopyPowerObserver"]
         #[ivars = ObserverIvars]
-        struct CapPowerObserver;
+        struct ScoopyPowerObserver;
 
-        impl CapPowerObserver {
+        impl ScoopyPowerObserver {
             #[unsafe(method(handleWillSleep:))]
             fn handle_will_sleep(&self, _notification: &NSNotification) {
                 on_system_will_sleep(&self.ivars().app);
@@ -105,16 +105,16 @@ mod macos {
         }
     );
 
-    impl CapPowerObserver {
+    impl ScoopyPowerObserver {
         fn new(app: AppHandle) -> Retained<Self> {
             let this = Self::alloc().set_ivars(ObserverIvars { app });
             unsafe { msg_send![super(this), init] }
         }
     }
 
-    static OBSERVER: OnceLock<Mutex<Option<Retained<CapPowerObserver>>>> = OnceLock::new();
+    static OBSERVER: OnceLock<Mutex<Option<Retained<ScoopyPowerObserver>>>> = OnceLock::new();
 
-    fn slot() -> &'static Mutex<Option<Retained<CapPowerObserver>>> {
+    fn slot() -> &'static Mutex<Option<Retained<ScoopyPowerObserver>>> {
         OBSERVER.get_or_init(|| Mutex::new(None))
     }
 
@@ -129,7 +129,7 @@ mod macos {
 
                 let workspace = NSWorkspace::sharedWorkspace();
                 let center = workspace.notificationCenter();
-                let observer = CapPowerObserver::new(app.clone());
+                let observer = ScoopyPowerObserver::new(app.clone());
 
                 let observer_obj: &AnyObject = &observer;
 

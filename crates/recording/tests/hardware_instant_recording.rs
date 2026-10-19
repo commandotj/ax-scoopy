@@ -1,10 +1,10 @@
 #![cfg(target_os = "macos")]
 
-use cap_enc_ffmpeg::remux::{
+use scoopy_enc_ffmpeg::remux::{
     concatenate_m4s_segments_with_init, get_media_duration, merge_video_audio,
     probe_m4s_can_decode_with_init, probe_media_valid, probe_video_can_decode,
 };
-use cap_recording::{
+use scoopy_recording::{
     SendableShareableContent, feeds::microphone::MicrophoneFeed, instant_recording,
     sources::screen_capture::ScreenCaptureTarget,
 };
@@ -52,7 +52,7 @@ async fn instant_record_with_real_mic_and_screen() {
         let mic_actor = MicrophoneFeed::spawn(MicrophoneFeed::new(error_tx));
 
         let ready_future = mic_actor
-            .ask(cap_recording::feeds::microphone::SetInput {
+            .ask(scoopy_recording::feeds::microphone::SetInput {
                 settings: None,
                 label: label.clone(),
             })
@@ -63,7 +63,7 @@ async fn instant_record_with_real_mic_and_screen() {
 
         tokio::time::sleep(Duration::from_millis(200)).await;
 
-        match mic_actor.ask(cap_recording::feeds::microphone::Lock).await {
+        match mic_actor.ask(scoopy_recording::feeds::microphone::Lock).await {
             Ok(lock) => {
                 eprintln!("Microphone locked: {}", lock.device_name());
                 Some((Arc::new(lock), mic_actor))
@@ -82,7 +82,7 @@ async fn instant_record_with_real_mic_and_screen() {
 
     let has_mic = mic_feed.is_some();
     let temp = TempDir::new().unwrap();
-    let recording_dir = temp.path().join("test_recording.cap");
+    let recording_dir = temp.path().join("test_recording.scoopy");
 
     let record_before_pause = Duration::from_secs(6);
     let pause_duration = Duration::from_secs(5);
@@ -214,21 +214,21 @@ async fn instant_record_with_real_mic_and_screen() {
     }
 
     if let Some(rx) = segment_rx {
-        let events: Vec<cap_enc_ffmpeg::segmented_stream::SegmentCompletedEvent> =
+        let events: Vec<scoopy_enc_ffmpeg::segmented_stream::SegmentCompletedEvent> =
             rx.try_iter().collect();
         eprintln!("Segment events received: {}", events.len());
 
         let video_events = events
             .iter()
             .filter(|e| {
-                e.media_type == cap_enc_ffmpeg::segmented_stream::SegmentMediaType::Video
+                e.media_type == scoopy_enc_ffmpeg::segmented_stream::SegmentMediaType::Video
                     && !e.is_init
             })
             .count();
         let audio_events = events
             .iter()
             .filter(|e| {
-                e.media_type == cap_enc_ffmpeg::segmented_stream::SegmentMediaType::Audio
+                e.media_type == scoopy_enc_ffmpeg::segmented_stream::SegmentMediaType::Audio
                     && !e.is_init
             })
             .count();
@@ -445,16 +445,16 @@ async fn instant_record_with_real_mic_and_screen() {
     }
 
     match &completed.health {
-        cap_recording::RecordingHealth::Healthy => {
+        scoopy_recording::RecordingHealth::Healthy => {
             eprintln!("\nRecording health: HEALTHY");
         }
-        cap_recording::RecordingHealth::Repaired { original_issue } => {
+        scoopy_recording::RecordingHealth::Repaired { original_issue } => {
             eprintln!("\nRecording health: REPAIRED (was: {original_issue})");
         }
-        cap_recording::RecordingHealth::Degraded { issues } => {
+        scoopy_recording::RecordingHealth::Degraded { issues } => {
             eprintln!("\nRecording health: DEGRADED - {issues:?}");
         }
-        cap_recording::RecordingHealth::Damaged { reason } => {
+        scoopy_recording::RecordingHealth::Damaged { reason } => {
             panic!("Recording health is DAMAGED: {reason}");
         }
     }

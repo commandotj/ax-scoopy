@@ -1,4 +1,4 @@
-use cap_media_info::AudioInfo;
+use scoopy_media_info::AudioInfo;
 use ffmpeg::{format, frame};
 use std::{path::PathBuf, time::Duration};
 

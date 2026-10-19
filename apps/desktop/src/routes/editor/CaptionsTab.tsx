@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { Select as KSelect } from "@kobalte/core/select";
 import { appLocalDataDir, join } from "@tauri-apps/api/path";
 import { exists } from "@tauri-apps/plugin-fs";
@@ -27,8 +27,8 @@ import {
 } from "~/store/captions";
 import type { OrganizationBrandColorSwatch } from "~/utils/organization-branding";
 import { commands, events } from "~/utils/tauri";
-import IconCapChevronDown from "~icons/cap/chevron-down";
-import IconCapCircleCheck from "~icons/cap/circle-check";
+import IconScoopyChevronDown from "~icons/scoopy/chevron-down";
+import IconScoopyCircleCheck from "~icons/scoopy/circle-check";
 import IconLucideDownload from "~icons/lucide/download";
 import IconLucideInfo from "~icons/lucide/info";
 import IconLucideTrash2 from "~icons/lucide/trash-2";
@@ -864,7 +864,7 @@ export function CaptionsTab(props: {
 								</span>
 							</Show>
 							<KSelect.Icon>
-								<IconCapChevronDown class="shrink-0 size-3.5 transition-transform transform text-ed-text-3 data-expanded:rotate-180" />
+								<IconScoopyChevronDown class="shrink-0 size-3.5 transition-transform transform text-ed-text-3 data-expanded:rotate-180" />
 							</KSelect.Icon>
 						</KSelect.Trigger>
 						<KSelect.Portal>
@@ -920,7 +920,7 @@ export function CaptionsTab(props: {
 								}}
 							</KSelect.Value>
 							<KSelect.Icon>
-								<IconCapChevronDown class="shrink-0 size-3.5 transition-transform transform text-ed-text-3 data-expanded:rotate-180" />
+								<IconScoopyChevronDown class="shrink-0 size-3.5 transition-transform transform text-ed-text-3 data-expanded:rotate-180" />
 							</KSelect.Icon>
 						</KSelect.Trigger>
 						<KSelect.Portal>
@@ -1007,7 +1007,7 @@ export function CaptionsTab(props: {
 						</Show>
 						<div class="flex gap-2 justify-between items-center text-[11px] text-ed-text-3">
 							<span class="flex gap-1.5 items-center min-w-0">
-								<IconCapCircleCheck class="shrink-0 size-3.5 text-ed-text-3" />
+								<IconScoopyCircleCheck class="shrink-0 size-3.5 text-ed-text-3" />
 								<span class="truncate">
 									{selectedModelOption()?.label ?? "Caption"} model downloaded
 								</span>
@@ -1110,7 +1110,7 @@ export function CaptionsTab(props: {
 										}
 									</KSelect.Value>
 									<KSelect.Icon>
-										<IconCapChevronDown class="shrink-0 size-3.5 text-ed-text-3" />
+										<IconScoopyChevronDown class="shrink-0 size-3.5 text-ed-text-3" />
 									</KSelect.Icon>
 								</KSelect.Trigger>
 								<KSelect.Portal>
@@ -1200,7 +1200,7 @@ export function CaptionsTab(props: {
 											}
 										</KSelect.Value>
 										<KSelect.Icon>
-											<IconCapChevronDown class="shrink-0 size-3.5 text-ed-text-3" />
+											<IconScoopyChevronDown class="shrink-0 size-3.5 text-ed-text-3" />
 										</KSelect.Icon>
 									</KSelect.Trigger>
 									<KSelect.Portal>
@@ -1296,7 +1296,7 @@ export function CaptionsTab(props: {
 									)}
 								</KSelect.Value>
 								<KSelect.Icon>
-									<IconCapChevronDown class="shrink-0 size-3.5 text-ed-text-3" />
+									<IconScoopyChevronDown class="shrink-0 size-3.5 text-ed-text-3" />
 								</KSelect.Icon>
 							</KSelect.Trigger>
 							<KSelect.Portal>
@@ -1333,7 +1333,7 @@ export function CaptionsTab(props: {
 										{selectItemProps.item.rawValue.label}
 									</KSelect.ItemLabel>
 									<KSelect.ItemIndicator class="ml-auto text-ed-accent">
-										<IconCapCircleCheck />
+										<IconScoopyCircleCheck />
 									</KSelect.ItemIndicator>
 								</MenuItem>
 							)}
@@ -1349,7 +1349,7 @@ export function CaptionsTab(props: {
 									}
 								</KSelect.Value>
 								<KSelect.Icon>
-									<IconCapChevronDown class="shrink-0 size-3.5 transition-transform transform text-ed-text-3 data-expanded:rotate-180" />
+									<IconScoopyChevronDown class="shrink-0 size-3.5 transition-transform transform text-ed-text-3 data-expanded:rotate-180" />
 								</KSelect.Icon>
 							</KSelect.Trigger>
 							<KSelect.Portal>
@@ -1404,7 +1404,7 @@ export function CaptionsTab(props: {
 										}
 									</KSelect.Value>
 									<KSelect.Icon>
-										<IconCapChevronDown class="shrink-0 size-3.5 text-ed-text-3" />
+										<IconScoopyChevronDown class="shrink-0 size-3.5 text-ed-text-3" />
 									</KSelect.Icon>
 								</KSelect.Trigger>
 								<KSelect.Portal>

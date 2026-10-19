@@ -1,4 +1,4 @@
-# cap-rendering-skia
+# scoopy-rendering-skia
 
 A new rendering backend for Scoopy using Skia, designed to replace the current wgpu-based renderer.
 
@@ -17,13 +17,13 @@ This crate implements the basic infrastructure for Skia-based rendering with GPU
 
 ```bash
 # Build the crate
-cargo build -p cap-rendering-skia
+cargo build -p scoopy-rendering-skia
 
 # Run the test binary
-cargo run -p cap-rendering-skia --bin test-skia
+cargo run -p scoopy-rendering-skia --bin test-skia
 
 # Run tests
-cargo test -p cap-rendering-skia
+cargo test -p scoopy-rendering-skia
 ```
 
 The test binary will:

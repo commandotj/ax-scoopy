@@ -13,8 +13,8 @@ import {
 const target = "x86_64-apple-darwin";
 const config = ["--config", "src-tauri/tauri.prod.conf.json"];
 const intelTimestampFailure = [
-	"/Users/runner/work/Cap/Cap/target/x86_64-apple-darwin/release/bundle/macos/Cap.app/Contents/Frameworks/Spacedrive.framework/Versions/Current/Libraries/libavdevice.61.3.100.dylib: replacing existing signature",
-	"/Users/runner/work/Cap/Cap/target/x86_64-apple-darwin/release/bundle/macos/Cap.app/Contents/Frameworks/Spacedrive.framework/Versions/Current/Libraries/libavdevice.61.3.100.dylib: A timestamp was expected but was not found.",
+	"/Users/runner/work/Scoopy/Scoopy/target/x86_64-apple-darwin/release/bundle/macos/Scoopy.app/Contents/Frameworks/Spacedrive.framework/Versions/Current/Libraries/libavdevice.61.3.100.dylib: replacing existing signature",
+	"/Users/runner/work/Scoopy/Scoopy/target/x86_64-apple-darwin/release/bundle/macos/Scoopy.app/Contents/Frameworks/Spacedrive.framework/Versions/Current/Libraries/libavdevice.61.3.100.dylib: A timestamp was expected but was not found.",
 	"failed to bundle project: failed to sign app",
 	"       Error failed to bundle project: failed to sign app",
 	" ELIFECYCLE  Command failed with exit code 1.",
@@ -22,7 +22,7 @@ const intelTimestampFailure = [
 	"",
 ].join("\n");
 const armTimestampFailure = [
-	"/Users/runner/work/Cap/Cap/target/aarch64-apple-darwin/release/bundle/macos/Cap.app: The timestamp service is not available.",
+	"/Users/runner/work/Scoopy/Scoopy/target/aarch64-apple-darwin/release/bundle/macos/Scoopy.app: The timestamp service is not available.",
 	"       Error failed to bundle project: failed to sign app",
 	"",
 ].join("\n");
@@ -121,7 +121,7 @@ test("macOS deployment targets preserve compatible overrides and reject unsafe v
 	for (const version of ["10.13", "11.0", "12", "12.2.99"]) {
 		assert.throws(
 			() => resolveMacosDeploymentTarget(version),
-			/below Cap's minimum/,
+			/below Scoopy's minimum/,
 		);
 	}
 	for (const version of [
@@ -164,7 +164,7 @@ test("an unsupported macOS override fails before starting a compiler or packager
 	fixture.options.env.MACOSX_DEPLOYMENT_TARGET = "10.13";
 	await assert.rejects(
 		buildMacosPackages(target, config, fixture.options),
-		/below Cap's minimum macOS version 12.3/,
+		/below Scoopy's minimum macOS version 12.3/,
 	);
 	assert.deepEqual(fixture.calls, []);
 });
@@ -236,9 +236,9 @@ test("only retries exact timestamp diagnostics with a terminal Tauri signing err
 		),
 		intelTimestampFailure.replace(
 			"failed to bundle project: failed to sign app\n",
-			"/Users/runner/work/Cap/Cap/target/x86_64-apple-darwin/release/bundle/macos/Cap.app: The specified item could not be found in the keychain.\nfailed to bundle project: failed to sign app\n",
+			"/Users/runner/work/Scoopy/Scoopy/target/x86_64-apple-darwin/release/bundle/macos/Scoopy.app: The specified item could not be found in the keychain.\nfailed to bundle project: failed to sign app\n",
 		),
-		`${intelTimestampFailure}error: could not compile cap-desktop\n`,
+		`${intelTimestampFailure}error: could not compile scoopy-desktop\n`,
 		"warning: A timestamp was expected but was not found.\nError failed to bundle project: failed to sign app\n",
 	]) {
 		assert.equal(isTimestampSigningFailure(output), false, output);
@@ -329,7 +329,7 @@ test("a retry cannot reuse the previous attempt's timestamp diagnostic", async (
 
 test("compiler, certificate, notarization and signal failures are terminal", async () => {
 	for (const result of [
-		{ code: 1, output: "error: could not compile cap-desktop\n" },
+		{ code: 1, output: "error: could not compile scoopy-desktop\n" },
 		{
 			code: 1,
 			output:
@@ -521,7 +521,7 @@ test("unsupported platforms and arguments fail before executing bun", async () =
 
 test("timestamp signing retries tolerate nested Bun script failure messages", () => {
 	const failure =
-		'/Applications/Cap.app: A timestamp was expected but was not found.\nError failed to bundle project: failed to sign app\nerror: script "tauri" exited with code 1\nerror: script "build:tauri" exited with code 1';
+		'/Applications/Scoopy.app: A timestamp was expected but was not found.\nError failed to bundle project: failed to sign app\nerror: script "tauri" exited with code 1\nerror: script "build:tauri" exited with code 1';
 	assert.equal(isTimestampSigningFailure(failure), true);
 	assert.equal(
 		isTimestampSigningFailure(`${failure}\nError unrelated packaging failure`),

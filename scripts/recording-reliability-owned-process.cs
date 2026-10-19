@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
-public sealed class CapOwnedProcess : IDisposable
+public sealed class ScoopyOwnedProcess : IDisposable
 {
     private const uint KillOnJobClose = 0x2000;
     private const uint CreateSuspended = 4;
@@ -14,9 +14,9 @@ public sealed class CapOwnedProcess : IDisposable
     private IntPtr process;
     public int Id { get; private set; }
 
-    public static CapOwnedProcess Start(string binary, string arguments, string directory, string stdout, string stderr)
+    public static ScoopyOwnedProcess Start(string binary, string arguments, string directory, string stdout, string stderr)
     {
-        var owned = new CapOwnedProcess();
+        var owned = new ScoopyOwnedProcess();
         IntPtr output = IntPtr.Zero, error = IntPtr.Zero, input = IntPtr.Zero, thread = IntPtr.Zero;
         try
         {

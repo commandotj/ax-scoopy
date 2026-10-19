@@ -4,7 +4,7 @@
 //!
 //! Synthetic marker frames go through the product's Studio display muxers.
 //! macOS: the in-process `MacOSFragmentedM4SMuxer` and the out-of-process
-//! `OutOfProcessFragmentedM4SMuxer` (a `cap-muxer` child), fed NV12 IOSurface
+//! `OutOfProcessFragmentedM4SMuxer` (a `scoopy-muxer` child), fed NV12 IOSurface
 //! sample buffers like ScreenCaptureKit delivers. Linux and Windows: the
 //! shared `SegmentedVideoEncoder` writer through `ffmpeg::SegmentedVideoMuxer`
 //! (the Linux Studio display muxer; on Windows the writer behind
@@ -31,12 +31,12 @@ use std::{
 };
 
 use anyhow::{Context, anyhow, bail};
-use cap_media_info::{RawVideoFormat, VideoInfo};
-use cap_recording::{
+use scoopy_media_info::{RawVideoFormat, VideoInfo};
+use scoopy_recording::{
     ChannelVideoSource, ChannelVideoSourceConfig, OutputPipeline, recovery::RecoveryManager,
 };
-use cap_timestamp::{Timestamp, Timestamps};
-use cap_verify::{
+use scoopy_timestamp::{Timestamp, Timestamps};
+use scoopy_verify::{
     fixture::Rng,
     media,
     report::{self, Case, Tier},
@@ -63,7 +63,7 @@ const SECONDS: f64 = 8.0;
 /// container round to at most 1/90000 s; half a millisecond is far below the
 /// 33 ms frame period and above any rounding.
 const PTS_TOLERANCE: f64 = 0.0005;
-const CHILD_ENV: &str = "CAP_VERIFY_CRASH_CHILD";
+const CHILD_ENV: &str = "SCOOPY_VERIFY_CRASH_CHILD";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Arm {
@@ -115,7 +115,7 @@ struct Run {
 #[cfg(target_os = "macos")]
 mod source {
     use super::*;
-    use cap_recording::{
+    use scoopy_recording::{
         MacOSFragmentedM4SMuxer, MacOSFragmentedM4SMuxerConfig, OutOfProcessFragmentedM4SMuxer,
         OutOfProcessFragmentedM4SMuxerConfig, screen_capture,
     };
@@ -140,7 +140,7 @@ mod source {
             width as usize,
             height as usize,
         );
-        let buf = cap_verify::fixture_avf::pixel_buffer(width as usize, height as usize, &rgba)?;
+        let buf = scoopy_verify::fixture_avf::pixel_buffer(width as usize, height as usize, &rgba)?;
         let format_desc = cm::VideoFormatDesc::with_image_buf(&buf)
             .map_err(|e| anyhow!("format description: {e:?}"))?;
         let timing = cm::SampleTimingInfo {
@@ -200,7 +200,7 @@ mod source {
 #[cfg(not(target_os = "macos"))]
 mod source {
     use super::*;
-    use cap_recording::ffmpeg::{FFmpegVideoFrame, SegmentedVideoMuxer, SegmentedVideoMuxerConfig};
+    use scoopy_recording::ffmpeg::{FFmpegVideoFrame, SegmentedVideoMuxer, SegmentedVideoMuxerConfig};
 
     pub type Frame = FFmpegVideoFrame;
 
@@ -257,7 +257,7 @@ struct ObservedMuxer<M> {
     output_path: PathBuf,
 }
 
-impl<M: cap_recording::Muxer> cap_recording::Muxer for ObservedMuxer<M>
+impl<M: scoopy_recording::Muxer> scoopy_recording::Muxer for ObservedMuxer<M>
 where
     M::Config: Send,
 {
@@ -267,9 +267,9 @@ where
         config: Self::Config,
         output_path: PathBuf,
         video_config: Option<VideoInfo>,
-        audio_config: Option<cap_media_info::AudioInfo>,
+        audio_config: Option<scoopy_media_info::AudioInfo>,
         pause_flag: std::sync::Arc<std::sync::atomic::AtomicBool>,
-        tasks: &mut cap_recording::TaskPool,
+        tasks: &mut scoopy_recording::TaskPool,
     ) -> anyhow::Result<Self> {
         let inner = M::setup(
             config,
@@ -294,12 +294,12 @@ where
         self.inner.finish(timestamp)
     }
 
-    fn set_health_sender(&mut self, tx: cap_recording::HealthSender) {
+    fn set_health_sender(&mut self, tx: scoopy_recording::HealthSender) {
         self.inner.set_health_sender(tx);
     }
 }
 
-impl<M: cap_recording::VideoMuxer<VideoFrame = source::Frame>> cap_recording::VideoMuxer
+impl<M: scoopy_recording::VideoMuxer<VideoFrame = source::Frame>> scoopy_recording::VideoMuxer
     for ObservedMuxer<M>
 where
     M::Config: Send,
@@ -315,13 +315,13 @@ where
     }
 }
 
-impl<M: cap_recording::AudioMuxer> cap_recording::AudioMuxer for ObservedMuxer<M>
+impl<M: scoopy_recording::AudioMuxer> scoopy_recording::AudioMuxer for ObservedMuxer<M>
 where
     M::Config: Send,
 {
     fn send_audio_frame(
         &mut self,
-        frame: cap_recording::AudioFrame,
+        frame: scoopy_recording::AudioFrame,
         timestamp: Duration,
     ) -> anyhow::Result<()> {
         self.inner.send_audio_frame(frame, timestamp)
@@ -465,7 +465,7 @@ fn secs_complete(line: &str) -> bool {
         .is_some_and(|d| d.len() == 6)
 }
 
-/// Runs only as a child of `crash_safety` (`CAP_VERIFY_CRASH_CHILD` set):
+/// Runs only as a child of `crash_safety` (`SCOOPY_VERIFY_CRASH_CHILD` set):
 /// records into the given directory until it is killed or finishes.
 #[test]
 fn crash_child_recorder() {
@@ -483,7 +483,7 @@ fn crash_child_recorder() {
     let seconds: f64 = fields["seconds"].parse().expect("seconds");
     let step: u32 = fields["step"].parse().expect("step");
     if arm == Arm::OutOfProcess {
-        cap_recording::oop_muxer::resolve_muxer_binary().expect("child recorder: cap-muxer binary");
+        scoopy_recording::oop_muxer::resolve_muxer_binary().expect("child recorder: scoopy-muxer binary");
     }
     let rt = common::runtime();
     rt.block_on(record(
@@ -512,8 +512,8 @@ impl ChildRecorder {
     ) -> anyhow::Result<Self> {
         let exe = std::env::current_exe()?;
         let mut command = Command::new(exe);
-        if let Ok(muxer) = cap_recording::oop_muxer::resolve_muxer_binary() {
-            command.env(cap_recording::oop_muxer::ENV_BIN_PATH, muxer);
+        if let Ok(muxer) = scoopy_recording::oop_muxer::resolve_muxer_binary() {
+            command.env(scoopy_recording::oop_muxer::ENV_BIN_PATH, muxer);
         }
         let child = command
             .args([
@@ -564,7 +564,7 @@ impl ChildRecorder {
         }
     }
 
-    /// SIGKILL (TerminateProcess on Windows); returns the cap-muxer child
+    /// SIGKILL (TerminateProcess on Windows); returns the scoopy-muxer child
     /// pids it left behind.
     fn kill(mut self) -> anyhow::Result<Vec<u32>> {
         let orphans = muxer_children(self.child.id());
@@ -583,13 +583,13 @@ impl Drop for ChildRecorder {
     }
 }
 
-/// `cap-muxer` processes whose parent is `pid`.
+/// `scoopy-muxer` processes whose parent is `pid`.
 fn muxer_children(pid: u32) -> Vec<u32> {
     if cfg!(windows) {
         return Vec::new();
     }
     let Ok(out) = Command::new("pgrep")
-        .args(["-P", &pid.to_string(), "-x", "cap-muxer"])
+        .args(["-P", &pid.to_string(), "-x", "scoopy-muxer"])
         .output()
     else {
         return Vec::new();
@@ -616,7 +616,7 @@ fn signal(pid: u32, sig: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// After a recorder crash the orphaned cap-muxer sees EOF and finishes its
+/// After a recorder crash the orphaned scoopy-muxer sees EOF and finishes its
 /// open segment; recovery happens on the next launch, after it exited.
 fn wait_for_exit(pids: &[u32], case: &mut Case) {
     let started = Instant::now();
@@ -627,13 +627,13 @@ fn wait_for_exit(pids: &[u32], case: &mut Case) {
         if alive(pid) {
             case.problem(
                 "orphan",
-                format!("cap-muxer {pid} still running 20 s after the recorder died"),
+                format!("scoopy-muxer {pid} still running 20 s after the recorder died"),
             );
         }
     }
     if !pids.is_empty() {
         case.note(format!(
-            "orphaned cap-muxer exited {:.2}s after the kill",
+            "orphaned scoopy-muxer exited {:.2}s after the kill",
             started.elapsed().as_secs_f64()
         ));
     }
@@ -873,7 +873,7 @@ fn check_fragment_spans(case: &mut Case, fragments: &[Vec<(u32, f64)>], handed: 
     ));
 }
 
-/// Out-of-process only: after the recorder died, the orphaned cap-muxer
+/// Out-of-process only: after the recorder died, the orphaned scoopy-muxer
 /// sees EOF and must finish the fragment it had open (nothing it received
 /// may be lost).
 fn check_open_fragment(case: &mut Case, display: &Path) {
@@ -889,7 +889,7 @@ fn check_open_fragment(case: &mut Case, display: &Path) {
                 case.problem(
                     "open-fragment-lost",
                     format!(
-                        "the orphaned cap-muxer left {name} incomplete ({size} bytes): the packets it had received are lost"
+                        "the orphaned scoopy-muxer left {name} incomplete ({size} bytes): the packets it had received are lost"
                     ),
                 );
             }
@@ -1079,10 +1079,10 @@ fn check_recovery(
 }
 
 fn scratch_root() -> PathBuf {
-    std::env::var_os("CAP_VERIFY_SCRATCH")
+    std::env::var_os("SCOOPY_VERIFY_SCRATCH")
         .map(PathBuf::from)
         .unwrap_or_else(std::env::temp_dir)
-        .join("cap-verify-crash")
+        .join("scoopy-verify-crash")
 }
 
 fn fresh(dir: &Path) -> anyhow::Result<()> {
@@ -1275,13 +1275,13 @@ fn recorder_kill(
         Err(e) => return Err(e),
     };
     check_recovery(case, &recovered, &physical, &handed, &pending);
-    if std::env::var_os("CAP_VERIFY_KEEP").is_none() {
+    if std::env::var_os("SCOOPY_VERIFY_KEEP").is_none() {
         let _ = std::fs::remove_dir_all(&scratch);
     }
     Ok(())
 }
 
-/// Out-of-process only: kill cap-muxer mid-recording. The recording must
+/// Out-of-process only: kill scoopy-muxer mid-recording. The recording must
 /// continue in a respawned muxer, and recovery must keep every complete
 /// fragment, at its capture time (a muxer crash must not shift later video
 /// against audio).
@@ -1306,9 +1306,9 @@ fn muxer_kill(rt: &tokio::runtime::Runtime, case: &mut Case) -> anyhow::Result<(
     };
     let run = rt.block_on(record(&display, Arm::OutOfProcess, SECONDS, 1, None, live))?;
     let Some(pid) = *killed.lock().unwrap() else {
-        bail!("no cap-muxer child to kill at frame {kill_at}");
+        bail!("no scoopy-muxer child to kill at frame {kill_at}");
     };
-    case.note(format!("killed cap-muxer {pid} after frame {kill_at}"));
+    case.note(format!("killed scoopy-muxer {pid} after frame {kill_at}"));
     let respawns = writer_dirs(&display).len() - 1;
     if respawns == 0 {
         case.problem("respawn", "no respawned muxer after the kill");
@@ -1406,7 +1406,7 @@ fn encoder_service_cpu() -> f64 {
 
 /// Overhead of the out-of-process muxer at a real Studio size: 1920x1080
 /// NV12 at 60 fps for `PERF_SECONDS`, interleaved A/B rounds. Reports CPU
-/// seconds of the recorder and of cap-muxer per recorded second and their
+/// seconds of the recorder and of scoopy-muxer per recorded second and their
 /// peak resident memory (measurement only; the default decision reads it).
 #[cfg(target_os = "macos")]
 const PERF_SECONDS: f64 = 10.0;
@@ -1476,7 +1476,7 @@ fn overhead(rt: &tokio::runtime::Runtime, case: &mut Case) -> anyhow::Result<()>
                 ))
             })?;
             case.note(format!(
-                "round {round} {}: recorder {:.3} CPU s/s, cap-muxer + VideoToolbox service {:.3} CPU s/s, recorder peak {} MB, cap-muxer peak {} MB",
+                "round {round} {}: recorder {:.3} CPU s/s, scoopy-muxer + VideoToolbox service {:.3} CPU s/s, recorder peak {} MB, scoopy-muxer peak {} MB",
                 arm.label(),
                 sample.0,
                 sample.1,
@@ -1506,14 +1506,14 @@ fn crash_safety() {
         return;
     }
     common::init();
-    if cfg!(target_os = "macos") && std::env::var_os("CAP_MUXER_BIN").is_none() {
-        // Built next to the test binary by `cargo build -p cap-muxer`.
+    if cfg!(target_os = "macos") && std::env::var_os("SCOOPY_MUXER_BIN").is_none() {
+        // Built next to the test binary by `cargo build -p scoopy-muxer`.
         if let Some(bin) = std::env::current_exe()
             .ok()
-            .and_then(|exe| Some(exe.parent()?.parent()?.join("cap-muxer")))
+            .and_then(|exe| Some(exe.parent()?.parent()?.join("scoopy-muxer")))
             .filter(|p| p.exists())
         {
-            let _ = cap_recording::oop_muxer::set_muxer_binary_override(bin);
+            let _ = scoopy_recording::oop_muxer::set_muxer_binary_override(bin);
         }
     }
     let rt = common::runtime();
@@ -1528,12 +1528,12 @@ fn crash_safety() {
         }
     };
 
-    let oop_ready = cap_recording::oop_muxer::resolve_muxer_binary();
+    let oop_ready = scoopy_recording::oop_muxer::resolve_muxer_binary();
 
     if cfg!(target_os = "macos") && report::selected("crash/equality") {
         let mut case = Case::new("crash/equality");
         if let Err(e) = &oop_ready {
-            case.problem("harness", format!("cap-muxer not found: {e:#}"));
+            case.problem("harness", format!("scoopy-muxer not found: {e:#}"));
         } else if let Err(e) = equality(&rt, &mut case) {
             case.problem("error", format!("{e:#}"));
         }
@@ -1558,7 +1558,7 @@ fn crash_safety() {
         settle(case);
     }
 
-    let seed: u64 = std::env::var("CAP_VERIFY_CRASH_SEED")
+    let seed: u64 = std::env::var("SCOOPY_VERIFY_CRASH_SEED")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(20261016);
@@ -1694,28 +1694,28 @@ fn pending_fragment_bound_rejects_other_complete_frame_loss() {
     let physical = vec![(0, 0.0), (1, 1.0 / f64::from(FPS))];
     // The bound the pending-fragment (#2640) entry used: frames inside
     // complete pending fragments only.
-    let bound = cap_verify_expect::Bound::from([
-        ("count".into(), cap_verify_expect::Range::at(1.0)),
+    let bound = scoopy_verify_expect::Bound::from([
+        ("count".into(), scoopy_verify_expect::Range::at(1.0)),
         (
             "frames".into(),
-            cap_verify_expect::Range {
+            scoopy_verify_expect::Range {
                 min: 1.0,
                 max: 60.0,
             },
         ),
-        ("outside-pending".into(), cap_verify_expect::Range::at(0.0)),
+        ("outside-pending".into(), scoopy_verify_expect::Range::at(0.0)),
     ]);
     for (outside, accepted) in [(0.0, true), (1.0, false)] {
         let metrics = BTreeMap::from([
-            ("count".into(), cap_verify_expect::Range::at(1.0)),
-            ("frames".into(), cap_verify_expect::Range::at(1.0)),
+            ("count".into(), scoopy_verify_expect::Range::at(1.0)),
+            ("frames".into(), scoopy_verify_expect::Range::at(1.0)),
             (
                 "outside-pending".into(),
-                cap_verify_expect::Range::at(outside),
+                scoopy_verify_expect::Range::at(outside),
             ),
         ]);
         assert_eq!(
-            cap_verify_expect::within(&bound, Some(&metrics)).is_ok(),
+            scoopy_verify_expect::within(&bound, Some(&metrics)).is_ok(),
             accepted
         );
     }

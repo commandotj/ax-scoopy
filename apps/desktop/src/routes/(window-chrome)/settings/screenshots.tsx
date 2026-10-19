@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import Tooltip from "@corvu/tooltip";
 import {
 	createQuery,
@@ -28,7 +28,7 @@ import { createTauriEventListener } from "~/utils/createEventListener";
 import { importImageFromPicker, showImportError } from "~/utils/importMedia";
 import { commands, events, type RecordingMeta } from "~/utils/tauri";
 
-import IconCapTrash from "~icons/cap/trash";
+import IconScoopyTrash from "~icons/scoopy/trash";
 import IconLucideCopy from "~icons/lucide/copy";
 import IconLucideEdit from "~icons/lucide/edit";
 import IconLucideFolder from "~icons/lucide/folder";
@@ -161,7 +161,7 @@ export default function Screenshots() {
 	};
 
 	return (
-		<div class="cap-settings-page flex relative flex-col w-full h-full custom-scroll">
+		<div class="scoopy-settings-page flex relative flex-col w-full h-full custom-scroll">
 			<SettingsPageContent class="max-w-none space-y-4">
 				<Section
 					title="Screenshots"
@@ -345,7 +345,7 @@ function ScreenshotItem(props: {
 						queryClient.invalidateQueries({ queryKey: ["screenshots"] });
 					}}
 				>
-					<IconCapTrash class="size-4" />
+					<IconScoopyTrash class="size-4" />
 				</TooltipIconButton>
 			</div>
 		</li>

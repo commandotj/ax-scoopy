@@ -10,7 +10,7 @@ use gpui::{
 use crate::theme::Theme;
 
 /// `<SectionCard>` / `<SectionRows>` -- `rounded-xl border border-gray-3
-/// bg-gray-2`, carrying the `.cap-settings-card` hook the material layer reads.
+/// bg-gray-2`, carrying the `.scoopy-settings-card` hook the material layer reads.
 pub struct Card;
 
 impl Card {
@@ -116,7 +116,7 @@ impl Popover {
     }
 }
 
-/// `<SettingItem>` / `.cap-setting-row { min-height: 46px; padding: 12px }` over
+/// `<SettingItem>` / `.scoopy-setting-row { min-height: 46px; padding: 12px }` over
 /// `flex flex-row gap-4 justify-between items-center`.
 #[derive(IntoElement)]
 pub struct SettingRow {

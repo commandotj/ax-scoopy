@@ -4,8 +4,8 @@
 
 mod common;
 
-use cap_project::ProjectConfiguration;
-use cap_verify::{
+use scoopy_project::ProjectConfiguration;
+use scoopy_verify::{
     catalog,
     fixture::{FixtureSpec, Rng},
     media,
@@ -234,12 +234,12 @@ fn scrub() {
     common::assert_passed(failures);
 }
 
-/// Ad-hoc repro runner: `CAP_VERIFY_SEEK_SCRIPT="<fixture>@<fps>:<secs>+<follow>,..."`
+/// Ad-hoc repro runner: `SCOOPY_VERIFY_SEEK_SCRIPT="<fixture>@<fps>:<secs>+<follow>,..."`
 /// seeks to each time and plays `follow` frames after it (fixtures:
 /// seek-gop, seek-native, vfr-holds). Ignored without the variable.
 #[test]
 fn script() {
-    let Ok(script) = std::env::var("CAP_VERIFY_SEEK_SCRIPT") else {
+    let Ok(script) = std::env::var("SCOOPY_VERIFY_SEEK_SCRIPT") else {
         return;
     };
     let (head, steps) = script.split_once(':').expect("<fixture>@<fps>:<steps>");

@@ -1,10 +1,10 @@
 use std::{fmt::Display, ops::Deref, time::Duration};
 
-use cap_camera::{CameraInfo, Format};
-use cap_camera_ffmpeg::CapturedFrameExt;
+use scoopy_camera::{CameraInfo, Format};
+use scoopy_camera_ffmpeg::CapturedFrameExt;
 
 fn main() {
-    let cameras = cap_camera::list_cameras().map(CameraSelectOption).collect();
+    let cameras = scoopy_camera::list_cameras().map(CameraSelectOption).collect();
 
     let selected_camera = inquire::Select::new("Select a device", cameras)
         .prompt()

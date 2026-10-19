@@ -5,13 +5,13 @@ use super::{
 };
 use crate::studio_recording::{CleanStoppedStudio, CleanStoppedStudioClaim, CompletedRecording};
 use anyhow::{Context, Result, bail, ensure};
-use cap_audio::{AudioStream, ChunkRead};
-use cap_enc_ffmpeg::RelocatableSource;
-use cap_project::{
+use scoopy_audio::{AudioStream, ChunkRead};
+use scoopy_enc_ffmpeg::RelocatableSource;
+use scoopy_project::{
     Cursors, MultipleSegment, ProjectConfiguration, RecordingMeta, RecordingMetaInner,
     StudioRecordingMeta,
 };
-use cap_rendering::decoder::{
+use scoopy_rendering::decoder::{
     DecodedFrame, ManagedVideoDecoder, PixelFormat, spawn_managed_decoder,
 };
 use serde::{Deserialize, Serialize};
@@ -869,20 +869,20 @@ impl ProbeConfig {
             std::env::var(name).with_context(|| format!("Explicit manual probe requires {name}"))
         };
         let config = Self {
-            fixture: PathBuf::from(required("CAP_PREPARING_FIXTURE")?),
-            fixture_name: required("CAP_PREPARING_FIXTURE_NAME")?,
-            manifest_path: PathBuf::from(required("CAP_PREPARING_FIXTURE_MANIFEST")?),
-            work_root: PathBuf::from(required("CAP_PREPARING_WORK_ROOT")?),
-            output: PathBuf::from(required("CAP_PREPARING_EVIDENCE_OUTPUT")?),
-            source_manifest: PathBuf::from(required("CAP_PREPARING_SOURCE_MANIFEST")?),
-            source_manifest_sha256: required("CAP_PREPARING_SOURCE_MANIFEST_SHA256")?,
-            binary_sha256: required("CAP_PREPARING_BINARY_SHA256")?,
-            current_writer_snapshot: std::env::var("CAP_PREPARING_CURRENT_WRITER_SNAPSHOT")
+            fixture: PathBuf::from(required("SCOOPY_PREPARING_FIXTURE")?),
+            fixture_name: required("SCOOPY_PREPARING_FIXTURE_NAME")?,
+            manifest_path: PathBuf::from(required("SCOOPY_PREPARING_FIXTURE_MANIFEST")?),
+            work_root: PathBuf::from(required("SCOOPY_PREPARING_WORK_ROOT")?),
+            output: PathBuf::from(required("SCOOPY_PREPARING_EVIDENCE_OUTPUT")?),
+            source_manifest: PathBuf::from(required("SCOOPY_PREPARING_SOURCE_MANIFEST")?),
+            source_manifest_sha256: required("SCOOPY_PREPARING_SOURCE_MANIFEST_SHA256")?,
+            binary_sha256: required("SCOOPY_PREPARING_BINARY_SHA256")?,
+            current_writer_snapshot: std::env::var("SCOOPY_PREPARING_CURRENT_WRITER_SNAPSHOT")
                 .as_deref()
                 == Ok("1"),
             legacy_control: match (
-                std::env::var("CAP_PREPARING_LEGACY_CONTROL"),
-                std::env::var("CAP_PREPARING_LEGACY_CONTROL_SHA256"),
+                std::env::var("SCOOPY_PREPARING_LEGACY_CONTROL"),
+                std::env::var("SCOOPY_PREPARING_LEGACY_CONTROL_SHA256"),
             ) {
                 (Ok(path), Ok(hash)) => Some((PathBuf::from(path), hash)),
                 (Err(std::env::VarError::NotPresent), Err(std::env::VarError::NotPresent)) => None,
@@ -890,8 +890,8 @@ impl ProbeConfig {
             },
         };
         ensure!(
-            !config.current_writer_snapshot || config.fixture_name == "replay-2h.cap",
-            "Current-writer variant is restricted to replay-2h.cap"
+            !config.current_writer_snapshot || config.fixture_name == "replay-2h.scoopy",
+            "Current-writer variant is restricted to replay-2h.scoopy"
         );
         ensure!(
             !config.current_writer_snapshot || config.legacy_control.is_some(),
@@ -925,12 +925,12 @@ impl ProbeConfig {
 
 async fn run_probe(config: &ProbeConfig, evidence: &mut Value) -> Result<()> {
     let times: &[f32] = match config.fixture_name.as_str() {
-        "native-screen-15.cap" => &[0.0, 7.0, 13.5, 1.0],
-        "native-mic-60.cap" => &[0.0, 30.0, 58.0, 1.0],
-        "replay-2h.cap" => {
+        "native-screen-15.scoopy" => &[0.0, 7.0, 13.5, 1.0],
+        "native-mic-60.scoopy" => &[0.0, 30.0, 58.0, 1.0],
+        "replay-2h.scoopy" => {
             ensure!(
-                std::env::var("CAP_PREPARING_ALLOW_TWO_HOURS").as_deref() == Ok("1"),
-                "Two-hour copies require explicit CAP_PREPARING_ALLOW_TWO_HOURS=1"
+                std::env::var("SCOOPY_PREPARING_ALLOW_TWO_HOURS").as_deref() == Ok("1"),
+                "Two-hour copies require explicit SCOOPY_PREPARING_ALLOW_TWO_HOURS=1"
             );
             &[0.0, 3600.0, 7194.5, 1.0]
         }
@@ -984,7 +984,7 @@ async fn run_probe(config: &ProbeConfig, evidence: &mut Value) -> Result<()> {
         );
         let control: Value = serde_json::from_slice(&fs::read(path)?)?;
         ensure!(
-            control["fixture"] == "replay-2h.cap"
+            control["fixture"] == "replay-2h.scoopy"
                 && control["passed"] == false
                 && control["error"] == "Canonical stopped snapshot declined",
             "Legacy control must record the original receipt decline after ordinary finalization"
@@ -1011,11 +1011,11 @@ async fn run_probe(config: &ProbeConfig, evidence: &mut Value) -> Result<()> {
         evidence["snapshotVariant"] = json!("current-writer-empty-cursor-snapshot");
     }
     let owned = tempfile::Builder::new()
-        .prefix("cap-preparing-canonical-")
+        .prefix("scoopy-preparing-canonical-")
         .tempdir_in(&config.work_root)?
         .keep();
     evidence["ownedRunDirectory"] = json!(owned);
-    let ordinary = owned.join("ordinary.cap");
+    let ordinary = owned.join("ordinary.scoopy");
     copy_fixture(&config.fixture, &ordinary, &original)?;
     if config.current_writer_snapshot {
         evidence["ordinaryCurrentWriterSnapshot"] = current_writer_snapshot(&ordinary, &original)?;
@@ -1040,7 +1040,7 @@ async fn run_probe(config: &ProbeConfig, evidence: &mut Value) -> Result<()> {
     evidence["ordinaryFinalizedSoftwareVideoReference"] = reference.clone();
     fs::remove_dir_all(&ordinary)?;
     evidence["ordinaryOwnedCopyRemovedAfterVerification"] = json!(true);
-    let preparing = owned.join("preparing.cap");
+    let preparing = owned.join("preparing.scoopy");
     copy_fixture(&config.fixture, &preparing, &original)?;
     if config.current_writer_snapshot {
         let snapshot = current_writer_snapshot(&preparing, &original)?;
@@ -1126,7 +1126,7 @@ async fn run_probe(config: &ProbeConfig, evidence: &mut Value) -> Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "manual canonical .cap integration probe; requires explicit fixture/work/evidence/source identity environment"]
+#[ignore = "manual canonical .scoopy integration probe; requires explicit fixture/work/evidence/source identity environment"]
 async fn canonical_preparing_finalization_probe() {
     let config = ProbeConfig::environment().expect("Missing manual probe environment");
     assert!(

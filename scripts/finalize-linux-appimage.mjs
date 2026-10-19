@@ -31,38 +31,38 @@ const desktopDirectory = fileURLToPath(
 const upstreamGtkBackendAssignment =
 	"export GDK_BACKEND=x11 # Crash with Wayland backend on Wayland - We tested it without it and ended up with this: https://github.com/tauri-apps/tauri/issues/8541";
 
-// The upstream X11 workaround otherwise conflicts with Cap's Wayland recording fence.
+// The upstream X11 workaround otherwise conflicts with Scoopy's Wayland recording fence.
 const gtkBackendSelection = `if [ -z "\${GDK_BACKEND:-}" ]; then
-	cap_uses_wayland=0
+	scoopy_uses_wayland=0
 	if [ "\${WAYLAND_DISPLAY+x}" = x ]; then
 		if [ "\${DISPLAY+x}" != x ]; then
-			cap_uses_wayland=1
+			scoopy_uses_wayland=1
 		else
 			case "\${XDG_SESSION_TYPE:-}" in
-				[wW][aA][yY][lL][aA][nN][dD]) cap_uses_wayland=1 ;;
+				[wW][aA][yY][lL][aA][nN][dD]) scoopy_uses_wayland=1 ;;
 			esac
 		fi
 	fi
-	if [ "$cap_uses_wayland" = 1 ]; then
+	if [ "$scoopy_uses_wayland" = 1 ]; then
 		case "\${WAYLAND_DISPLAY:-}" in
-			/*) cap_wayland_socket="$WAYLAND_DISPLAY" ;;
+			/*) scoopy_wayland_socket="$WAYLAND_DISPLAY" ;;
 			?*)
 				case "\${XDG_RUNTIME_DIR:-}" in
-					/*) cap_wayland_socket="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ;;
-					*) cap_wayland_socket= ;;
+					/*) scoopy_wayland_socket="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ;;
+					*) scoopy_wayland_socket= ;;
 				esac
 				;;
-			*) cap_wayland_socket= ;;
+			*) scoopy_wayland_socket= ;;
 		esac
-		if [ -z "$cap_wayland_socket" ] || [ ! -S "$cap_wayland_socket" ]; then
-			printf '%s\\n' 'Cap cannot connect to the advertised Wayland socket. Start Cap from the active desktop session or correct WAYLAND_DISPLAY and XDG_RUNTIME_DIR.' >&2
+		if [ -z "$scoopy_wayland_socket" ] || [ ! -S "$scoopy_wayland_socket" ]; then
+			printf '%s\\n' 'Scoopy cannot connect to the advertised Wayland socket. Start Scoopy from the active desktop session or correct WAYLAND_DISPLAY and XDG_RUNTIME_DIR.' >&2
 			exit 1
 		fi
 		export GDK_BACKEND=wayland
 	else
 		export GDK_BACKEND=x11
 	fi
-	unset cap_uses_wayland cap_wayland_socket
+	unset scoopy_uses_wayland scoopy_wayland_socket
 fi`;
 
 export async function selectAppImageGtkBackend(appDir) {
@@ -92,21 +92,21 @@ export async function selectAppImageGtkBackend(appDir) {
 // The sentinel preserves directory names ending in newlines through shell substitution.
 const appRunWrapper = `#!/bin/sh
 unset OWD
-if cap_original_directory="$(pwd -P && printf '.')"; then
-	OWD="\${cap_original_directory%?}"
+if scoopy_original_directory="$(pwd -P && printf '.')"; then
+	OWD="\${scoopy_original_directory%?}"
 	OWD="\${OWD%?}"
 	export OWD
 fi
 case "$0" in
-	*/*) cap_appdir="\${0%/*}" ;;
-	*) cap_appdir=. ;;
+	*/*) scoopy_appdir="\${0%/*}" ;;
+	*) scoopy_appdir=. ;;
 esac
-exec "$cap_appdir/AppRun.cap-original" "$@"
+exec "$scoopy_appdir/AppRun.scoopy-original" "$@"
 `;
 
 export async function preserveAppImageWorkingDirectory(appDir) {
 	const launcher = path.join(appDir, "AppRun");
-	const original = path.join(appDir, "AppRun.cap-original");
+	const original = path.join(appDir, "AppRun.scoopy-original");
 	if ((await readdir(appDir)).includes(path.basename(original))) {
 		if ((await readFile(launcher, "utf8")) !== appRunWrapper) {
 			throw new Error("AppImage already contains a different AppRun wrapper");
@@ -471,7 +471,7 @@ export async function finalizeLinuxAppImage(
 	}
 	await access(outputPlugin, constants.X_OK);
 	await access(image, constants.X_OK);
-	const work = await mkdtemp(path.join(path.dirname(image), ".cap-appimage-"));
+	const work = await mkdtemp(path.join(path.dirname(image), ".scoopy-appimage-"));
 	let retainWork = false;
 	try {
 		const tools = withoutUpdaterSecrets(env);
@@ -555,7 +555,7 @@ if (
 	const files = args.filter((arg) => !flags.has(arg));
 	if (process.platform !== "linux" || files.length !== 1) {
 		throw new Error(
-			"Run on Linux: node scripts/finalize-linux-appimage.mjs [--unsigned] [--without-webview] <Cap.AppImage>",
+			"Run on Linux: node scripts/finalize-linux-appimage.mjs [--unsigned] [--without-webview] <Scoopy.AppImage>",
 		);
 	}
 	const excluded = await finalizeLinuxAppImage(files[0], {

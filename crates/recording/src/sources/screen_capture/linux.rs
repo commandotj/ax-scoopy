@@ -11,7 +11,7 @@ use ashpd::desktop::{
     PersistMode, Session,
     screencast::{CursorMode, Screencast, SourceType, Stream as PortalStream},
 };
-use cap_timestamp::Timestamp;
+use scoopy_timestamp::Timestamp;
 use futures::{Stream, StreamExt, channel::mpsc};
 use kameo::{Actor as _, actor::ActorRef};
 use pipewire as pw;
@@ -479,7 +479,7 @@ fn capture_wayland(
     let rate_limited = Arc::new(AtomicU64::new(0));
     let started = Instant::now();
 
-    let thread_loop = unsafe { pw::thread_loop::ThreadLoopBox::new(Some("cap-wayland"), None) }
+    let thread_loop = unsafe { pw::thread_loop::ThreadLoopBox::new(Some("scoopy-wayland"), None) }
         .context("create PipeWire thread loop")?;
     let context = pw::context::ContextBox::new(thread_loop.loop_(), None)
         .context("create PipeWire context")?;
@@ -505,7 +505,7 @@ fn capture_wayland(
 
     let stream = pw::stream::StreamBox::new(
         &core,
-        "cap-wayland-screen",
+        "scoopy-wayland-screen",
         properties! {
             *pw::keys::MEDIA_TYPE => "Video",
             *pw::keys::MEDIA_CATEGORY => "Capture",
@@ -1400,7 +1400,7 @@ async fn create_system_audio_source_config() -> anyhow::Result<SystemAudioSource
             if let Some(route) = route.as_ref() {
                 apply_pactl_monitor_route(route)?;
             }
-            let routed_at = cap_timestamp::Timestamps::now();
+            let routed_at = scoopy_timestamp::Timestamps::now();
             let (sender, receiver) = flume::bounded(1);
             feed.ask(microphone::AddSender(sender.clone()))
                 .await
@@ -1441,7 +1441,7 @@ async fn create_system_audio_source_config() -> anyhow::Result<SystemAudioSource
 
 async fn wait_for_audio_after_route(
     timestamps: impl Stream<Item = Timestamp>,
-    routed_at: cap_timestamp::Timestamps,
+    routed_at: scoopy_timestamp::Timestamps,
 ) -> anyhow::Result<()> {
     futures::pin_mut!(timestamps);
     tokio::time::timeout(Duration::from_secs(3), async {
@@ -2510,7 +2510,7 @@ mod system_audio_tests {
         );
     }
     use crate::feeds::microphone::MicrophoneFeed;
-    use cap_timestamp::{Timestamp, Timestamps};
+    use scoopy_timestamp::{Timestamp, Timestamps};
     use kameo::Actor as _;
     use std::{
         sync::atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -2548,17 +2548,17 @@ mod system_audio_tests {
     #[test]
     fn default_sink_monitor_precedes_other_monitor_sources() {
         let default =
-            pactl_monitor_preference("cap_validation_sink.monitor", Some("cap_validation_sink"));
+            pactl_monitor_preference("scoopy_validation_sink.monitor", Some("scoopy_validation_sink"));
         let suspended = pactl_monitor_preference(
             "alsa_output.platform-snd_aloop.monitor",
-            Some("cap_validation_sink"),
+            Some("scoopy_validation_sink"),
         );
 
         assert_eq!(default, Some((0, 0)));
         assert_eq!(suspended, Some((1, 0)));
         assert!(default < suspended);
         assert_eq!(
-            pactl_monitor_preference("cap_validation_sink.monitor", None),
+            pactl_monitor_preference("scoopy_validation_sink.monitor", None),
             Some((1, 0))
         );
     }

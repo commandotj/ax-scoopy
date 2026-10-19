@@ -1,4 +1,4 @@
-use cap_camera::{CapturedFrame, NativeFrameFormat};
+use scoopy_camera::{CapturedFrame, NativeFrameFormat};
 use ffmpeg::{Packet, format::Pixel, frame::Video as FFVideo};
 use std::cell::RefCell;
 

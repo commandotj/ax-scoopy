@@ -445,7 +445,7 @@ export function TranscriptPanel() {
 						}
 						onClick={() => void handleExportCaptions("srt")}
 					>
-						<IconCapDownload class="size-3" />
+						<IconScoopyDownload class="size-3" />
 						SRT
 					</button>
 					<button
@@ -456,7 +456,7 @@ export function TranscriptPanel() {
 						}
 						onClick={() => void handleExportCaptions("vtt")}
 					>
-						<IconCapDownload class="size-3" />
+						<IconScoopyDownload class="size-3" />
 						VTT
 					</button>
 					<button
@@ -601,7 +601,7 @@ function TranscriptWord(props: {
 										props.onDelete();
 									}}
 								>
-									<IconCapTrash class="size-3.5" />
+									<IconScoopyTrash class="size-3.5" />
 								</button>
 								<button
 									type="button"
@@ -823,7 +823,7 @@ function TranscriptEditor(props: {
 				when={props.segmentGroups.length > 0}
 				fallback={
 					<div class="flex flex-col items-center justify-center h-full text-gray-9">
-						<IconCapCaptions class="size-10 mb-3 text-gray-7" />
+						<IconScoopyCaptions class="size-10 mb-3 text-gray-7" />
 						<span class="text-sm">No captions available</span>
 						<span class="text-xs mt-1">
 							Generate captions in the editor first

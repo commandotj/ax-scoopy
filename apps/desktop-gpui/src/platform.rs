@@ -725,12 +725,12 @@ mod mac {
     /// `apps/desktop/src-tauri/src/platform/macos/mod.rs`. The main window
     /// takes the `SystemManaged` path, which is `setStyle:` and nothing else:
     /// the always-active pin (`setState:` / `setActive:` probing) is for the
-    /// *other* Cap windows and is deliberately not reproduced here.
+    /// *other* Scoopy windows and is deliberately not reproduced here.
     const NS_GLASS_EFFECT_VIEW_STYLE_REGULAR: isize = 0;
 
     /// `LIQUID_GLASS_IDENTIFIER`, kept byte-identical to the Tauri app so the
     /// two view hierarchies read the same in a debugger.
-    const LIQUID_GLASS_IDENTIFIER: &str = "so.cap.liquid-glass-background";
+    const LIQUID_GLASS_IDENTIFIER: &str = "me.systembug.scoopy.liquid-glass-background";
 
     /// `NSViewWidthSizable | NSViewHeightSizable` -- the mask the Tauri glass
     /// view gets (`setAutoresizingMask: 18usize`), which is what makes the
@@ -791,11 +791,11 @@ mod mac {
 
         let bounds = content_view.bounds();
 
-        // `CAP_GPUI_MATERIAL=none|vibrancy`: bisect hooks for the chrome
+        // `SCOOPY_GPUI_MATERIAL=none|vibrancy`: bisect hooks for the chrome
         // screenshots -- `none` keeps only the squircle clip (no material
         // view), `vibrancy` skips the glass branch and takes the pre-26
         // fallback. Unset means the real recipe.
-        let material_override = std::env::var("CAP_GPUI_MATERIAL").ok();
+        let material_override = std::env::var("SCOOPY_GPUI_MATERIAL").ok();
         if material_override.as_deref() == Some("none") {
             return None;
         }
@@ -1028,7 +1028,7 @@ mod mac {
         }
     }
 
-    /// Dev probe (`CAP_GPUI_DEBUG_LIGHTS=1`): the window's style mask plus
+    /// Dev probe (`SCOOPY_GPUI_DEBUG_LIGHTS=1`): the window's style mask plus
     /// which standard titlebar buttons AppKit has materialized. Read-only
     /// `msg_send`s, safe inside a gpui update.
     pub fn debug_titlebar_state(window: &Window) -> Option<String> {
@@ -1252,7 +1252,7 @@ mod mac {
     }
 
     pub fn apply_panel_behavior(window: &Window, behavior: PanelBehavior) {
-        // Every Cap window comes through here right after opening, which makes
+        // Every Scoopy window comes through here right after opening, which makes
         // it the one reliable place to repair the display link (see
         // `install_occlusion_shim`).
         kick_display_link(window);
@@ -1325,9 +1325,9 @@ mod mac {
     const NS_WINDOW_SHARING_READ_ONLY: usize = 1;
 
     /// `window.set_content_protected(..)` -- what `apply_content_protection`
-    /// does to every Cap window whose title `window_capture_excluded` matches,
+    /// does to every Scoopy window whose title `window_capture_excluded` matches,
     /// which for the teleprompter is unconditionally true
-    /// (`if window_title == CapWindowId::Teleprompter.title() { return true }`).
+    /// (`if window_title == ScoopyWindowId::Teleprompter.title() { return true }`).
     /// Tauri's implementation of `set_content_protected` on macOS is
     /// `setSharingType: None`/`ReadOnly`, so that is what this is.
     ///
@@ -1379,12 +1379,12 @@ mod mac {
     ///
     /// The shape matters more than the bytes on macOS 26: the system
     /// re-renders every *bundle* icon onto its standard squircle plate (the
-    /// legacy-icon treatment), which is what the shipping Cap.app's dock tile
+    /// legacy-icon treatment), which is what the shipping Scoopy.app's dock tile
     /// shows -- but a raw `setApplicationIconImage:` bypasses that pipeline,
     /// so the classic `icon.png` renders with its own pre-26 rounded-rect
     /// shape and looks visibly different next to the original. NSWorkspace's
     /// `iconForFile:` hands back the icon *as the system presents it*,
-    /// treatment included, so the installed Cap.app's is used when it exists
+    /// treatment included, so the installed Scoopy.app's is used when it exists
     /// and the raw asset only as a fallback. A future .app bundle with its
     /// own (Icon Composer) icon supersedes all of this.
     pub fn set_dock_icon(fallback_png: &[u8]) {
@@ -1393,15 +1393,15 @@ mod mac {
         unsafe {
             let mut image: Option<Id<AnyObject>> = None;
 
-            let cap_app = NSString::from_str("/Applications/Cap.app");
+            let scoopy_app = NSString::from_str("/Applications/Scoopy.app");
             let exists: bool = {
                 let manager: *mut AnyObject = msg_send![class!(NSFileManager), defaultManager];
-                !manager.is_null() && msg_send![manager, fileExistsAtPath: &*cap_app]
+                !manager.is_null() && msg_send![manager, fileExistsAtPath: &*scoopy_app]
             };
             if exists {
                 let workspace: *mut AnyObject = msg_send![class!(NSWorkspace), sharedWorkspace];
                 if !workspace.is_null() {
-                    let raw: *mut AnyObject = msg_send![workspace, iconForFile: &*cap_app];
+                    let raw: *mut AnyObject = msg_send![workspace, iconForFile: &*scoopy_app];
                     // `iconForFile:` is autoreleased; retain for the setter.
                     image = Id::retain(raw);
                     if let Some(image) = &image {
@@ -1491,7 +1491,7 @@ mod mac {
             id: u32,
         }
 
-        /// `'keyb'` / `kEventHotKeyPressed` / `kVK_Escape` / `'CapG'`.
+        /// `'keyb'` / `kEventHotKeyPressed` / `kVK_Escape` / `'ScoopyG'`.
         const K_EVENT_CLASS_KEYBOARD: u32 = 0x6b65_7962;
         const K_EVENT_HOT_KEY_PRESSED: u32 = 5;
         const KVK_ESCAPE: u32 = 53;

@@ -305,9 +305,9 @@ export function TextTrack(props: {
 						when={!newSegmentDetails()}
 						fallback={<div class="w-full rounded-lg bg-transparent" />}
 					>
-						<div class="cap-empty-lane pointer-events-none">
+						<div class="scoopy-empty-lane pointer-events-none">
 							<span>Set a label over your video</span>
-							<span class="cap-empty-lane-action">· Add text</span>
+							<span class="scoopy-empty-lane-action">· Add text</span>
 						</div>
 					</Show>
 				}
@@ -322,7 +322,7 @@ export function TextTrack(props: {
 					const segmentWidth = () => segment.end - segment.start;
 
 					const textContentRow = () => (
-						<div class="cap-seg-labels max-w-full">
+						<div class="scoopy-seg-labels max-w-full">
 							<span
 								class="size-2 shrink-0 rounded-full ring-1 ring-ed-line-strong"
 								style={{
@@ -330,7 +330,7 @@ export function TextTrack(props: {
 								}}
 							/>
 							<span
-								class="cap-seg-label truncate max-w-full"
+								class="scoopy-seg-label truncate max-w-full"
 								style={{
 									"font-family": cssFontFamily(
 										segment.fontFamily ?? "sans-serif",
@@ -452,8 +452,8 @@ export function TextTrack(props: {
 							>
 								<SegmentLabel
 									full={() => (
-										<div class="cap-seg-labels">
-											<span class="cap-seg-label flex gap-1 items-center">
+										<div class="scoopy-seg-labels">
+											<span class="scoopy-seg-label flex gap-1 items-center">
 												Text
 												<Show when={segment.layout === "fullscreen"}>
 													<IconLucidePause class="size-2.5" />
@@ -465,7 +465,7 @@ export function TextTrack(props: {
 									compact={() => textContentRow()}
 									glyph={
 										segment.layout === "fullscreen"
-											? () => <IconLucidePause class="size-2.5 cap-seg-label" />
+											? () => <IconLucidePause class="size-2.5 scoopy-seg-label" />
 											: undefined
 									}
 								/>
@@ -512,7 +512,7 @@ export function TextTrack(props: {
 						segment={details()}
 					>
 						<SegmentContent class="justify-center">
-							<p class="cap-seg-label">+</p>
+							<p class="scoopy-seg-label">+</p>
 						</SegmentContent>
 					</SegmentRoot>
 				)}

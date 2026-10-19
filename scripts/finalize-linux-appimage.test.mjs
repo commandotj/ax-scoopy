@@ -49,9 +49,9 @@ async function assertOriginalArtifact(image, signature) {
 }
 
 async function fixture(t) {
-	const root = await mkdtemp(path.join(tmpdir(), "cap-appimage-test-"));
+	const root = await mkdtemp(path.join(tmpdir(), "scoopy-appimage-test-"));
 	t.after(() => rm(root, { recursive: true, force: true }));
-	const image = path.join(root, "Cap.AppImage");
+	const image = path.join(root, "Scoopy.AppImage");
 	const plugin = path.join(root, "output-plugin");
 	await writeFile(image, originalImage, { mode: 0o755 });
 	await writeFile(`${image}.sig`, "original signature");
@@ -71,7 +71,7 @@ async function gtkHook(appDir, source = upstreamGtkHook) {
 
 test("GTK hook backend selection follows the capture environment and preserves explicit overrides", async (t) => {
 	const { root } = await fixture(t);
-	const socketDirectory = await mkdtemp(path.join(tmpdir(), "cap-wl-"));
+	const socketDirectory = await mkdtemp(path.join(tmpdir(), "scoopy-wl-"));
 	t.after(() => rm(socketDirectory, { recursive: true, force: true }));
 	const socket = path.join(socketDirectory, "wl socket");
 	const server = createServer();
@@ -142,7 +142,7 @@ test("GTK hook backend selection follows the capture environment and preserves e
 	for (const [name, environment, expected] of cases) {
 		const result = spawnSync(
 			"/bin/sh",
-			["-c", '. "$1"; printf "%s" "$GDK_BACKEND"', "cap-hook-test", hook],
+			["-c", '. "$1"; printf "%s" "$GDK_BACKEND"', "scoopy-hook-test", hook],
 			{ env: { ...inherited, ...environment }, encoding: "utf8" },
 		);
 		assert.equal(result.status, 0, `${name}: ${result.stderr}`);
@@ -170,7 +170,7 @@ test("GTK hook backend selection follows the capture environment and preserves e
 	]) {
 		const result = spawnSync(
 			"/bin/sh",
-			["-c", '. "$1"; printf "unreachable"', "cap-hook-test", hook],
+			["-c", '. "$1"; printf "unreachable"', "scoopy-hook-test", hook],
 			{ env: { ...inherited, ...environment }, encoding: "utf8" },
 		);
 		assert.equal(result.status, 1, name);
@@ -253,7 +253,7 @@ for (const failureAt of [1, 2]) {
 		assert.equal((await stat(image)).mode & 0o111, 0o111);
 		if (failureAt === 1) assert.equal((await stat(image)).ino, originalInode);
 		assert.ok(
-			!(await readdir(root)).some((file) => file.startsWith(".cap-appimage-")),
+			!(await readdir(root)).some((file) => file.startsWith(".scoopy-appimage-")),
 		);
 	});
 }
@@ -276,9 +276,9 @@ test("conflicting libraries are limited to Wayland clients and the root PipeWire
 		path.join(libraryDirectory, "libpipewire-0.3.so.0"),
 		"pipewire",
 	);
-	await mkdir(path.join(libraryDirectory, "cap"));
+	await mkdir(path.join(libraryDirectory, "scoopy"));
 	await writeFile(
-		path.join(libraryDirectory, "cap/libpipewire-0.3.so.0"),
+		path.join(libraryDirectory, "scoopy/libpipewire-0.3.so.0"),
 		"private copy",
 	);
 	await writeFile(path.join(root, "libwayland-client.so.99"), "outside");
@@ -348,7 +348,7 @@ for (const failure of [false, true]) {
 					"libwayland-server.so.0",
 				]);
 				assert.equal(
-					await readFile(path.join(args[2], "AppRun.cap-original"), "utf8"),
+					await readFile(path.join(args[2], "AppRun.scoopy-original"), "utf8"),
 					"original launcher",
 				);
 				assert.match(
@@ -404,7 +404,7 @@ for (const failure of [false, true]) {
 		}
 		assert.deepEqual(calls, [image, image, "readelf", image, plugin, "bun"]);
 		assert.ok(
-			!(await readdir(root)).some((file) => file.startsWith(".cap-appimage-")),
+			!(await readdir(root)).some((file) => file.startsWith(".scoopy-appimage-")),
 		);
 	});
 }
@@ -449,7 +449,7 @@ for (const invalidOffset of [
 		);
 		await assertOriginalArtifact(image, "original signature");
 		assert.ok(
-			!(await readdir(root)).some((file) => file.startsWith(".cap-appimage-")),
+			!(await readdir(root)).some((file) => file.startsWith(".scoopy-appimage-")),
 		);
 	});
 }
@@ -494,7 +494,7 @@ for (const [name, sectionHeaders] of [
 		);
 		await assertOriginalArtifact(image, "original signature");
 		assert.ok(
-			!(await readdir(root)).some((file) => file.startsWith(".cap-appimage-")),
+			!(await readdir(root)).some((file) => file.startsWith(".scoopy-appimage-")),
 		);
 	});
 }
@@ -531,7 +531,7 @@ test("runtime changes from the output plugin are rejected before signing", async
 	);
 	await assertOriginalArtifact(image, "original signature");
 	assert.ok(
-		!(await readdir(root)).some((file) => file.startsWith(".cap-appimage-")),
+		!(await readdir(root)).some((file) => file.startsWith(".scoopy-appimage-")),
 	);
 });
 
@@ -561,7 +561,7 @@ test("embedded GPG signatures and signing requests fail without changing the inp
 
 test("AppRun preserves caller paths and arguments in mounted and extracted launches", async (t) => {
 	const { root } = await fixture(t);
-	const appDir = path.join(root, "Cap's AppDir");
+	const appDir = path.join(root, "Scoopy's AppDir");
 	await mkdir(path.join(appDir, "usr"), { recursive: true });
 	const launcher = path.join(appDir, "AppRun");
 	const original = `#!/bin/sh
@@ -573,7 +573,7 @@ exit 23
 	await preserveAppImageWorkingDirectory(appDir);
 	await preserveAppImageWorkingDirectory(appDir);
 	assert.equal(
-		await readFile(path.join(appDir, "AppRun.cap-original"), "utf8"),
+		await readFile(path.join(appDir, "AppRun.scoopy-original"), "utf8"),
 		original,
 	);
 	const direct = spawnSync("/bin/sh", ["AppRun", "--version"], {
@@ -592,7 +592,7 @@ exit 23
 			const env = { ...process.env };
 			if (runtimeOwd === undefined) delete env.OWD;
 			else env.OWD = runtimeOwd;
-			const args = ["--cap-cli", "two words", "$(literal)", "last\n"];
+			const args = ["--scoopy-cli", "two words", "$(literal)", "last\n"];
 			const result = spawnSync(launcher, args, { cwd: caller, env });
 			assert.equal(result.status, 23, result.stderr.toString());
 			assert.deepEqual(result.stdout.toString().split("\0"), [
@@ -607,7 +607,7 @@ exit 23
 test("AppRun wrapping refuses an unrelated existing launcher backup", async (t) => {
 	const { root } = await fixture(t);
 	await writeFile(path.join(root, "AppRun"), "existing launcher");
-	await writeFile(path.join(root, "AppRun.cap-original"), "unrelated file");
+	await writeFile(path.join(root, "AppRun.scoopy-original"), "unrelated file");
 	await assert.rejects(
 		preserveAppImageWorkingDirectory(root),
 		/different AppRun wrapper/,
@@ -617,7 +617,7 @@ test("AppRun wrapping refuses an unrelated existing launcher backup", async (t) 
 		"existing launcher",
 	);
 	assert.equal(
-		await readFile(path.join(root, "AppRun.cap-original"), "utf8"),
+		await readFile(path.join(root, "AppRun.scoopy-original"), "utf8"),
 		"unrelated file",
 	);
 });
@@ -666,9 +666,9 @@ const elf = (name) =>
 	Buffer.concat([Buffer.from([0x7f, 0x45, 0x4c, 0x46]), Buffer.from(name)]);
 
 const webviewFixtureFiles = {
-	"usr/bin/Cap": ["libssl.so.3", "libavcodec.so.61", "libc.so.6"],
+	"usr/bin/Scoopy": ["libssl.so.3", "libavcodec.so.61", "libc.so.6"],
 	"usr/bin/pactl": ["libpulse.so.0"],
-	"usr/lib/cap/libavcodec.so.61": ["libva.so.2"],
+	"usr/lib/scoopy/libavcodec.so.61": ["libva.so.2"],
 	"usr/lib/libssl.so.3": ["libcrypto.so.3"],
 	"usr/lib/libcrypto.so.3": [],
 	"usr/lib/libavcodec.so.61": ["libva.so.2"],
@@ -686,7 +686,7 @@ const webviewFixtureFiles = {
 	"usr/lib/x86_64-linux-gnu/gio/modules/libgiognutls.so": ["libgtk-3.so.0"],
 	"usr/share/glib-2.0/schemas/gschemas.compiled": null,
 	"usr/lib/notes.txt": null,
-	"usr/lib/Cap/assets/music/track.mp3": null,
+	"usr/lib/Scoopy/assets/music/track.mp3": null,
 	"AppRun.wrapped": ["libc.so.6"],
 };
 
@@ -744,8 +744,8 @@ test("webview runtime removal keeps only libraries the shipped binaries load", a
 		"usr/share/glib-2.0",
 	]);
 	assert.deepEqual((await readdir(path.join(appDir, "usr/lib"))).sort(), [
-		"Cap",
-		"cap",
+		"Scoopy",
+		"scoopy",
 		"libavcodec.so.61",
 		"libcrypto.so.3",
 		"libpulse.so.0",
@@ -774,7 +774,7 @@ for (const [name, launcher, hooks] of [
 	],
 	[
 		"a different launcher target",
-		linuxdeployLauncher.replace("AppRun.wrapped", "usr/bin/Cap"),
+		linuxdeployLauncher.replace("AppRun.wrapped", "usr/bin/Scoopy"),
 		[],
 	],
 ]) {
@@ -804,10 +804,10 @@ test(".DirIcon is rewritten to a relative link inside the AppDir", async (t) => 
 	const { root } = await fixture(t);
 	const appDir = path.join(root, "AppDir");
 	await mkdir(appDir);
-	await writeFile(path.join(appDir, "Cap.png"), "icon");
-	await symlink("/build/Cap.AppDir/Cap.png", path.join(appDir, ".DirIcon"));
+	await writeFile(path.join(appDir, "Scoopy.png"), "icon");
+	await symlink("/build/Scoopy.AppDir/Scoopy.png", path.join(appDir, ".DirIcon"));
 	await relativizeDirIcon(appDir);
-	assert.equal(await readlink(path.join(appDir, ".DirIcon")), "Cap.png");
+	assert.equal(await readlink(path.join(appDir, ".DirIcon")), "Scoopy.png");
 	await relativizeDirIcon(appDir);
 	assert.equal(await readFile(path.join(appDir, ".DirIcon"), "utf8"), "icon");
 });
@@ -841,11 +841,11 @@ test("webview-free finalization hands the pruned AppDir to the output plugin", a
 		const appDir = args[2];
 		assert.deepEqual((await readdir(appDir)).sort(), [
 			"AppRun",
-			"AppRun.cap-original",
+			"AppRun.scoopy-original",
 			"usr",
 		]);
 		assert.deepEqual(
-			await readFile(path.join(appDir, "AppRun.cap-original")),
+			await readFile(path.join(appDir, "AppRun.scoopy-original")),
 			elf("AppRun.wrapped"),
 		);
 		await assert.rejects(

@@ -130,7 +130,7 @@ fn migratable_projects(app: &AppHandle<Wry>) -> Vec<PathBuf> {
         };
         for entry in entries.flatten() {
             let path = entry.path();
-            if !path.is_dir() || path.extension().and_then(|e| e.to_str()) != Some("cap") {
+            if !path.is_dir() || path.extension().and_then(|e| e.to_str()) != Some("scoopy") {
                 continue;
             }
             // Never try to move a folder into itself if the user nested the
@@ -298,24 +298,24 @@ fn project_is_in_use(project: &Path, in_use: &HashSet<PathBuf>) -> bool {
 
     // Belt and braces: a recording that is mid-write has InProgress status in
     // its meta even if we failed to resolve it from app state.
-    match cap_project::RecordingMeta::load_for_project(project) {
+    match scoopy_project::RecordingMeta::load_for_project(project) {
         Ok(meta) => match &meta.inner {
-            cap_project::RecordingMetaInner::Studio(studio) => {
-                if let cap_project::StudioRecordingMeta::MultipleSegments { inner, .. } =
+            scoopy_project::RecordingMetaInner::Studio(studio) => {
+                if let scoopy_project::StudioRecordingMeta::MultipleSegments { inner, .. } =
                     studio.as_ref()
                 {
                     matches!(
                         inner.status,
-                        Some(cap_project::StudioRecordingStatus::InProgress)
+                        Some(scoopy_project::StudioRecordingStatus::InProgress)
                     )
                 } else {
                     false
                 }
             }
-            cap_project::RecordingMetaInner::Instant(instant) => {
+            scoopy_project::RecordingMetaInner::Instant(instant) => {
                 matches!(
                     instant,
-                    cap_project::InstantRecordingMeta::InProgress { .. }
+                    scoopy_project::InstantRecordingMeta::InProgress { .. }
                 )
             }
         },
@@ -346,7 +346,7 @@ pub fn move_project_dir(src: &Path, dest_dir: &Path) -> Result<PathBuf, String> 
         return Err("Destination folder is inside this recording".to_string());
     }
 
-    let unique = cap_utils::ensure_unique_filename(name, dest_dir)?;
+    let unique = scoopy_utils::ensure_unique_filename(name, dest_dir)?;
     let target = dest_dir.join(&unique);
 
     match std::fs::rename(src, &target) {
@@ -474,7 +474,7 @@ mod tests {
 
         let project = make_project(
             &src_dir,
-            "Test.cap",
+            "Test.scoopy",
             &[
                 ("recording-meta.json", "{}"),
                 ("content/display.mp4", "vid"),
@@ -483,7 +483,7 @@ mod tests {
 
         let moved = move_project_dir(&project, &dest_dir).unwrap();
 
-        assert_eq!(moved, dest_dir.join("Test.cap"));
+        assert_eq!(moved, dest_dir.join("Test.scoopy"));
         assert!(!project.exists());
         assert_eq!(
             std::fs::read_to_string(moved.join("content/display.mp4")).unwrap(),
@@ -501,18 +501,18 @@ mod tests {
 
         make_project(
             &dest_dir,
-            "Test.cap",
+            "Test.scoopy",
             &[("recording-meta.json", "existing")],
         );
-        let project = make_project(&src_dir, "Test.cap", &[("recording-meta.json", "incoming")]);
+        let project = make_project(&src_dir, "Test.scoopy", &[("recording-meta.json", "incoming")]);
 
         let moved = move_project_dir(&project, &dest_dir).unwrap();
 
-        assert_ne!(moved, dest_dir.join("Test.cap"));
+        assert_ne!(moved, dest_dir.join("Test.scoopy"));
         assert!(moved.starts_with(&dest_dir));
         assert!(!project.exists());
         assert_eq!(
-            std::fs::read_to_string(dest_dir.join("Test.cap/recording-meta.json")).unwrap(),
+            std::fs::read_to_string(dest_dir.join("Test.scoopy/recording-meta.json")).unwrap(),
             "existing"
         );
         assert_eq!(
@@ -531,16 +531,16 @@ mod tests {
 
         let project = make_project(
             &src_dir,
-            "Test.cap",
+            "Test.scoopy",
             &[
                 ("recording-meta.json", "{}"),
                 ("content/display.mp4", "0123456789"),
             ],
         );
 
-        let moved = copy_verify_delete(&project, &dest_dir, "Test.cap").unwrap();
+        let moved = copy_verify_delete(&project, &dest_dir, "Test.scoopy").unwrap();
 
-        assert_eq!(moved, dest_dir.join("Test.cap"));
+        assert_eq!(moved, dest_dir.join("Test.scoopy"));
         assert!(!project.exists());
         assert!(!dest_dir.join(MIGRATION_STAGING_DIR).exists());
         assert_eq!(
@@ -558,13 +558,13 @@ mod tests {
 
         // A leftover partial copy from an interrupted run must not corrupt
         // the fresh copy or trip verification.
-        let stale = dest_dir.join(MIGRATION_STAGING_DIR).join("Test.cap");
+        let stale = dest_dir.join(MIGRATION_STAGING_DIR).join("Test.scoopy");
         std::fs::create_dir_all(&stale).unwrap();
         std::fs::write(stale.join("recording-meta.json"), "stale partial").unwrap();
 
-        let project = make_project(&src_dir, "Test.cap", &[("recording-meta.json", "fresh")]);
+        let project = make_project(&src_dir, "Test.scoopy", &[("recording-meta.json", "fresh")]);
 
-        let moved = copy_verify_delete(&project, &dest_dir, "Test.cap").unwrap();
+        let moved = copy_verify_delete(&project, &dest_dir, "Test.scoopy").unwrap();
 
         assert_eq!(
             std::fs::read_to_string(moved.join("recording-meta.json")).unwrap(),
@@ -576,7 +576,7 @@ mod tests {
     #[test]
     fn move_refuses_destination_inside_source() {
         let tmp = tempfile::tempdir().unwrap();
-        let project = make_project(tmp.path(), "Test.cap", &[("recording-meta.json", "{}")]);
+        let project = make_project(tmp.path(), "Test.scoopy", &[("recording-meta.json", "{}")]);
         let nested_dest = project.join("content/new-storage");
         std::fs::create_dir_all(&nested_dest).unwrap();
 
@@ -593,13 +593,13 @@ mod tests {
     #[test]
     fn dir_stats_detects_mismatch() {
         let tmp = tempfile::tempdir().unwrap();
-        let a = make_project(tmp.path(), "a.cap", &[("recording-meta.json", "same")]);
+        let a = make_project(tmp.path(), "a.scoopy", &[("recording-meta.json", "same")]);
         let b = make_project(
             tmp.path(),
-            "b.cap",
+            "b.scoopy",
             &[("recording-meta.json", "different!")],
         );
-        let c = make_project(tmp.path(), "c.cap", &[("recording-meta.json", "same")]);
+        let c = make_project(tmp.path(), "c.scoopy", &[("recording-meta.json", "same")]);
 
         assert_ne!(dir_stats(&a).unwrap(), dir_stats(&b).unwrap());
         assert_eq!(dir_stats(&a).unwrap(), dir_stats(&c).unwrap());

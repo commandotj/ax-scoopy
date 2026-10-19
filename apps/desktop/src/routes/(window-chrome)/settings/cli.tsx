@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { invoke } from "@tauri-apps/api/core";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { createResource, createSignal, Show } from "solid-js";
@@ -75,7 +75,7 @@ export default function CliSettings() {
 	};
 
 	return (
-		<div class="cap-settings-page flex flex-col h-full custom-scroll">
+		<div class="scoopy-settings-page flex flex-col h-full custom-scroll">
 			<SettingsPageContent>
 				<Section
 					title="Command Line"
@@ -119,7 +119,7 @@ export default function CliSettings() {
 											</p>
 											<p class="text-xs leading-snug text-gray-10">
 												The desktop app installs a local{" "}
-												<code class="font-mono text-gray-12">cap</code> command
+												<code class="font-mono text-gray-12">scoopy</code> command
 												that points back to the bundled CLI.
 											</p>
 										</div>
@@ -175,12 +175,12 @@ export default function CliSettings() {
 																{currentStatus().pathEntry}
 															</code>{" "}
 															to your PATH to use{" "}
-															<code class="font-mono text-gray-12">cap</code>{" "}
+															<code class="font-mono text-gray-12">scoopy</code>{" "}
 															from a new terminal.
 														</>
 													}
 												>
-													Added <code class="font-mono text-gray-12">cap</code>{" "}
+													Added <code class="font-mono text-gray-12">scoopy</code>{" "}
 													to your PATH. Restart your terminal to use it, or run
 													this now:
 												</Show>

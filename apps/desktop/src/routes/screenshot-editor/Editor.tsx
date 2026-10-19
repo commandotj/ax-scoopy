@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { NumberField } from "@kobalte/core/number-field";
 import { makePersisted } from "@solid-primitives/storage";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -24,7 +24,7 @@ import {
 	type Ratio,
 } from "~/components/Cropper";
 import { composeEventHandlers } from "~/utils/composeEventHandlers";
-import IconCapCircleX from "~icons/cap/circle-x";
+import IconScoopyCircleX from "~icons/scoopy/circle-x";
 import IconLucideMaximize from "~icons/lucide/maximize";
 import IconLucideRatio from "~icons/lucide/ratio";
 import { AnnotationConfigBar } from "./AnnotationConfig";
@@ -203,7 +203,7 @@ function Dialogs() {
 	const path = () => editorInstance()?.path ?? "";
 	const imagePath = () => {
 		const p = path();
-		if (p.endsWith(".scoopy") || p.endsWith(".cap")) {
+		if (p.endsWith(".scoopy") || p.endsWith(".scoopy")) {
 			return `${p}/original.png`;
 		}
 		return p;
@@ -410,7 +410,7 @@ function Dialogs() {
 													Full
 												</EditorButton>
 												<EditorButton
-													leftIcon={<IconCapCircleX />}
+													leftIcon={<IconScoopyCircleX />}
 													onClick={() => {
 														cropperRef?.reset();
 														setAspect(null);

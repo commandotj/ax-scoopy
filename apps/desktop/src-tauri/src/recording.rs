@@ -1,20 +1,20 @@
 use anyhow::anyhow;
-use cap_fail::fail;
-use cap_media_info::ffmpeg_sample_format_for;
-use cap_project::CursorMoveEvent;
-use cap_project::cursor::SHORT_CURSOR_SHAPE_DEBOUNCE_MS;
-use cap_project::{
+use scoopy_fail::fail;
+use scoopy_media_info::ffmpeg_sample_format_for;
+use scoopy_project::CursorMoveEvent;
+use scoopy_project::cursor::SHORT_CURSOR_SHAPE_DEBOUNCE_MS;
+use scoopy_project::{
     CameraShape, CornerStyle, CursorClickEvent, GlideDirection, InstantRecordingMeta,
     MultipleSegments, Platform, ProjectConfiguration, RecordingMeta, RecordingMetaInner,
     SharingMeta, StudioRecordingMeta, StudioRecordingStatus, TimelineConfiguration,
     TimelineSegment, ZoomMode, ZoomSegment, cursor::CursorEvents,
 };
 #[cfg(target_os = "macos")]
-use cap_recording::SendableShareableContent;
-use cap_recording::feeds::camera::CameraFeedLock;
+use scoopy_recording::SendableShareableContent;
+use scoopy_recording::feeds::camera::CameraFeedLock;
 #[cfg(target_os = "macos")]
-use cap_recording::sources::screen_capture::SourceError;
-use cap_recording::{
+use scoopy_recording::sources::screen_capture::SourceError;
+use scoopy_recording::{
     RecordingMode,
     feeds::{camera, microphone},
     instant_recording,
@@ -26,8 +26,8 @@ use cap_recording::{
     },
     studio_recording,
 };
-use cap_rendering::ProjectRecordingsMeta;
-use cap_utils::{ensure_dir, moment_format_to_chrono, spawn_actor};
+use scoopy_rendering::ProjectRecordingsMeta;
+use scoopy_utils::{ensure_dir, moment_format_to_chrono, spawn_actor};
 use cpal::traits::DeviceTrait;
 use futures::{FutureExt, stream};
 use lazy_static::lazy_static;
@@ -77,7 +77,7 @@ use crate::{
     upload::{SegmentUploader, compress_image},
     web_api::ManagerExt,
     windows::{
-        CapWindowId, EditorRecordingTarget, ShowCapWindow, editor_window_for_path, hide_overlay,
+        ScoopyWindowId, EditorRecordingTarget, ShowScoopyWindow, editor_window_for_path, hide_overlay,
     },
 };
 
@@ -836,14 +836,14 @@ impl InProgressRecording {
         }
     }
 
-    pub fn done_fut(&self) -> cap_recording::DoneFut {
+    pub fn done_fut(&self) -> scoopy_recording::DoneFut {
         match self {
             Self::Instant { handle, .. } => handle.done_fut(),
             Self::Studio { handle, .. } => handle.done_fut(),
         }
     }
 
-    pub fn take_health_rx(&mut self) -> Option<cap_recording::HealthReceiver> {
+    pub fn take_health_rx(&mut self) -> Option<scoopy_recording::HealthReceiver> {
         match self {
             Self::Instant { handle, .. } => {
                 #[cfg(target_os = "linux")]
@@ -918,7 +918,7 @@ pub async fn list_capture_displays() -> Vec<CaptureDisplay> {
 #[tauri::command(async)]
 #[specta::specta]
 pub async fn list_capture_windows(window: tauri::Window) -> Vec<CaptureWindow> {
-    let windows = if window.label() == CapWindowId::Settings.label() {
+    let windows = if window.label() == ScoopyWindowId::Settings.label() {
         screen_capture::list_excludable_windows()
     } else {
         screen_capture::list_windows()
@@ -929,11 +929,11 @@ pub async fn list_capture_windows(window: tauri::Window) -> Vec<CaptureWindow> {
 
 #[tauri::command(async)]
 #[specta::specta]
-pub fn list_cameras() -> Vec<cap_camera::CameraInfo> {
+pub fn list_cameras() -> Vec<scoopy_camera::CameraInfo> {
     if !permissions::do_permissions_check(false).camera.permitted() {
         return vec![];
     }
-    cap_camera::list_cameras().collect()
+    scoopy_camera::list_cameras().collect()
 }
 
 #[derive(Debug, Clone, serde::Serialize, specta::Type)]
@@ -1021,7 +1021,7 @@ pub fn get_camera_formats(device_id: String) -> Option<CameraWithFormats> {
         return None;
     }
 
-    cap_camera::list_cameras()
+    scoopy_camera::list_cameras()
         .find(|c| c.device_id() == device_id)
         .map(|camera| {
             let formats: Vec<CameraFormatInfo> = camera
@@ -1167,18 +1167,18 @@ pub struct StartRecordingInputs {
 
 fn desktop_recording_defaults(
     general_settings: Option<&GeneralSettingsStore>,
-) -> cap_recording::RecordingDefaults {
+) -> scoopy_recording::RecordingDefaults {
     match general_settings {
-        Some(settings) => cap_recording::RecordingDefaults {
+        Some(settings) => scoopy_recording::RecordingDefaults {
             custom_cursor_capture: settings.custom_cursor_capture,
             capture_keyboard_events: settings.capture_keyboard_events,
             crash_recovery_recording: settings.crash_recovery_recording,
             max_fps: settings.max_fps,
             studio_recording_quality: settings.studio_recording_quality.into(),
             out_of_process_muxer: settings.out_of_process_muxer,
-            instant_mode_max_resolution: cap_recording::DEFAULT_INSTANT_MODE_MAX_RESOLUTION,
+            instant_mode_max_resolution: scoopy_recording::DEFAULT_INSTANT_MODE_MAX_RESOLUTION,
         },
-        None => cap_recording::RecordingDefaults::default(),
+        None => scoopy_recording::RecordingDefaults::default(),
     }
 }
 
@@ -1312,7 +1312,7 @@ async fn check_recording_start_storage<F>(
 where
     F: std::future::Future<Output = Result<bool, String>>,
 {
-    use cap_utils::disk_space::{DiskSpaceStatus, RecordingStorage};
+    use scoopy_utils::disk_space::{DiskSpaceStatus, RecordingStorage};
 
     let mut read = || {
         sample(directory).map_err(|error| {
@@ -1333,7 +1333,7 @@ where
         format!(
             "Not enough disk space to start recording ({:.2} GiB free). Free up space so more than {} MiB is available at {} and try again.",
             bytes as f64 / 1_073_741_824.0,
-            cap_utils::disk_space::RECORDING_DISK_RESERVE_BYTES / (1024 * 1024),
+            scoopy_utils::disk_space::RECORDING_DISK_RESERVE_BYTES / (1024 * 1024),
             directory.display(),
         )
     };
@@ -1377,7 +1377,7 @@ fn storage_preflight_control_result(
 #[cfg(test)]
 mod recording_storage_preflight_tests {
     use super::*;
-    use cap_utils::disk_space::{RECORDING_DISK_RESERVE_BYTES, RECORDING_DISK_WARN_BYTES};
+    use scoopy_utils::disk_space::{RECORDING_DISK_RESERVE_BYTES, RECORDING_DISK_WARN_BYTES};
     use std::cell::Cell;
 
     #[tokio::test]
@@ -2094,7 +2094,7 @@ async fn start_recording_prepared(
     if is_camera_only {
         let operation_lock = app.state::<CameraWindowOperationLock>();
         let _operation_guard = operation_lock.lock().await;
-        if let Err(err) = (ShowCapWindow::Camera { centered: true }).show(&app).await {
+        if let Err(err) = (ShowScoopyWindow::Camera { centered: true }).show(&app).await {
             let error = format!("Failed to show centered camera window: {err}");
             state_mtx.write().await.clear_pending_recording();
             notify_recording_start_failed(&app, &error);
@@ -2120,7 +2120,7 @@ async fn start_recording_prepared(
     );
 
     let filename = project_name.replace(":", ".");
-    let filename = format!("{}.cap", sanitize_filename::sanitize(&filename));
+    let filename = format!("{}.scoopy", sanitize_filename::sanitize(&filename));
 
     let recordings_base_dir = GeneralSettingsStore::recordings_dir(&app);
 
@@ -2155,7 +2155,7 @@ async fn start_recording_prepared(
     let prompt_cancelled = &storage_prompt.cancelled;
     let storage_work = check_recording_start_storage(
         &recordings_base_dir,
-        cap_utils::disk_space::free_bytes_for_path,
+        scoopy_utils::disk_space::free_bytes_for_path,
         |bytes| async move {
             if prompt_cancelled.is_cancelled() {
                 return Err(RECORDING_START_CANCELLED.to_string());
@@ -2244,7 +2244,7 @@ async fn start_recording_prepared(
     drop(storage_events);
 
     let project_file_path = recordings_base_dir.join(&pending_try!(
-        cap_utils::ensure_unique_filename(&filename, &recordings_base_dir,),
+        scoopy_utils::ensure_unique_filename(&filename, &recordings_base_dir,),
         |e| e
     ));
     #[cfg(target_os = "linux")]
@@ -2272,7 +2272,7 @@ async fn start_recording_prepared(
         |e| e
     );
 
-    if let Some(window) = CapWindowId::Camera.get(&app)
+    if let Some(window) = ScoopyWindowId::Camera.get(&app)
         && let Err(error) = window.set_content_protected(
             matches!(inputs.mode, RecordingMode::Studio)
                 && !crate::windows::capture_exclusion_hides_ui(),
@@ -2291,11 +2291,11 @@ async fn start_recording_prepared(
             };
             let instant_mode_max_resolution = if auth.is_upgraded() {
                 general_settings
-                    .map_or(cap_recording::PRO_INSTANT_MODE_MAX_RESOLUTION, |settings| {
+                    .map_or(scoopy_recording::PRO_INSTANT_MODE_MAX_RESOLUTION, |settings| {
                         settings.instant_mode_max_resolution
                     })
             } else {
-                cap_recording::FREE_INSTANT_MODE_MAX_RESOLUTION
+                scoopy_recording::FREE_INSTANT_MODE_MAX_RESOLUTION
             };
             let upload_mode = if matches!(inputs.capture_target, ScreenCaptureTarget::CameraOnly) {
                 "desktopMP4"
@@ -2353,7 +2353,7 @@ async fn start_recording_prepared(
                 instant_mode_max_resolution,
             )
         }
-        RecordingMode::Studio => (None, cap_recording::PRO_INSTANT_MODE_MAX_RESOLUTION),
+        RecordingMode::Studio => (None, scoopy_recording::PRO_INSTANT_MODE_MAX_RESOLUTION),
         RecordingMode::Screenshot => {
             let error = "Use take_screenshot for screenshots".to_string();
             state_mtx.write().await.clear_pending_recording();
@@ -2398,13 +2398,13 @@ async fn start_recording_prepared(
                 if let Some(show) = inputs
                     .capture_target
                     .display()
-                    .map(|d| ShowCapWindow::WindowCaptureOccluder { screen_id: d.id() })
+                    .map(|d| ShowScoopyWindow::WindowCaptureOccluder { screen_id: d.id() })
                 {
                     let _ = show.show(&app).await;
                 }
             }
             ScreenCaptureTarget::Area { screen, .. } => {
-                let _ = ShowCapWindow::WindowCaptureOccluder {
+                let _ = ShowScoopyWindow::WindowCaptureOccluder {
                     screen_id: screen.clone(),
                 }
                 .show(&app)
@@ -2416,21 +2416,21 @@ async fn start_recording_prepared(
     let countdown = general_settings.and_then(|v| v.recording_countdown);
     crate::target_select_overlay::close_target_select_overlay_windows(&app);
     if clean_generation.is_none() {
-        let _ = ShowCapWindow::InProgressRecording {
+        let _ = ShowScoopyWindow::InProgressRecording {
             countdown,
             capture_target: Some(inputs.capture_target.clone()),
         }
         .show(&app)
         .await;
 
-        if let Some(window) = CapWindowId::Main.get(&app) {
+        if let Some(window) = ScoopyWindowId::Main.get(&app) {
             let _ = general_settings
                 .map(|v| v.main_window_recording_start_behaviour)
                 .unwrap_or_default()
                 .perform(&window);
         }
     }
-    let start_gate = cap_recording::RecordingStartGate::new();
+    let start_gate = scoopy_recording::RecordingStartGate::new();
     let start_cue = crate::audio::prime_recording_start_sound();
     let start_cancelled: Arc<std::sync::OnceLock<&'static str>> = Arc::default();
     crate::windows::apply_content_protection(&app, true);
@@ -2600,7 +2600,7 @@ async fn start_recording_prepared(
                     });
 
                 let window_exclusions = if matches!(inputs.mode, RecordingMode::Instant) {
-                    let camera_title = CapWindowId::Camera.title();
+                    let camera_title = ScoopyWindowId::Camera.title();
                     crate::window_exclusion::filter_for_instant_mode(
                         window_exclusions,
                         &camera_title,
@@ -2612,7 +2612,7 @@ async fn start_recording_prepared(
                 let teleprompter_exclusion = WindowExclusion {
                     bundle_identifier: None,
                     owner_name: None,
-                    window_title: Some(CapWindowId::Teleprompter.title()),
+                    window_title: Some(ScoopyWindowId::Teleprompter.title()),
                 };
                 let mut window_exclusions = window_exclusions;
                 if !window_exclusions.contains(&teleprompter_exclusion) {
@@ -3178,7 +3178,7 @@ async fn start_recording_prepared(
                     )
                     .kind(tauri_plugin_dialog::MessageDialogKind::Error);
 
-                    if let Some(window) = CapWindowId::RecordingControls.get(&app) {
+                    if let Some(window) = ScoopyWindowId::RecordingControls.get(&app) {
                         dialog = dialog.parent(&window);
                     }
 
@@ -3290,7 +3290,7 @@ async fn start_recording_prepared(
                         use crate::telemetry::{AnalyticsEvent, async_capture_event};
                         let mode_str = mode_label(*mode);
                         match &event {
-                            cap_recording::PipelineHealthEvent::DiskSpaceLow {
+                            scoopy_recording::PipelineHealthEvent::DiskSpaceLow {
                                 bytes_remaining,
                                 ..
                             } => async_capture_event(
@@ -3300,7 +3300,7 @@ async fn start_recording_prepared(
                                     bytes_remaining: *bytes_remaining,
                                 },
                             ),
-                            cap_recording::PipelineHealthEvent::DiskSpaceExhausted {
+                            scoopy_recording::PipelineHealthEvent::DiskSpaceExhausted {
                                 bytes_remaining,
                             } => async_capture_event(
                                 &app,
@@ -3309,7 +3309,7 @@ async fn start_recording_prepared(
                                     bytes_remaining: *bytes_remaining,
                                 },
                             ),
-                            cap_recording::PipelineHealthEvent::DeviceLost { subsystem } => {
+                            scoopy_recording::PipelineHealthEvent::DeviceLost { subsystem } => {
                                 async_capture_event(
                                     &app,
                                     AnalyticsEvent::RecordingDeviceLost {
@@ -3318,7 +3318,7 @@ async fn start_recording_prepared(
                                     },
                                 )
                             }
-                            cap_recording::PipelineHealthEvent::EncoderRebuilt {
+                            scoopy_recording::PipelineHealthEvent::EncoderRebuilt {
                                 backend,
                                 attempt,
                             } => async_capture_event(
@@ -3329,7 +3329,7 @@ async fn start_recording_prepared(
                                     attempt: *attempt,
                                 },
                             ),
-                            cap_recording::PipelineHealthEvent::SourceAudioReset {
+                            scoopy_recording::PipelineHealthEvent::SourceAudioReset {
                                 source,
                                 starvation_ms,
                             } => async_capture_event(
@@ -3340,7 +3340,7 @@ async fn start_recording_prepared(
                                     starvation_ms: *starvation_ms,
                                 },
                             ),
-                            cap_recording::PipelineHealthEvent::CaptureTargetLost { target } => {
+                            scoopy_recording::PipelineHealthEvent::CaptureTargetLost { target } => {
                                 async_capture_event(
                                     &app,
                                     AnalyticsEvent::RecordingCaptureTargetLost {
@@ -3349,7 +3349,7 @@ async fn start_recording_prepared(
                                     },
                                 )
                             }
-                            cap_recording::PipelineHealthEvent::RecoveryFragmentCorrupt {
+                            scoopy_recording::PipelineHealthEvent::RecoveryFragmentCorrupt {
                                 ..
                             } => {}
                             _ => {}
@@ -3357,58 +3357,58 @@ async fn start_recording_prepared(
                     }
 
                     let reason = match &event {
-                        cap_recording::PipelineHealthEvent::FrameDropRateHigh {
+                        scoopy_recording::PipelineHealthEvent::FrameDropRateHigh {
                             source,
                             rate_pct,
                         } => Some(format!("High frame drop rate on {source}: {rate_pct:.0}%")),
-                        cap_recording::PipelineHealthEvent::AudioGapDetected { gap_ms } => {
+                        scoopy_recording::PipelineHealthEvent::AudioGapDetected { gap_ms } => {
                             Some(format!("Audio gap detected: {gap_ms}ms"))
                         }
-                        cap_recording::PipelineHealthEvent::SourceRestarting => {
+                        scoopy_recording::PipelineHealthEvent::SourceRestarting => {
                             Some("Capture source restarting".to_string())
                         }
-                        cap_recording::PipelineHealthEvent::AudioDegradedToVideoOnly { reason } => {
+                        scoopy_recording::PipelineHealthEvent::AudioDegradedToVideoOnly { reason } => {
                             Some(format!("Audio lost: {reason}"))
                         }
-                        cap_recording::PipelineHealthEvent::Stalled { source, waited_ms } => {
+                        scoopy_recording::PipelineHealthEvent::Stalled { source, waited_ms } => {
                             Some(format!("Pipeline stalled on {source} ({waited_ms}ms)"))
                         }
-                        cap_recording::PipelineHealthEvent::MuxerCrashed { reason } => {
+                        scoopy_recording::PipelineHealthEvent::MuxerCrashed { reason } => {
                             Some(format!("Muxer crashed: {reason}"))
                         }
-                        cap_recording::PipelineHealthEvent::DiskSpaceLow {
+                        scoopy_recording::PipelineHealthEvent::DiskSpaceLow {
                             bytes_remaining,
                             ..
                         } => Some(format!(
                             "Low disk space: {:.2} GB remaining",
                             *bytes_remaining as f64 / 1_073_741_824.0
                         )),
-                        cap_recording::PipelineHealthEvent::DiskSpaceExhausted {
+                        scoopy_recording::PipelineHealthEvent::DiskSpaceExhausted {
                             bytes_remaining,
                         } => Some(format!(
                             "Disk full: {:.2} GB remaining",
                             *bytes_remaining as f64 / 1_073_741_824.0
                         )),
-                        cap_recording::PipelineHealthEvent::DeviceLost { subsystem } => {
+                        scoopy_recording::PipelineHealthEvent::DeviceLost { subsystem } => {
                             Some(format!("Graphics device lost: {subsystem}"))
                         }
-                        cap_recording::PipelineHealthEvent::EncoderRebuilt { backend, attempt } => {
+                        scoopy_recording::PipelineHealthEvent::EncoderRebuilt { backend, attempt } => {
                             Some(format!("Encoder rebuilt: {backend} (attempt {attempt})"))
                         }
-                        cap_recording::PipelineHealthEvent::SourceAudioReset {
+                        scoopy_recording::PipelineHealthEvent::SourceAudioReset {
                             source,
                             starvation_ms,
                         } => Some(format!("Audio source reset: {source} ({starvation_ms}ms)")),
-                        cap_recording::PipelineHealthEvent::RecoveryFragmentCorrupt {
+                        scoopy_recording::PipelineHealthEvent::RecoveryFragmentCorrupt {
                             path,
                             reason,
                         } => Some(format!(
                             "Corrupt recovery fragment skipped: {path} ({reason})"
                         )),
-                        cap_recording::PipelineHealthEvent::CaptureTargetLost { target } => {
+                        scoopy_recording::PipelineHealthEvent::CaptureTargetLost { target } => {
                             Some(format!("Capture target lost: {target}"))
                         }
-                        cap_recording::PipelineHealthEvent::SourceRestarted => None,
+                        scoopy_recording::PipelineHealthEvent::SourceRestarted => None,
                     };
 
                     if let Some(reason) = reason {
@@ -3416,7 +3416,7 @@ async fn start_recording_prepared(
                             is_degraded = true;
                             RecordingEvent::Degraded { reason }.emit(&app).ok();
                         }
-                    } else if matches!(event, cap_recording::PipelineHealthEvent::SourceRestarted)
+                    } else if matches!(event, scoopy_recording::PipelineHealthEvent::SourceRestarted)
                         && is_degraded
                     {
                         is_degraded = false;
@@ -3617,7 +3617,7 @@ async fn handle_spawn_failure(
         )
         .kind(tauri_plugin_dialog::MessageDialogKind::Error);
 
-        if let Some(window) = CapWindowId::RecordingControls.get(app) {
+        if let Some(window) = ScoopyWindowId::RecordingControls.get(app) {
             dialog = dialog.parent(&window);
         }
 
@@ -5333,7 +5333,7 @@ pub async fn delete_recording(app: AppHandle, state: MutableState<'_, App>) -> R
         CurrentRecordingChanged.emit(&app).ok();
         RecordingStopped {}.emit(&app).ok();
 
-        if let Some(window) = CapWindowId::RecordingControls.get(&app) {
+        if let Some(window) = ScoopyWindowId::RecordingControls.get(&app) {
             let _ = window.hide();
         }
 
@@ -5358,7 +5358,7 @@ pub async fn delete_recording(app: AppHandle, state: MutableState<'_, App>) -> R
         match settings.post_deletion_behaviour {
             PostDeletionBehaviour::DoNothing => {}
             PostDeletionBehaviour::ReopenRecordingWindow => {
-                let _ = ShowCapWindow::Main {
+                let _ = ShowScoopyWindow::Main {
                     init_target_mode: None,
                 }
                 .show(&app)
@@ -5382,7 +5382,7 @@ pub async fn take_screenshot(
     use crate::NewScreenshotAdded;
     use crate::notifications;
     use crate::{PendingScreenshot, PendingScreenshots};
-    use cap_recording::screenshot::capture_screenshot;
+    use scoopy_recording::screenshot::capture_screenshot;
     use image::ImageEncoder;
     use std::time::Instant;
 
@@ -5401,14 +5401,14 @@ pub async fn take_screenshot(
 
     let mut hid_any = false;
     for (label, window) in app.webview_windows() {
-        if let Ok(id) = CapWindowId::from_str(&label)
+        if let Ok(id) = ScoopyWindowId::from_str(&label)
             && matches!(
                 id,
-                CapWindowId::TargetSelectOverlay { .. }
-                    | CapWindowId::WindowCaptureOccluder { .. }
-                    | CapWindowId::CaptureArea
-                    | CapWindowId::ModeSelect
-                    | CapWindowId::RecordingsOverlay
+                ScoopyWindowId::TargetSelectOverlay { .. }
+                    | ScoopyWindowId::WindowCaptureOccluder { .. }
+                    | ScoopyWindowId::CaptureArea
+                    | ScoopyWindowId::ModeSelect
+                    | ScoopyWindowId::RecordingsOverlay
             )
         {
             hide_overlay(&window);
@@ -5442,11 +5442,11 @@ pub async fn take_screenshot(
     let image_data = image.into_bytes();
 
     let filename = project_name.replace(":", ".");
-    let filename = format!("{}.cap", sanitize_filename::sanitize(&filename));
+    let filename = format!("{}.scoopy", sanitize_filename::sanitize(&filename));
 
     let screenshots_base_dir = app.path().app_data_dir().unwrap().join("screenshots");
 
-    let project_file_path = screenshots_base_dir.join(&cap_utils::ensure_unique_filename(
+    let project_file_path = screenshots_base_dir.join(&scoopy_utils::ensure_unique_filename(
         &filename,
         &screenshots_base_dir,
     )?);
@@ -5456,11 +5456,11 @@ pub async fn take_screenshot(
 
     let image_filename = "original.png";
     let image_path = project_file_path.join(image_filename);
-    let cap_dir_key = project_file_path.to_string_lossy().to_string();
+    let scoopy_dir_key = project_file_path.to_string_lossy().to_string();
 
     let pending_screenshots = app.state::<PendingScreenshots>();
     pending_screenshots.insert(
-        cap_dir_key.clone(),
+        scoopy_dir_key.clone(),
         PendingScreenshot {
             data: image_data.clone(),
             width: image_width,
@@ -5472,27 +5472,27 @@ pub async fn take_screenshot(
 
     let relative_path = relative_path::RelativePathBuf::from(image_filename);
 
-    let video_meta = cap_project::VideoMeta {
+    let video_meta = scoopy_project::VideoMeta {
         path: relative_path,
         fps: 0,
         start_time: Some(0.0),
         device_id: None,
     };
 
-    let segment = cap_project::SingleSegment {
+    let segment = scoopy_project::SingleSegment {
         display: video_meta,
         camera: None,
         audio: None,
         cursor: None,
     };
 
-    let meta = cap_project::RecordingMeta {
+    let meta = scoopy_project::RecordingMeta {
         platform: Some(Platform::default()),
         project_path: project_file_path.clone(),
         pretty_name: project_name,
         sharing: None,
-        inner: cap_project::RecordingMetaInner::Studio(Box::new(
-            cap_project::StudioRecordingMeta::SingleSegment { segment },
+        inner: scoopy_project::RecordingMetaInner::Studio(Box::new(
+            scoopy_project::StudioRecordingMeta::SingleSegment { segment },
         )),
         upload: None,
     };
@@ -5500,8 +5500,8 @@ pub async fn take_screenshot(
     meta.save_for_project()
         .map_err(|e| format!("Failed to save recording meta: {e}"))?;
 
-    let mut screenshot_config = cap_project::ProjectConfiguration::default();
-    screenshot_config.background.source = cap_project::BackgroundSource::Color {
+    let mut screenshot_config = scoopy_project::ProjectConfiguration::default();
+    screenshot_config.background.source = scoopy_project::BackgroundSource::Color {
         value: [255, 255, 255],
         alpha: 0,
     };
@@ -5542,7 +5542,7 @@ pub async fn take_screenshot(
         })
         .await;
 
-        pending_state.remove(&cap_dir_key);
+        pending_state.remove(&scoopy_dir_key);
 
         match encode_result {
             Ok(Ok(())) => {
@@ -5816,13 +5816,13 @@ async fn handle_recording_end_inner(
 
     let _ = app.recording_logging_handle.reload(None);
 
-    if let Some(window) = CapWindowId::RecordingControls.get(&handle) {
+    if let Some(window) = ScoopyWindowId::RecordingControls.get(&handle) {
         let _ = window.hide();
     }
 
     crate::target_select_overlay::close_target_select_overlay_windows(&handle);
 
-    if let Some(camera) = CapWindowId::Camera.get(&handle) {
+    if let Some(camera) = ScoopyWindowId::Camera.get(&handle) {
         let _ = camera.hide();
     }
 
@@ -5831,7 +5831,7 @@ async fn handle_recording_end_inner(
     let _ = app.mic_feed.ask(microphone::RemoveInput).await;
     let _ = app.camera_feed.ask(camera::RemoveInput).await;
 
-    let main_window = CapWindowId::Main.get(&handle);
+    let main_window = ScoopyWindowId::Main.get(&handle);
 
     // When the finish path handed the foreground to an editor window, leave
     // the main window alone: un-minimizing it here (Windows `Close` behaviour
@@ -5933,7 +5933,7 @@ async fn apply_post_studio_editor_behaviour(
         default,
     ) {
         Some(PostStudioRecordingBehaviour::OpenEditor) => {
-            let _ = ShowCapWindow::Editor {
+            let _ = ShowScoopyWindow::Editor {
                 project_path: recording_dir,
             }
             .show(app)
@@ -5942,7 +5942,7 @@ async fn apply_post_studio_editor_behaviour(
             true
         }
         Some(PostStudioRecordingBehaviour::ShowOverlay) => {
-            let _ = ShowCapWindow::RecordingsOverlay.show(app).await;
+            let _ = ShowScoopyWindow::RecordingsOverlay.show(app).await;
 
             let app = AppHandle::clone(app);
             tokio::spawn(async move {
@@ -6078,7 +6078,7 @@ async fn handle_recording_finish(
 
             let config = project_config_from_recording(
                 app,
-                &cap_recording::studio_recording::CompletedRecording {
+                &scoopy_recording::studio_recording::CompletedRecording {
                     project_path: recording.project_path,
                     meta: updated_studio_meta.clone(),
                     cursor_data: recording.cursor_data,
@@ -6114,7 +6114,7 @@ async fn handle_recording_finish(
                 return Ok(false);
             }
             if !recording.health.is_uploadable()
-                && let cap_recording::RecordingHealth::Damaged { ref reason } = recording.health
+                && let scoopy_recording::RecordingHealth::Damaged { ref reason } = recording.health
             {
                 error!(
                     reason,
@@ -6270,7 +6270,7 @@ async fn handle_recording_finish(
 async fn finalize_studio_recording(
     app: &AppHandle,
     project: Arc<crate::FinalizationProject>,
-    recording: cap_recording::studio_recording::CompletedRecording,
+    recording: scoopy_recording::studio_recording::CompletedRecording,
     default_preset: Option<ProjectConfiguration>,
     capture_target: Option<ScreenCaptureTarget>,
     preparing: crate::preparing_finalization::FinalizationPreparing,
@@ -6340,7 +6340,7 @@ async fn finalize_studio_recording(
 
     let config = project_config_from_recording(
         app,
-        &cap_recording::studio_recording::CompletedRecording {
+        &scoopy_recording::studio_recording::CompletedRecording {
             project_path: recording.project_path,
             meta: updated_studio_meta,
             cursor_data: recording.cursor_data,
@@ -6560,7 +6560,7 @@ fn project_config_from_recording(
             capture_target,
         );
     }
-    config.cursor.size = cap_project::CursorConfiguration::default().size;
+    config.cursor.size = scoopy_project::CursorConfiguration::default().size;
     apply_recording_presentation_defaults(
         app,
         &mut config,
@@ -6606,7 +6606,7 @@ fn project_config_from_recording(
         settings.macbook_notch_overlay.unwrap_or(false),
         completed_recording.meta.display_notch().is_some(),
     ) {
-        config.background.notch = Some(cap_project::NotchConfiguration {
+        config.background.notch = Some(scoopy_project::NotchConfiguration {
             enabled: true,
             ..Default::default()
         });
@@ -6640,7 +6640,7 @@ pub(crate) fn recording_timeline(
 #[derive(Clone)]
 struct StudioCameraSnapshot {
     state: crate::camera::CameraPreviewState,
-    placement: Option<cap_recording::camera_placement::RecordingCameraPlacement>,
+    placement: Option<scoopy_recording::camera_placement::RecordingCameraPlacement>,
 }
 
 impl StudioCameraSnapshot {
@@ -6665,11 +6665,11 @@ impl StudioCameraSnapshot {
 fn studio_camera_placement(
     app: &AppHandle,
     target: &ScreenCaptureTarget,
-) -> Option<cap_recording::camera_placement::RecordingCameraPlacement> {
+) -> Option<scoopy_recording::camera_placement::RecordingCameraPlacement> {
     if matches!(target, ScreenCaptureTarget::CameraOnly) {
         return None;
     }
-    let window = CapWindowId::Camera.get(app)?;
+    let window = ScoopyWindowId::Camera.get(app)?;
     let scale = window.scale_factor().ok()?;
     if !scale.is_finite() || scale <= 0.0 {
         return None;
@@ -6681,7 +6681,7 @@ fn studio_camera_placement(
     let units = scale;
     #[cfg(not(target_os = "macos"))]
     let units = 1.0;
-    cap_recording::camera_placement::recording_camera_placement(
+    scoopy_recording::camera_placement::recording_camera_placement(
         target,
         [
             f64::from(position.x) / units,
@@ -6712,7 +6712,7 @@ fn apply_recording_camera_preview_state(
         }
     }
 
-    config.camera.background_blur = cap_project::BackgroundBlurConfig {
+    config.camera.background_blur = scoopy_project::BackgroundBlurConfig {
         mode: camera_preview_state.background_blur,
     };
 }
@@ -6758,7 +6758,7 @@ fn apply_recording_presentation_defaults(
 
 fn apply_animated_gradient_default(
     config: &mut ProjectConfiguration,
-    library: Option<&cap_project::AnimatedGradientLibrary>,
+    library: Option<&scoopy_project::AnimatedGradientLibrary>,
     using_default_config: bool,
     capture_target: Option<&ScreenCaptureTarget>,
 ) {
@@ -6768,7 +6768,7 @@ fn apply_animated_gradient_default(
         && library.selected
         && let Some(gradient) = &library.last_used
     {
-        config.background.source = cap_project::BackgroundSource::AnimatedGradient {
+        config.background.source = scoopy_project::BackgroundSource::AnimatedGradient {
             config: gradient.normalized(),
         };
     }
@@ -6782,7 +6782,7 @@ fn apply_screen_recording_presentation_defaults(
     using_default_config: bool,
     default_wallpaper_path: Option<String>,
 ) {
-    use cap_project::{BackgroundSource, ScreenMovementSpring};
+    use scoopy_project::{BackgroundSource, ScreenMovementSpring};
 
     if matches!(capture_target, Some(ScreenCaptureTarget::CameraOnly)) {
         return;
@@ -7051,7 +7051,7 @@ async fn emit_recording_started_telemetry(app: &AppHandle, state_mtx: &MutableSt
     let target_fps = match recording_mode {
         RecordingMode::Studio => defaults.studio_max_fps(has_camera, None),
         RecordingMode::Instant | RecordingMode::Screenshot => {
-            cap_recording::DEFAULT_INSTANT_MODE_FPS
+            scoopy_recording::DEFAULT_INSTANT_MODE_FPS
         }
     };
 
@@ -7137,16 +7137,16 @@ mod tests {
 
     #[test]
     fn animated_gradient_default_is_remembered_without_overwriting_explicit_presets() {
-        let library = cap_project::AnimatedGradientLibrary {
+        let library = scoopy_project::AnimatedGradientLibrary {
             selected: true,
-            last_used: Some(cap_project::AnimatedGradientConfig::from_seed(42)),
+            last_used: Some(scoopy_project::AnimatedGradientConfig::from_seed(42)),
             ..Default::default()
         };
         let mut project = ProjectConfiguration::default();
         apply_animated_gradient_default(&mut project, Some(&library), false, None);
         assert!(matches!(
             project.background.source,
-            cap_project::BackgroundSource::Color { .. }
+            scoopy_project::BackgroundSource::Color { .. }
         ));
         apply_animated_gradient_default(&mut project, Some(&library), true, None);
         apply_screen_recording_presentation_defaults(
@@ -7155,7 +7155,7 @@ mod tests {
             true,
             Some("wallpaper.jpg".into()),
         );
-        let cap_project::BackgroundSource::AnimatedGradient { config } = project.background.source
+        let scoopy_project::BackgroundSource::AnimatedGradient { config } = project.background.source
         else {
             panic!("Expected remembered gradient");
         };
@@ -7166,23 +7166,23 @@ mod tests {
     #[test]
     fn deselected_or_missing_animated_gradient_keeps_recording_defaults() {
         let mut project = ProjectConfiguration::default();
-        let library = cap_project::AnimatedGradientLibrary {
-            last_used: Some(cap_project::AnimatedGradientConfig::default()),
+        let library = scoopy_project::AnimatedGradientLibrary {
+            last_used: Some(scoopy_project::AnimatedGradientConfig::default()),
             ..Default::default()
         };
         apply_animated_gradient_default(&mut project, Some(&library), true, None);
         apply_animated_gradient_default(&mut project, None, true, None);
         assert!(matches!(
             project.background.source,
-            cap_project::BackgroundSource::Color { .. }
+            scoopy_project::BackgroundSource::Color { .. }
         ));
     }
 
     #[test]
     fn animated_gradient_default_preserves_camera_only_presentation() {
-        let library = cap_project::AnimatedGradientLibrary {
+        let library = scoopy_project::AnimatedGradientLibrary {
             selected: true,
-            last_used: Some(cap_project::AnimatedGradientConfig::default()),
+            last_used: Some(scoopy_project::AnimatedGradientConfig::default()),
             ..Default::default()
         };
         let mut project = ProjectConfiguration::default();
@@ -7416,7 +7416,7 @@ mod tests {
     #[test]
     fn importing_a_desktop_background_preserves_referenced_snapshots() {
         let dir = tempdir().unwrap();
-        let project = dir.path().join("project.cap");
+        let project = dir.path().join("project.scoopy");
         let source = dir.path().join("wallpaper.jpg");
         image::RgbImage::from_pixel(32, 16, image::Rgb([40, 120, 200]))
             .save(&source)
@@ -7487,7 +7487,7 @@ mod tests {
         assert_eq!(config.background.padding, 0.0);
         assert!(matches!(
             config.background.source,
-            cap_project::BackgroundSource::Color {
+            scoopy_project::BackgroundSource::Color {
                 value: [255, 255, 255],
                 alpha: 255,
             }
@@ -7512,7 +7512,7 @@ mod tests {
         assert_eq!(config.background.rounding, 7.5);
         assert!(matches!(
             config.background.source,
-            cap_project::BackgroundSource::Wallpaper { path: Some(path) } if path == "wallpaper.jpg"
+            scoopy_project::BackgroundSource::Wallpaper { path: Some(path) } if path == "wallpaper.jpg"
         ));
     }
 
@@ -7537,7 +7537,7 @@ mod tests {
     #[test]
     fn default_project_config_matches_screen_recording_presentation() {
         let config = default_project_config();
-        let spring = cap_project::ScreenMovementSpring::default();
+        let spring = scoopy_project::ScreenMovementSpring::default();
 
         assert_eq!(config.background.padding, 10.0);
         assert_eq!(
@@ -7903,7 +7903,7 @@ pub(crate) mod linux_instant {
         target: &ScreenCaptureTarget,
     ) -> Result<crate::linux_instant_camera::PhysicalRect, String> {
         let (display, crop) =
-            cap_recording::target_to_display_and_crop(target).map_err(|error| error.to_string())?;
+            scoopy_recording::target_to_display_and_crop(target).map_err(|error| error.to_string())?;
         let position = display
             .raw_handle()
             .physical_position()
@@ -7963,7 +7963,7 @@ pub(crate) mod linux_instant {
         display: (f64, f64, f64, f64),
         crop: Option<(f64, f64, f64, f64)>,
     ) -> Result<crate::linux_instant_camera::PhysicalRect, String> {
-        let (x, y, width, height) = cap_recording::sources::screen_capture::x11_capture_rect(
+        let (x, y, width, height) = scoopy_recording::sources::screen_capture::x11_capture_rect(
             display.0, display.1, display.2, display.3, crop,
         )
         .map_err(|error| error.to_string())?;
@@ -8580,13 +8580,13 @@ pub(crate) mod linux_instant {
         let mut meta =
             RecordingMeta::load_for_project(directory).map_err(|error| error.to_string())?;
         meta.upload = Some(if segmented {
-            cap_project::UploadMeta::SegmentUpload {
+            scoopy_project::UploadMeta::SegmentUpload {
                 video_id: video.id.clone(),
                 pre_created_video: video.clone(),
                 recording_dir: directory.into(),
             }
         } else {
-            cap_project::UploadMeta::MultipartUpload {
+            scoopy_project::UploadMeta::MultipartUpload {
                 video_id: video.id.clone(),
                 pre_created_video: video.clone(),
                 recording_dir: directory.into(),
@@ -9053,11 +9053,11 @@ pub(crate) mod linux_instant {
         async fn cancel_before_builder_poll_joins_unused_core_lifecycle() {
             let attempt = Attempt::new();
             let builder = instant_recording::Actor::builder(
-                PathBuf::from("unused-synthetic.cap"),
+                PathBuf::from("unused-synthetic.scoopy"),
                 ScreenCaptureTarget::CameraOnly,
             );
             attempt
-                .attach(PathBuf::from("unused-synthetic.cap"), builder.lifecycle())
+                .attach(PathBuf::from("unused-synthetic.scoopy"), builder.lifecycle())
                 .await
                 .unwrap();
             attempt.cancel();
@@ -9322,7 +9322,7 @@ pub(crate) mod linux_instant {
         #[tokio::test]
         async fn terminal_failure_persists_failed_metadata_and_keeps_local_media() {
             let path =
-                std::env::temp_dir().join(format!("cap-instant-terminal-{}", uuid::Uuid::new_v4()));
+                std::env::temp_dir().join(format!("scoopy-instant-terminal-{}", uuid::Uuid::new_v4()));
             std::fs::create_dir_all(&path).unwrap();
             let media = path.join("synthetic-bytes");
             std::fs::write(&media, b"preserve").unwrap();
@@ -9334,7 +9334,7 @@ pub(crate) mod linux_instant {
                 inner: RecordingMetaInner::Instant(InstantRecordingMeta::InProgress {
                     recording: false,
                 }),
-                upload: Some(cap_project::UploadMeta::Complete),
+                upload: Some(scoopy_project::UploadMeta::Complete),
             }
             .save_for_project()
             .unwrap();
@@ -9507,7 +9507,7 @@ mod editor_recording_restart_tests {
 
     #[tokio::test]
     async fn successful_restart_keeps_destination_through_terminal_cleanup() {
-        let target = editor_target("original.cap");
+        let target = editor_target("original.scoopy");
         let result = restart_with_editor_target(
             &target,
             async {
@@ -9518,7 +9518,7 @@ mod editor_recording_restart_tests {
             || async {
                 assert_eq!(
                     target.0.lock().unwrap().as_deref(),
-                    Some(Path::new("original.cap"))
+                    Some(Path::new("original.scoopy"))
                 );
                 Ok(RecordingAction::Started)
             },
@@ -9528,14 +9528,14 @@ mod editor_recording_restart_tests {
         assert!(matches!(result, Ok(RecordingAction::Started)));
         assert_eq!(
             take_editor_target_after_recording(&target, false),
-            Some(PathBuf::from("original.cap"))
+            Some(PathBuf::from("original.scoopy"))
         );
         assert!(target.0.lock().unwrap().is_none());
     }
 
     #[tokio::test]
     async fn failed_replacement_start_clears_only_its_editor_destination() {
-        let target = editor_target("original.cap");
+        let target = editor_target("original.scoopy");
         let restored = Mutex::new(None);
         let result = restart_with_editor_target(
             &target,
@@ -9558,14 +9558,14 @@ mod editor_recording_restart_tests {
         assert!(result.is_err());
         assert_eq!(
             *restored.lock().unwrap(),
-            Some(PathBuf::from("original.cap"))
+            Some(PathBuf::from("original.scoopy"))
         );
         assert!(target.0.lock().unwrap().is_none());
     }
 
     #[tokio::test]
     async fn unconfirmed_old_stop_keeps_active_editor_ownership() {
-        let target = editor_target("original.cap");
+        let target = editor_target("original.scoopy");
         let result = restart_with_editor_target(
             &target,
             async { Err("Studio cleanup is unconfirmed".into()) },
@@ -9589,17 +9589,17 @@ mod editor_recording_restart_tests {
         assert!(result.is_err());
         assert_eq!(
             target.0.lock().unwrap().as_deref(),
-            Some(Path::new("original.cap"))
+            Some(Path::new("original.scoopy"))
         );
     }
 
     #[tokio::test]
     async fn replaced_editor_destination_cancels_restart_without_consuming_new_target() {
-        let target = editor_target("original.cap");
+        let target = editor_target("original.scoopy");
         let result = restart_with_editor_target(
             &target,
             async {
-                *target.0.lock().unwrap() = Some(PathBuf::from("replacement.cap"));
+                *target.0.lock().unwrap() = Some(PathBuf::from("replacement.scoopy"));
                 Ok(())
             },
             async { Ok(()) },
@@ -9622,13 +9622,13 @@ mod editor_recording_restart_tests {
         assert!(result.is_err());
         assert_eq!(
             target.0.lock().unwrap().as_deref(),
-            Some(Path::new("replacement.cap"))
+            Some(Path::new("replacement.scoopy"))
         );
     }
 
     #[tokio::test]
     async fn losing_restart_cannot_clear_the_winners_target_after_recording_state_is_cleared() {
-        let target = editor_target("original.cap");
+        let target = editor_target("original.scoopy");
         let result = restart_with_editor_target(
             &target,
             async { Err("Studio terminal completion is stale".into()) },
@@ -9653,13 +9653,13 @@ mod editor_recording_restart_tests {
         assert!(result.is_err());
         assert_eq!(
             target.0.lock().unwrap().as_deref(),
-            Some(Path::new("original.cap"))
+            Some(Path::new("original.scoopy"))
         );
     }
 
     #[tokio::test]
     async fn restoration_failure_clears_the_owned_target_before_any_replacement_start() {
-        let target = editor_target("original.cap");
+        let target = editor_target("original.scoopy");
         let result = restart_with_editor_target(
             &target,
             async { Ok(()) },
@@ -9674,7 +9674,7 @@ mod editor_recording_restart_tests {
                             expected.as_deref(),
                             cleanup_completed,
                         ),
-                        Some(PathBuf::from("original.cap")),
+                        Some(PathBuf::from("original.scoopy")),
                     );
                 }
             },
@@ -9686,7 +9686,7 @@ mod editor_recording_restart_tests {
 
     #[tokio::test]
     async fn caller_cancellation_does_not_abandon_restart_after_old_capture_stops() {
-        let target = editor_target("original.cap");
+        let target = editor_target("original.scoopy");
         let retained = target.clone();
         let (entered, entry) = tokio::sync::oneshot::channel();
         let (release, released) = tokio::sync::oneshot::channel();
@@ -9723,7 +9723,7 @@ mod editor_recording_restart_tests {
             .unwrap();
         assert_eq!(
             retained.0.lock().unwrap().as_deref(),
-            Some(Path::new("original.cap"))
+            Some(Path::new("original.scoopy"))
         );
     }
 }
@@ -9768,12 +9768,12 @@ mod studio_joined_completion_tests {
                             accepted_intent: true,
                             quiescence: studio_recording::StudioQuiescence::Joined,
                             result: Ok(studio_recording::CompletedRecording {
-                                project_path: std::path::PathBuf::from("synthetic.cap"),
-                                meta: cap_project::StudioRecordingMeta::MultipleSegments {
-                                    inner: cap_project::MultipleSegments {
+                                project_path: std::path::PathBuf::from("synthetic.scoopy"),
+                                meta: scoopy_project::StudioRecordingMeta::MultipleSegments {
+                                    inner: scoopy_project::MultipleSegments {
                                         segments: Vec::new(),
                                         cursors: Default::default(),
-                                        status: Some(cap_project::StudioRecordingStatus::Complete),
+                                        status: Some(scoopy_project::StudioRecordingStatus::Complete),
                                     },
                                 },
                                 cursor_data: Default::default(),
@@ -9860,7 +9860,7 @@ mod studio_failure_presentation_tests {
 
     #[test]
     fn confirmed_disk_full_message_keeps_exact_recording_path() {
-        let directory = Path::new("/recordings/Unfinished capture.cap");
+        let directory = Path::new("/recordings/Unfinished capture.scoopy");
         for error in [
             "out-of-process media finalization failed: disk full: encoder exited with code 60",
             "Could not save cursor events: No space left on device (os error 28)",
@@ -9879,7 +9879,7 @@ mod studio_failure_presentation_tests {
         let error = "partial directory removal failed: No space left on device (os error 28)";
         for action in [StudioTerminalAction::Discard, StudioTerminalAction::Restart] {
             assert_eq!(
-                stopped_studio_error(error, Path::new("recording.cap"), action),
+                stopped_studio_error(error, Path::new("recording.scoopy"), action),
                 error
             );
         }
@@ -9890,12 +9890,12 @@ mod studio_failure_presentation_tests {
         for error in [
             "camera disconnected",
             "Permission denied (os error 13)",
-            "could not open /recordings/disk full recording.cap",
+            "could not open /recordings/disk full recording.scoopy",
         ] {
             assert_eq!(
                 stopped_studio_error(
                     error,
-                    Path::new("recording.cap"),
+                    Path::new("recording.scoopy"),
                     StudioTerminalAction::Stop
                 ),
                 error
@@ -9910,7 +9910,7 @@ mod studio_failure_presentation_tests {
             assert!(
                 stopped_studio_error(
                     error,
-                    Path::new("recording.cap"),
+                    Path::new("recording.scoopy"),
                     StudioTerminalAction::Stop
                 )
                 .contains("your disk is full")
@@ -10012,7 +10012,7 @@ mod studio_capture_control_tests {
                     result.map_err(|error| {
                         stopped_studio_error(
                             &error,
-                            Path::new("retained.cap"),
+                            Path::new("retained.scoopy"),
                             StudioTerminalAction::Stop,
                         )
                     })
@@ -10042,8 +10042,8 @@ pub(crate) fn preparing_presentation_snapshot(
     if matches!(capture_target, None | Some(ScreenCaptureTarget::CameraOnly))
         || !matches!(
             config.background.source,
-            cap_project::BackgroundSource::Color { .. }
-                | cap_project::BackgroundSource::Gradient {
+            scoopy_project::BackgroundSource::Color { .. }
+                | scoopy_project::BackgroundSource::Gradient {
                     animated: None | Some(false),
                     ..
                 }
@@ -10052,7 +10052,7 @@ pub(crate) fn preparing_presentation_snapshot(
     {
         return Err("Presentation requires ordinary finalization".into());
     }
-    config.cursor.size = cap_project::CursorConfiguration::default().size;
+    config.cursor.size = scoopy_project::CursorConfiguration::default().size;
     apply_screen_recording_presentation_defaults(&mut config, capture_target, false, None);
     Ok(config)
 }
@@ -10067,15 +10067,15 @@ mod preparing_presentation_tests {
             id: "1".parse().unwrap(),
         };
         for blur in [
-            cap_project::BackgroundBlurMode::Off,
-            cap_project::BackgroundBlurMode::Remove,
+            scoopy_project::BackgroundBlurMode::Off,
+            scoopy_project::BackgroundBlurMode::Remove,
         ] {
             let snapshot = StudioCameraSnapshot {
                 state: crate::camera::CameraPreviewState {
                     background_blur: blur,
                     ..Default::default()
                 },
-                placement: cap_recording::camera_placement::RecordingCameraPlacement::from_bounds(
+                placement: scoopy_recording::camera_placement::RecordingCameraPlacement::from_bounds(
                     [860.0, 20.0, 200.0, 200.0],
                     [0.0, 0.0, 1920.0, 1080.0],
                 ),
@@ -10125,7 +10125,7 @@ mod preparing_presentation_tests {
         config.background.rounding = 0.0;
         let projected = preparing_presentation_snapshot(Some(&config), Some(&target)).unwrap();
         let mut ordinary = config;
-        ordinary.cursor.size = cap_project::CursorConfiguration::default().size;
+        ordinary.cursor.size = scoopy_project::CursorConfiguration::default().size;
         apply_screen_recording_presentation_defaults(&mut ordinary, Some(&target), false, None);
         assert_eq!(
             serde_json::to_value(projected).unwrap(),
@@ -10137,7 +10137,7 @@ mod preparing_presentation_tests {
 #[cfg(test)]
 mod preparing_presentation_parity_tests {
     use super::*;
-    use cap_project::{BackgroundSource, ClipConfiguration, ClipOffsets, ScreenMovementSpring};
+    use scoopy_project::{BackgroundSource, ClipConfiguration, ClipOffsets, ScreenMovementSpring};
 
     fn value(config: &ProjectConfiguration) -> serde_json::Value {
         serde_json::to_value(config).unwrap()
@@ -10197,7 +10197,7 @@ mod preparing_presentation_parity_tests {
         segments: Vec<TimelineSegment>,
     ) -> ProjectConfiguration {
         let mut config = preset.clone();
-        config.cursor.size = cap_project::CursorConfiguration::default().size;
+        config.cursor.size = scoopy_project::CursorConfiguration::default().size;
         apply_screen_recording_presentation_defaults(&mut config, Some(target), false, None);
         apply_recording_camera_preview_state(
             &mut config,
@@ -10240,7 +10240,7 @@ mod preparing_presentation_parity_tests {
             );
             assert_eq!(
                 projected.cursor.size,
-                cap_project::CursorConfiguration::default().size
+                scoopy_project::CursorConfiguration::default().size
             );
             assert_eq!(
                 serde_json::to_value(projected.screen_movement_spring).unwrap(),
@@ -10329,7 +10329,7 @@ mod preparing_presentation_parity_tests {
         }
         preset.background.source = BackgroundSource::default();
         for enabled in [false, true] {
-            preset.background.notch = Some(cap_project::NotchConfiguration {
+            preset.background.notch = Some(scoopy_project::NotchConfiguration {
                 enabled,
                 ..Default::default()
             });
@@ -10385,9 +10385,9 @@ mod preparing_presentation_parity_tests {
             (CameraPreviewShape::Full, CameraShape::Source, 25.0),
         ] {
             for blur in [
-                cap_project::BackgroundBlurMode::Off,
-                cap_project::BackgroundBlurMode::Light,
-                cap_project::BackgroundBlurMode::Heavy,
+                scoopy_project::BackgroundBlurMode::Off,
+                scoopy_project::BackgroundBlurMode::Light,
+                scoopy_project::BackgroundBlurMode::Heavy,
             ] {
                 let mut config = preset();
                 config.camera.size = 41.0;

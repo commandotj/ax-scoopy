@@ -1,7 +1,7 @@
 use super::fragment_metadata::read_fragment_metadata;
 use crate::audio::aac::{AACEncoder, AACEncoderError};
 use crate::mux::segmented_stream::{SegmentCompletedEvent, SegmentMediaType};
-use cap_media_info::AudioInfo;
+use scoopy_media_info::AudioInfo;
 use ffmpeg::{format, frame};
 use serde::Serialize;
 use std::{
@@ -540,7 +540,7 @@ impl DashAudioSegmentEncoder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cap_media_info::AudioInfo;
+    use scoopy_media_info::AudioInfo;
     use std::sync::mpsc;
 
     fn test_audio_info() -> AudioInfo {

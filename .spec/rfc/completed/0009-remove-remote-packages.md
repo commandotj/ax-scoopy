@@ -14,7 +14,7 @@ After removing remote applications and the backend in RFC 0001–0005, several p
 
 - Delete obsolete remote packages: `packages/env`, `packages/s3`, `packages/sdk-embed`, `packages/sdk-recorder`.
 - Remove remote modules from `packages/utils` (`src/lib/stripe/`, `src/lib/dub.ts`, `src/constants/plans.ts`, `src/types/database.ts`).
-- Remove remote dependencies from `packages/utils/package.json` (`@aws-sdk/client-s3`, `@cap/env`, `dub`, `stripe`).
+- Remove remote dependencies from `packages/utils/package.json` (`@aws-sdk/client-s3`, `@scoopy/env`, `dub`, `stripe`).
 - Update `packages/utils/src/index.ts` to export only local utilities (`helpers.ts`).
 
 ## Non-goals
@@ -25,7 +25,7 @@ After removing remote applications and the backend in RFC 0001–0005, several p
 ## Design
 
 1. Remove directories `packages/env`, `packages/s3`, `packages/sdk-embed`, and `packages/sdk-recorder`.
-2. In `packages/utils`, delete `src/lib/stripe`, `src/lib/dub.ts`, `src/constants/plans.ts`, `src/types/database.ts`. In `src/index.ts`, re-export only `./helpers.ts`. In `package.json`, remove dependencies on `@aws-sdk/client-s3`, `@cap/env`, `dub`, and `stripe`.
+2. In `packages/utils`, delete `src/lib/stripe`, `src/lib/dub.ts`, `src/constants/plans.ts`, `src/types/database.ts`. In `src/index.ts`, re-export only `./helpers.ts`. In `package.json`, remove dependencies on `@aws-sdk/client-s3`, `@scoopy/env`, `dub`, and `stripe`.
 3. In `packages/ui`, declare ambient process environment in `Logo.tsx` for standalone version resolution.
 4. Prune lockfile via `bun install` and verify `bun run typecheck` passes.
 

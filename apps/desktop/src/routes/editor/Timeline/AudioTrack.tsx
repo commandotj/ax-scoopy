@@ -91,9 +91,9 @@ function FadeCornerTriangle(props: { edge: "in" | "out" }) {
 			<svg class="block size-full" viewBox="0 0 11 11" aria-hidden="true">
 				{props.edge === "in" ? (
 					<>
-						<polygon class="cap-fade-corner" points="0,0 11,0 0,11" />
+						<polygon class="scoopy-fade-corner" points="0,0 11,0 0,11" />
 						<line
-							class="cap-fade-corner-line"
+							class="scoopy-fade-corner-line"
 							x1="11"
 							y1="0"
 							x2="0"
@@ -103,9 +103,9 @@ function FadeCornerTriangle(props: { edge: "in" | "out" }) {
 					</>
 				) : (
 					<>
-						<polygon class="cap-fade-corner" points="11,0 0,0 11,11" />
+						<polygon class="scoopy-fade-corner" points="11,0 0,0 11,11" />
 						<line
-							class="cap-fade-corner-line"
+							class="scoopy-fade-corner-line"
 							x1="0"
 							y1="0"
 							x2="11"
@@ -143,14 +143,14 @@ function FadeControl(props: {
 						aria-hidden="true"
 					>
 						<rect
-							class="cap-fade-shade"
+							class="scoopy-fade-shade"
 							x={geometry().shadeX}
 							y="0"
 							width={geometry().shadeWidth}
 							height="100"
 						/>
 						<path
-							class="cap-fade-curve"
+							class="scoopy-fade-curve"
 							d={fadeEnvelopeCurve(props.edge, geometry().span)}
 							fill="none"
 							stroke-width="1.5"
@@ -341,7 +341,7 @@ export function AudioTrack(props: {
 			downEvent.preventDefault();
 
 			const trackEl = (downEvent.currentTarget as HTMLElement).closest(
-				".cap-track-fill",
+				".scoopy-track-fill",
 			);
 			if (!(trackEl instanceof HTMLElement)) return;
 
@@ -400,7 +400,7 @@ export function AudioTrack(props: {
 				fallback={
 					<button
 						type="button"
-						class="cap-empty-lane pointer-events-auto"
+						class="scoopy-empty-lane pointer-events-auto"
 						data-active={
 							editorState.timeline.audioPicker === props.laneIndex
 								? ""
@@ -413,7 +413,7 @@ export function AudioTrack(props: {
 						}}
 					>
 						<span>Add background music or import your own audio</span>
-						<span class="cap-empty-lane-action">· Add audio</span>
+						<span class="scoopy-empty-lane-action">· Add audio</span>
 					</button>
 				}
 			>
@@ -520,18 +520,18 @@ export function AudioTrack(props: {
 								<SegmentLabel
 									compactAt={24}
 									full={() => (
-										<div class="cap-seg-labels z-10 max-w-full">
-											<span class="cap-seg-label max-w-full truncate">
+										<div class="scoopy-seg-labels z-10 max-w-full">
+											<span class="scoopy-seg-label max-w-full truncate">
 												{segment.name || "Audio"}
 											</span>
-											<span class="cap-seg-sublabel">
+											<span class="scoopy-seg-sublabel">
 												{`${Math.round(segment.end - segment.start)}s`}
 											</span>
 										</div>
 									)}
 									compact={() => (
-										<div class="cap-seg-labels z-10 max-w-full">
-											<span class="cap-seg-label max-w-full truncate">
+										<div class="scoopy-seg-labels z-10 max-w-full">
+											<span class="scoopy-seg-label max-w-full truncate">
 												{segment.name || "Audio"}
 											</span>
 										</div>

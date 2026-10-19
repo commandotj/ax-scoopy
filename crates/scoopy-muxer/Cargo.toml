@@ -1,0 +1,20 @@
+[package]
+name = "scoopy-muxer"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "scoopy-muxer"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+scoopy-muxer-protocol = { path = "../scoopy-muxer-protocol" }
+ffmpeg = { workspace = true }
+libc = "0.2"
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[lints]
+workspace = true

@@ -75,7 +75,7 @@ impl Drop for OggFile {
 mod tests {
     use super::*;
     use crate::audio::opus::OpusEncoder;
-    use cap_media_info::AudioInfo;
+    use scoopy_media_info::AudioInfo;
     use ffmpeg::ChannelLayout;
 
     fn write_recording(path: std::path::PathBuf, input_rate: u32, total_samples: usize) {
@@ -125,7 +125,7 @@ mod tests {
     fn sustained_96k_input_produces_playable_file() {
         // Mirrors the studio mic path for a 96kHz built-in mic: resampled to
         // 48k opus. A multi-second stream must land on disk with the right
-        // duration (github.com/CapSoftware/Cap/issues/2069 claimed it stays
+        // duration claimed it stays
         // 0 bytes).
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("audio-input.ogg");

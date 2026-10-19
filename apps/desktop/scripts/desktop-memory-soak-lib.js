@@ -2,13 +2,13 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const DEV_APP_COMMAND_PREFIX = fileURLToPath(
-	new URL("../../../target/debug/cap-desktop", import.meta.url),
+	new URL("../../../target/debug/scoopy-desktop", import.meta.url),
 );
-const INSTALLED_APP_COMMAND_PREFIX = "/Applications/Cap.app/Contents/MacOS/Cap";
+const INSTALLED_APP_COMMAND_PREFIX = "/Applications/Scoopy.app/Contents/MacOS/Scoopy";
 
 export const DEFAULTS = {
 	appCommandPrefix:
-		process.env.CAP_APP_COMMAND_PREFIX ||
+		process.env.SCOOPY_APP_COMMAND_PREFIX ||
 		(existsSync(DEV_APP_COMMAND_PREFIX)
 			? DEV_APP_COMMAND_PREFIX
 			: INSTALLED_APP_COMMAND_PREFIX),
@@ -24,8 +24,8 @@ export const DEFAULTS = {
 	launchTimeoutSeconds: 30,
 	stopTimeoutSeconds: 10,
 	storePath:
-		process.env.CAP_STORE_PATH ||
-		`${process.env.HOME}/Library/Application Support/so.cap.desktop.dev/store`,
+		process.env.SCOOPY_STORE_PATH ||
+		`${process.env.HOME}/Library/Application Support/me.systembug.scoopy.dev/store`,
 	settleSeconds: 120,
 	trailingSamples: 3,
 };
@@ -106,23 +106,23 @@ export function classifyProcess(
 	}
 
 	if (command === appCommandPrefix) {
-		return { group: "cap", kind: "cap-main", label: "cap-main" };
+		return { group: "scoopy", kind: "scoopy-main", label: "scoopy-main" };
 	}
 
 	if (command.startsWith(`${appCommandPrefix} --crash-reporter-server=`)) {
-		return { group: "cap", kind: "cap-crash", label: "cap-crash" };
+		return { group: "scoopy", kind: "scoopy-crash", label: "scoopy-crash" };
 	}
 
 	if (command.includes("com.apple.WebKit.GPU.xpc")) {
-		return { group: "cap", kind: "webkit-gpu", label: "wk-gpu" };
+		return { group: "scoopy", kind: "webkit-gpu", label: "wk-gpu" };
 	}
 
 	if (command.includes("com.apple.WebKit.Networking.xpc")) {
-		return { group: "cap", kind: "webkit-networking", label: "wk-net" };
+		return { group: "scoopy", kind: "webkit-networking", label: "wk-net" };
 	}
 
 	if (command.includes("com.apple.WebKit.WebContent.xpc")) {
-		return { group: "cap", kind: "webkit-webcontent", label: "wk-webcontent" };
+		return { group: "scoopy", kind: "webkit-webcontent", label: "wk-webcontent" };
 	}
 
 	for (const [label, pattern] of MEDIA_PROCESS_PATTERNS) {
@@ -134,7 +134,7 @@ export function classifyProcess(
 	return null;
 }
 
-export function findCapMainProcess(
+export function findScoopyMainProcess(
 	processes,
 	appCommandPrefix = DEFAULTS.appCommandPrefix,
 ) {
@@ -149,11 +149,11 @@ export function discoverTrackedProcesses(
 	options = DEFAULTS,
 ) {
 	const nextTracked = new Map(tracked);
-	const capMain = findCapMainProcess(processes, options.appCommandPrefix);
+	const scoopyMain = findScoopyMainProcess(processes, options.appCommandPrefix);
 
-	if (!capMain) {
+	if (!scoopyMain) {
 		throw new Error(
-			`No running Cap process found for ${options.appCommandPrefix}`,
+			`No running Scoopy process found for ${options.appCommandPrefix}`,
 		);
 	}
 
@@ -166,22 +166,22 @@ export function discoverTrackedProcesses(
 		if (!classification) continue;
 
 		const isAlreadyTracked = nextTracked.has(processInfo.pid);
-		const isLongLivedCapWebKit =
-			classification.group === "cap" &&
+		const isLongLivedScoopyWebKit =
+			classification.group === "scoopy" &&
 			classification.kind.startsWith("webkit-") &&
-			Math.abs(processInfo.etimes - capMain.etimes) <=
+			Math.abs(processInfo.etimes - scoopyMain.etimes) <=
 				options.initialWebKitWindowSeconds;
-		const isFreshCapWebKit =
-			classification.group === "cap" &&
+		const isFreshScoopyWebKit =
+			classification.group === "scoopy" &&
 			classification.kind.startsWith("webkit-") &&
 			processInfo.etimes <= options.newWebKitWindowSeconds;
 		const shouldTrack =
-			classification.kind === "cap-main" ||
-			classification.kind === "cap-crash" ||
+			classification.kind === "scoopy-main" ||
+			classification.kind === "scoopy-crash" ||
 			classification.group === "system" ||
 			classification.group === "media" ||
-			isLongLivedCapWebKit ||
-			isFreshCapWebKit;
+			isLongLivedScoopyWebKit ||
+			isFreshScoopyWebKit;
 
 		if (!shouldTrack) continue;
 
@@ -202,7 +202,7 @@ export function buildSample(processes, tracked, options = DEFAULTS) {
 		options,
 	);
 	const liveTracked = new Map();
-	let capTotalKb = 0;
+	let scoopyTotalKb = 0;
 	let mediaTotalKb = 0;
 	let windowServerTotalKb = 0;
 	const processRows = [];
@@ -225,7 +225,7 @@ export function buildSample(processes, tracked, options = DEFAULTS) {
 		liveTracked.set(pid, row);
 		processRows.push(row);
 
-		if (row.group === "cap") capTotalKb += row.rssKb;
+		if (row.group === "scoopy") scoopyTotalKb += row.rssKb;
 		if (row.group === "media") mediaTotalKb += row.rssKb;
 		if (row.group === "system") windowServerTotalKb += row.rssKb;
 		if (row.isNew) newPids.push(pid);
@@ -234,8 +234,8 @@ export function buildSample(processes, tracked, options = DEFAULTS) {
 	processRows.sort((left, right) => right.rssKb - left.rssKb);
 
 	return {
-		capTotalKb,
-		grandTotalKb: capTotalKb + mediaTotalKb + windowServerTotalKb,
+		scoopyTotalKb,
+		grandTotalKb: scoopyTotalKb + mediaTotalKb + windowServerTotalKb,
 		mediaTotalKb,
 		newPids: newPids.sort((left, right) => left - right),
 		processRows,

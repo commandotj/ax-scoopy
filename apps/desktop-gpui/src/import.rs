@@ -1,9 +1,9 @@
 //! Media import -- the gpui port of the Tauri binary's `import.rs`: a picked
-//! video is transcoded into a fresh `.cap` studio bundle, a picked image
+//! video is transcoded into a fresh `.scoopy` studio bundle, a picked image
 //! becomes a screenshot bundle, and progress is reported through a global the
 //! main window's library panel draws.
 //!
-//! The Tauri version encodes through `cap-enc-ffmpeg`
+//! The Tauri version encodes through `scoopy-enc-ffmpeg`
 //! (`H264EncoderBuilder` / `OpusEncoder`), which is not a dependency of this
 //! standalone workspace -- the narrow slices of it the import path actually
 //! exercises are transcribed here onto the same `ffmpeg-next` this app already
@@ -17,7 +17,7 @@ use std::{
     time::Duration,
 };
 
-use cap_project::{
+use scoopy_project::{
     AudioMeta, Cursors, MultipleSegment, MultipleSegments, Platform, ProjectConfiguration,
     RecordingMeta, RecordingMetaInner, SingleSegment, StudioRecordingMeta, StudioRecordingStatus,
     VideoMeta,
@@ -240,7 +240,7 @@ fn apply_progress(update: ImportProgress, cx: &mut App) {
         // Tauri version opens it up front and shows `ImportProgress.tsx`
         // inside, this app opens it once the bundle is Complete (deviation:
         // the gpui editor has no importing screen). `importImagePath` ends in
-        // `ShowCapWindow::ScreenshotEditor` the same way.
+        // `ShowScoopyWindow::ScreenshotEditor` the same way.
         if cx.has_global::<crate::app_windows::AppWindows>() {
             match kind {
                 ImportKind::Video => crate::app_windows::open_editor(project_path, cx),
@@ -357,7 +357,7 @@ fn spawn_import(cx: &mut App, work: impl FnOnce(flume::Sender<ImportProgress>) +
     let (tx, rx) = flume::unbounded::<ImportProgress>();
     let in_flight = InFlightImport::begin();
     let worker = std::thread::Builder::new()
-        .name("cap-media-import".to_string())
+        .name("scoopy-media-import".to_string())
         .stack_size(crate::MEDIA_THREAD_STACK_SIZE)
         .spawn(move || {
             let _in_flight = in_flight;
@@ -650,7 +650,7 @@ fn run_image_import(source_path: &Path, tx: &flume::Sender<ImportProgress>) {
         return;
     }
 
-    let project_path = match cap_utils::ensure_unique_filename(&bundle_name, &screenshots_dir) {
+    let project_path = match scoopy_utils::ensure_unique_filename(&bundle_name, &screenshots_dir) {
         Ok(name) => screenshots_dir.join(name),
         Err(error) => {
             early.send(ImportStage::Failed, 0.0, &error);
@@ -689,7 +689,7 @@ fn run_image_import(source_path: &Path, tx: &flume::Sender<ImportProgress>) {
         return;
     }
 
-    // The bundle shape `list_screenshots` scans for: a `.cap` directory whose
+    // The bundle shape `list_screenshots` scans for: a `.scoopy` directory whose
     // meta parses, holding a PNG (`import.rs:1981-2009`).
     let meta = RecordingMeta {
         platform: Some(Platform::default()),
@@ -819,7 +819,7 @@ fn media_duration(path: &Path) -> Option<Duration> {
 // The transcode -- `transcode_video` (`import.rs:1082-1357`)
 // ---------------------------------------------------------------------------
 
-/// `cap_media_info::ensure_even` (`crates/media-info/src/lib.rs:406-409`).
+/// `scoopy_media_info::ensure_even` (`crates/media-info/src/lib.rs:406-409`).
 fn ensure_even(value: u32) -> u32 {
     let adjusted = value - (value % 2);
     if adjusted == 0 { 2 } else { adjusted }
@@ -1681,7 +1681,7 @@ impl OpusOutput {
             let chunk: Vec<u8> = self.pending.drain(..chunk_bytes).collect();
             self.encode_chunk(&chunk, output)?;
         }
-        // libopus takes a short final frame (AV_CODEC_CAP_SMALL_LAST_FRAME),
+        // libopus takes a short final frame (AV_CODEC_SCOOPY_SMALL_LAST_FRAME),
         // which is also how `BufferedResampler::flush` ends a stream.
         if include_partial && !self.pending.is_empty() {
             let chunk = std::mem::take(&mut self.pending);
@@ -1789,7 +1789,7 @@ fn decode_image_rgba(source_path: &Path) -> Result<(u32, u32, Vec<u8>), String> 
 }
 
 fn decode_image_with_image_crate(source_path: &Path) -> Result<(u32, u32, Vec<u8>), String> {
-    let image = cap_gpui_kernels::codec::decode_image_file(source_path)?;
+    let image = scoopy_gpui_kernels::codec::decode_image_file(source_path)?;
 
     let (width, height) = (image.width(), image.height());
     check_image_dimensions(width, height)?;
@@ -1863,7 +1863,7 @@ fn decode_image_with_ffmpeg(source_path: &Path) -> Result<(u32, u32, Vec<u8>), S
     let height_usize = height as usize;
     let src_stride = rgba_frame.stride(0);
     let row_bytes = width_usize * 4;
-    let buffer = cap_gpui_kernels::frame::copy_rows(
+    let buffer = scoopy_gpui_kernels::frame::copy_rows(
         rgba_frame.data(0),
         row_bytes,
         src_stride,
@@ -1879,7 +1879,7 @@ fn decode_image_with_ffmpeg(source_path: &Path) -> Result<(u32, u32, Vec<u8>), S
 fn write_png(path: &Path, width: u32, height: u32, rgba: &[u8]) -> Result<(), String> {
     let file = std::fs::File::create(path)
         .map_err(|e| format!("Failed to create imported image file: {e}"))?;
-    cap_gpui_kernels::codec::write_png_file(
+    scoopy_gpui_kernels::codec::write_png_file(
         file,
         rgba,
         width,
@@ -2159,14 +2159,14 @@ mod tests {
         std::fs::remove_dir_all(root).unwrap();
     }
 
-    /// `CAP_IMPORT_BENCH_SOURCES=a.mp4,b.mp4 cargo test --bin scoopy benchmark_video_import -- --ignored --nocapture`
+    /// `SCOOPY_IMPORT_BENCH_SOURCES=a.mp4,b.mp4 cargo test --bin scoopy benchmark_video_import -- --ignored --nocapture`
     #[test]
-    #[ignore = "benchmark: transcodes the videos named by CAP_IMPORT_BENCH_SOURCES"]
+    #[ignore = "benchmark: transcodes the videos named by SCOOPY_IMPORT_BENCH_SOURCES"]
     fn benchmark_video_import() {
         ffmpeg::init().unwrap();
-        let sources = std::env::var("CAP_IMPORT_BENCH_SOURCES")
-            .expect("CAP_IMPORT_BENCH_SOURCES must list the videos to import");
-        let runs = std::env::var("CAP_IMPORT_BENCH_RUNS")
+        let sources = std::env::var("SCOOPY_IMPORT_BENCH_SOURCES")
+            .expect("SCOOPY_IMPORT_BENCH_SOURCES must list the videos to import");
+        let runs = std::env::var("SCOOPY_IMPORT_BENCH_RUNS")
             .ok()
             .and_then(|runs| runs.parse::<usize>().ok())
             .unwrap_or(3)
@@ -2245,7 +2245,7 @@ pub(crate) fn import_editor_image(
     if encoded.len() as u64 > MAX_BYTES {
         return Err("Image files must be 64 MiB or smaller".into());
     }
-    let (extension, width, height) = cap_gpui_kernels::codec::inspect_overlay_image(&encoded)?;
+    let (extension, width, height) = scoopy_gpui_kernels::codec::inspect_overlay_image(&encoded)?;
     let mut bytes = [0u8; 16];
     for chunk in bytes.chunks_exact_mut(8) {
         chunk.copy_from_slice(
@@ -2301,7 +2301,7 @@ mod style_image_tests {
     #[test]
     fn style_image_import_rotates_exif_copies_source_and_keeps_relative_unique_assets() {
         let dir = std::env::temp_dir().join(format!(
-            "cap-overlay-{}-{}",
+            "scoopy-overlay-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

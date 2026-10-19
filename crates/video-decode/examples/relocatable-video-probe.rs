@@ -1,5 +1,5 @@
-use cap_enc_ffmpeg::RelocatableSource;
-use cap_video_decode::FFmpegDecoder;
+use scoopy_enc_ffmpeg::RelocatableSource;
+use scoopy_video_decode::FFmpegDecoder;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
@@ -187,7 +187,7 @@ fn main() -> Result<(), String> {
         input_hashes.push(file_digest(path)?);
         relative_paths.push(relative);
     }
-    let hardware = std::env::var_os("CAP_BENCH_HW").is_some();
+    let hardware = std::env::var_os("SCOOPY_BENCH_HW").is_some();
     let device = hardware.then_some(if cfg!(target_os = "macos") {
         ffmpeg::sys::AVHWDeviceType::AV_HWDEVICE_TYPE_VIDEOTOOLBOX
     } else if cfg!(target_os = "windows") {
@@ -195,7 +195,7 @@ fn main() -> Result<(), String> {
     } else {
         ffmpeg::sys::AVHWDeviceType::AV_HWDEVICE_TYPE_VAAPI
     });
-    let managed_first = std::env::var_os("CAP_PROBE_MANAGED_FIRST").is_some();
+    let managed_first = std::env::var_os("SCOOPY_PROBE_MANAGED_FIRST").is_some();
     let (source, managed, ordinary, source_setup_ms) = if managed_first {
         let (source, managed, setup_ms) = open_managed(&original, &relative_paths, device)?;
         let ordinary = open_probe(|| FFmpegDecoder::new(&input, device))?;

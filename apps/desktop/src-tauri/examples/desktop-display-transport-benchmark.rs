@@ -5,17 +5,17 @@ use std::{
     time::{Duration, Instant},
 };
 
-use cap_desktop_lib::frame_ws::{WSFrame, WSFrameFormat, create_watch_frame_ws};
-use cap_editor::{
+use scoopy_desktop_lib::frame_ws::{WSFrame, WSFrameFormat, create_watch_frame_ws};
+use scoopy_editor::{
     EditorFrameOutput, FrameLayout, Playback, PlaybackRenderOutputFormat, PlaybackSkipReason,
     PlaybackTelemetry, PlaybackTelemetryEvent, Renderer, finish_renderer_layers_creation,
     start_renderer_layers_creation,
 };
-use cap_project::{
+use scoopy_project::{
     ProjectConfiguration, RecordingMeta, RecordingMetaInner, StudioRecordingMeta,
     TimelineConfiguration, TimelineSegment, XY,
 };
-use cap_rendering::{GpuOutputFormat, ProjectRecordingsMeta, RenderVideoConstants, Video};
+use scoopy_rendering::{GpuOutputFormat, ProjectRecordingsMeta, RenderVideoConstants, Video};
 use tokio::sync::{mpsc, watch};
 
 #[derive(Default)]
@@ -249,9 +249,9 @@ async fn main() {
 
     let layers_rx = start_renderer_layers_creation(&render_constants, &project);
     let force_ffmpeg_for_editor = cfg!(target_os = "windows")
-        || std::env::var_os("CAP_EDITOR_FORCE_FFMPEG_DECODER").is_some();
+        || std::env::var_os("SCOOPY_EDITOR_FORCE_FFMPEG_DECODER").is_some();
     let segment_medias =
-        match cap_editor::create_segments(&recording_meta, meta.as_ref(), force_ffmpeg_for_editor)
+        match scoopy_editor::create_segments(&recording_meta, meta.as_ref(), force_ffmpeg_for_editor)
             .await
         {
             Ok(segments) => Arc::new(segments),
@@ -328,14 +328,14 @@ async fn main() {
     };
 
     let (_project_tx, project_rx) = watch::channel(project);
-    let audio_output = Arc::new(cap_editor::AudioOutput::new());
+    let audio_output = Arc::new(scoopy_editor::AudioOutput::new());
     let playback = Playback {
         renderer: renderer.clone(),
         render_constants,
         start_frame_number: 0,
         project: project_rx,
         segment_medias,
-        music: cap_editor::MusicTracks::new(),
+        music: scoopy_editor::MusicTracks::new(),
         audio_output,
         telemetry: Some(telemetry),
     };

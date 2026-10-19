@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use cap_enc_ffmpeg::remux::get_media_duration;
-use cap_project::{ProjectConfiguration, TimelineConfiguration};
+use scoopy_enc_ffmpeg::remux::get_media_duration;
+use scoopy_project::{ProjectConfiguration, TimelineConfiguration};
 use gpui::{
     AnyElement, Context, FontWeight, Hsla, InteractiveElement, IntoElement, ParentElement,
     SharedString, StatefulInteractiveElement, Styled, div, prelude::FluentBuilder, px, svg,
@@ -299,7 +299,7 @@ mod tests {
         AUDIO_LIBRARY, AudioImportRequest, AudioPicker, bundled_track_path,
         bundled_track_path_from, copy_library_track, probe_audio_duration, replace_audio_asset,
     };
-    use cap_project::ProjectConfiguration;
+    use scoopy_project::ProjectConfiguration;
 
     fn audio_project() -> ProjectConfiguration {
         serde_json::from_value(serde_json::json!({
@@ -434,7 +434,7 @@ mod tests {
     #[test]
     fn copied_library_audio_includes_source_duration() {
         let root =
-            std::env::temp_dir().join(format!("cap-gpui-audio-duration-{}", std::process::id()));
+            std::env::temp_dir().join(format!("scoopy-gpui-audio-duration-{}", std::process::id()));
         let (path, name, duration) =
             copy_library_track(&root, "lofi-beats-mirostar", "Lofi Beats").unwrap();
         assert_eq!(name, "Lofi Beats");
@@ -446,8 +446,8 @@ mod tests {
     #[test]
     fn built_in_music_resolves_from_an_installed_bundle() {
         let root =
-            std::env::temp_dir().join(format!("cap-gpui-installed-music-{}", std::process::id()));
-        let resources = root.join("Cap.app/Contents/Resources");
+            std::env::temp_dir().join(format!("scoopy-gpui-installed-music-{}", std::process::id()));
+        let resources = root.join("Scoopy.app/Contents/Resources");
         let music = resources.join("assets/music");
         std::fs::create_dir_all(&music).unwrap();
         let track = music.join("lofi-beats-mirostar.mp3");

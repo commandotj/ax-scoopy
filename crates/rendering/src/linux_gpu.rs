@@ -1,6 +1,6 @@
 //! GPU-resident frames on Linux + NVIDIA (render farm workers).
 //!
-//! With `CAP_LINUX_GPU_FRAMES=1` decoded frames stay in CUDA memory (NVDEC),
+//! With `SCOOPY_LINUX_GPU_FRAMES=1` decoded frames stay in CUDA memory (NVDEC),
 //! reach the compositor through Vulkan buffers that CUDA imports, and the
 //! NV12 output goes back to CUDA for NVENC the same way. Every hop is a
 //! device-to-device copy: no frame crosses PCIe to the CPU. CUDA is loaded at
@@ -29,7 +29,7 @@ pub fn take_interop_failures() -> u64 {
 
 pub fn enabled() -> bool {
     static ENABLED: OnceLock<bool> = OnceLock::new();
-    *ENABLED.get_or_init(|| std::env::var("CAP_LINUX_GPU_FRAMES").as_deref() == Ok("1"))
+    *ENABLED.get_or_init(|| std::env::var("SCOOPY_LINUX_GPU_FRAMES").as_deref() == Ok("1"))
 }
 
 type CuResult = i32;

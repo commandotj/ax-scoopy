@@ -1,4 +1,4 @@
-use cap_recording::{
+use scoopy_recording::{
     Mp4Muxer, OggMuxer, OutputPipeline, SegmentedVideoMuxer, SegmentedVideoMuxerConfig,
     test_sources::{
         AudioGenerator, AudioTestConfig, OutputFormat, RecordingValidator, SyntheticAudioSource,
@@ -7,7 +7,7 @@ use cap_recording::{
         comprehensive_test_configs,
     },
 };
-use cap_timestamp::Timestamps;
+use scoopy_timestamp::Timestamps;
 use clap::{Parser, Subcommand};
 use std::{
     path::{Path, PathBuf},
@@ -32,7 +32,7 @@ struct Cli {
     #[arg(long)]
     keep_outputs: bool,
 
-    #[arg(long, default_value = "/tmp/cap-synthetic-tests")]
+    #[arg(long, default_value = "/tmp/scoopy-synthetic-tests")]
     output_dir: PathBuf,
 }
 
@@ -216,7 +216,7 @@ async fn main() {
 #[allow(dead_code)]
 enum TestResult {
     Passed {
-        validation: cap_recording::test_sources::ValidationResult,
+        validation: scoopy_recording::test_sources::ValidationResult,
         elapsed: Duration,
     },
     Failed {

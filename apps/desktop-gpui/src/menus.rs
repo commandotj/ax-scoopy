@@ -54,7 +54,7 @@ actions!(
         HideSelf,
         /// `PredefinedMenuItem::hide_others` -- ⌥⌘H.
         HideOthers,
-        /// The Cap menu's explicit Quit item -- ⌘Q.
+        /// The Scoopy menu's explicit Quit item -- ⌘Q.
         Quit,
         /// `PredefinedMenuItem::close_window` -- ⌘W. Present twice in the
         /// Tauri menu (File and Window), one action either way.
@@ -226,7 +226,7 @@ fn with_key_native(cx: &mut App, action: fn(&platform::NativeWindow)) {
 /// `teleprompter_closed`) happens exactly once, on one code path.
 ///
 /// The main window is the exception, and it is the whole reason this function
-/// exists: `CapWindowId::Main`'s `CloseRequested` arm calls
+/// exists: `ScoopyWindowId::Main`'s `CloseRequested` arm calls
 /// `api.prevent_close()` and hides the window instead
 /// (`apps/desktop/src-tauri/src/lib.rs:5644-5697`).
 pub fn close_key_window(cx: &mut App) {
@@ -592,7 +592,7 @@ fn any_window_fullscreen(cx: &mut App) -> bool {
 
 /// `(has_visible_panel_window, has_visible_dock_window)`.
 ///
-/// The split is `CapWindowId::activates_dock()` (`windows.rs:1049-1060`): Main,
+/// The split is `ScoopyWindowId::activates_dock()` (`windows.rs:1049-1060`): Main,
 /// Editor, Settings, ModeSelect, Onboarding (plus Upgrade/ScreenshotEditor,
 /// which this app has no equivalent of) activate the dock; the camera bubble,
 /// the recording bar, the target-select overlays and the teleprompter do not.

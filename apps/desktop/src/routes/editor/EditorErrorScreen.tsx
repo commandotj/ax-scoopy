@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scoopy/ui-solid";
 import { createMutation } from "@tanstack/solid-query";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -283,7 +283,7 @@ export function EditorErrorScreen(props: {
 								>
 									<p class="text-xs text-gray-10 italic">
 										Tip: Right-click and select "Show Enclosing Folder" to see
-										the .cap bundle contents.
+										the .scoopy bundle contents.
 									</p>
 								</Show>
 							</div>

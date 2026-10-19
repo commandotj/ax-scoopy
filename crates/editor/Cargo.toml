@@ -1,5 +1,5 @@
 [package]
-name = "cap-editor"
+name = "scoopy-editor"
 version = "0.1.0"
 edition = "2024"
 
@@ -27,16 +27,16 @@ name = "editor-startup-benchmark"
 path = "examples/editor-startup-benchmark.rs"
 
 [features]
-# Offline audio output for the cap-verify suite. Never enabled by the app.
+# Offline audio output for the scoopy-verify suite. Never enabled by the app.
 test-hooks = []
 
 [dependencies]
-cap-utils = { path = "../utils" }
-cap-media = { path = "../media" }
-cap-project = { path = "../project" }
-cap-rendering = { path = "../rendering" }
-cap-audio = { path = "../audio" }
-cap-media-info = { path = "../media-info" }
+scoopy-utils = { path = "../utils" }
+scoopy-media = { path = "../media" }
+scoopy-project = { path = "../project" }
+scoopy-rendering = { path = "../rendering" }
+scoopy-audio = { path = "../audio" }
+scoopy-media-info = { path = "../media-info" }
 
 tokio = { workspace = true, features = ["macros", "process", "fs"] }
 cpal.workspace = true
@@ -61,5 +61,5 @@ workspace-hack = { version = "0.1", path = "../workspace-hack" }
 windows = { workspace = true, features = ["Win32_Media"] }
 
 [dev-dependencies]
-cap-audio = { path = "../audio", features = ["test-support"] }
-cap-enc-ffmpeg = { path = "../enc-ffmpeg" }
+scoopy-audio = { path = "../audio", features = ["test-support"] }
+scoopy-enc-ffmpeg = { path = "../enc-ffmpeg" }

@@ -1,6 +1,6 @@
 use anyhow::Context as _;
-use cap_media_info::AudioInfo;
-use cap_timestamp::{MasterClock, SourceClockOutcome, SourceClockState, Timestamp, Timestamps};
+use scoopy_media_info::AudioInfo;
+use scoopy_timestamp::{MasterClock, SourceClockOutcome, SourceClockState, Timestamp, Timestamps};
 use futures::channel::{mpsc, oneshot};
 use std::time::Instant;
 use std::{
@@ -27,8 +27,8 @@ const STARTUP_GRACE: Duration = Duration::from_secs(1);
 pub(crate) const MIXER_STOP_TIMEOUT: Duration = Duration::from_secs(2);
 
 pub const MAX_BUFFERING_TICKS: u32 = 45;
-pub const AUDIO_OUTPUT_FRAMES: u32 = cap_timestamp::AUDIO_OUTPUT_FRAMES as u32;
-pub const DEFAULT_SAMPLE_RATE: u32 = cap_timestamp::DEFAULT_SAMPLE_RATE;
+pub const AUDIO_OUTPUT_FRAMES: u32 = scoopy_timestamp::AUDIO_OUTPUT_FRAMES as u32;
+pub const DEFAULT_SAMPLE_RATE: u32 = scoopy_timestamp::DEFAULT_SAMPLE_RATE;
 pub const MAX_BUFFERING_MS: u64 =
     (MAX_BUFFERING_TICKS as u64 * AUDIO_OUTPUT_FRAMES as u64 * 1000) / DEFAULT_SAMPLE_RATE as u64;
 pub const FORCED_RESET_MS: u64 = MAX_BUFFERING_MS * 2;
@@ -374,7 +374,7 @@ impl Default for MixerBufferingTracker {
 
 impl AudioMixer {
     pub const INFO: AudioInfo = AudioInfo::new_raw(
-        cap_media_info::Sample::F32(cap_media_info::Type::Packed),
+        scoopy_media_info::Sample::F32(scoopy_media_info::Type::Packed),
         48_000,
         2,
     );
@@ -879,11 +879,11 @@ impl AudioMixer {
 fn mixer_now() -> Timestamp {
     #[cfg(target_os = "macos")]
     {
-        Timestamp::MachAbsoluteTime(cap_timestamp::MachAbsoluteTimestamp::now())
+        Timestamp::MachAbsoluteTime(scoopy_timestamp::MachAbsoluteTimestamp::now())
     }
     #[cfg(windows)]
     {
-        Timestamp::PerformanceCounter(cap_timestamp::PerformanceCounterTimestamp::now())
+        Timestamp::PerformanceCounter(scoopy_timestamp::PerformanceCounterTimestamp::now())
     }
     #[cfg(not(any(target_os = "macos", windows)))]
     {
@@ -957,7 +957,7 @@ fn sample_position(
 
 fn silence_frame(info: AudioInfo, samples: usize) -> ffmpeg::frame::Audio {
     let mut frame = ffmpeg::frame::Audio::new(info.sample_format, samples, info.channel_layout());
-    let silence = if matches!(info.sample_format, cap_media_info::Sample::U8(_)) {
+    let silence = if matches!(info.sample_format, scoopy_media_info::Sample::U8(_)) {
         128
     } else {
         0
@@ -1148,7 +1148,7 @@ mod test {
 
     const SAMPLE_RATE: u32 = 48_000;
     const SOURCE_INFO: AudioInfo = AudioInfo::new_raw(
-        cap_media_info::Sample::U8(cap_media_info::Type::Packed),
+        scoopy_media_info::Sample::U8(scoopy_media_info::Type::Packed),
         SAMPLE_RATE,
         1,
     );

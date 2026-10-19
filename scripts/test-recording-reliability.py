@@ -18,7 +18,7 @@ class RecordingReliabilityTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name).resolve()
-        self.project = self.root / "fixture.cap"
+        self.project = self.root / "fixture.scoopy"
         self.project.mkdir()
         self.video = self.project / "display.mp4"
         self.video.write_bytes(b"nonempty owned fixture")
@@ -57,7 +57,7 @@ class RecordingReliabilityTests(unittest.TestCase):
 
     def test_success_event_cannot_reference_a_different_project(self):
         with self.assertRaises(ValueError):
-            reliability.capture_events(self.events(path=str(self.root / "other.cap")), self.project)
+            reliability.capture_events(self.events(path=str(self.root / "other.scoopy")), self.project)
 
     def test_zero_exit_and_error_log_is_not_clean_json(self):
         with self.assertRaises(ValueError):

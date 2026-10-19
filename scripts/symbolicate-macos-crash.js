@@ -37,7 +37,7 @@ async function main() {
 		const loadAddress = loadAddressOrSymbol;
 
 		const symbol = await exec(
-			`atos -o "${targetDir}/Cap.dSYM" -l ${loadAddress} ${address}`,
+			`atos -o "${targetDir}/Scoopy.dSYM" -l ${loadAddress} ${address}`,
 		).then((s) => s.stdout.trim());
 
 		const loadAddressIndex = line.indexOf(loadAddress);

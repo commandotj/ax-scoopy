@@ -1,8 +1,8 @@
-use cap_export::{
+use scoopy_export::{
     ExporterBase,
     mp4::{ExportCompression, Mp4ExportSettings},
 };
-use cap_project::XY;
+use scoopy_project::XY;
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -185,7 +185,7 @@ async fn test_export_35_minute_video() -> Result<(), Box<dyn std::error::Error>>
     let project_dir = temp_dir.path().to_path_buf();
 
     let duration_secs = TEST_VIDEO_DURATION_SECS;
-    println!("Creating Cap project structure in {project_dir:?}");
+    println!("Creating Scoopy project structure in {project_dir:?}");
     create_cap_project(&project_dir, duration_secs)?;
 
     let video_path = project_dir.join("content/display.mp4");
@@ -245,7 +245,7 @@ async fn test_export_10_minute_video() -> Result<(), Box<dyn std::error::Error>>
     let temp_dir = TempDir::new()?;
     let project_dir = temp_dir.path().to_path_buf();
 
-    println!("Creating Cap project structure in {project_dir:?}");
+    println!("Creating Scoopy project structure in {project_dir:?}");
     create_cap_project(&project_dir, duration_secs)?;
 
     let video_path = project_dir.join("content/display.mp4");
@@ -296,7 +296,7 @@ async fn test_export_55_minute_video() -> Result<(), Box<dyn std::error::Error>>
     let temp_dir = TempDir::new()?;
     let project_dir = temp_dir.path().to_path_buf();
 
-    println!("Creating Cap project structure in {project_dir:?}");
+    println!("Creating Scoopy project structure in {project_dir:?}");
     create_cap_project(&project_dir, duration_secs)?;
 
     let video_path = project_dir.join("content/display.mp4");

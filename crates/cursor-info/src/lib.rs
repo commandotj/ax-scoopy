@@ -1,4 +1,4 @@
-//! Cap Cursor Info: A crate for getting cursor information, assets and hotspot information.
+//! Scoopy Cursor Info: A crate for getting cursor information, assets and hotspot information.
 
 mod macos;
 mod windows;

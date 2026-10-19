@@ -329,9 +329,9 @@ export function MaskTrack(props: {
 						when={!newSegmentDetails()}
 						fallback={<div class="w-full rounded-lg bg-transparent" />}
 					>
-						<div class="cap-empty-lane pointer-events-none">
+						<div class="scoopy-empty-lane pointer-events-none">
 							<span>Combine sensitive blur or highlight masks</span>
-							<span class="cap-empty-lane-action">· Add mask</span>
+							<span class="scoopy-empty-lane-action">· Add mask</span>
 						</div>
 					</Show>
 				}
@@ -472,14 +472,14 @@ export function MaskTrack(props: {
 							>
 								<SegmentLabel
 									full={() => (
-										<div class="cap-seg-labels">
-											<span class="cap-seg-label">Mask</span>
-											<span class="cap-seg-sublabel">{contentLabel()}</span>
+										<div class="scoopy-seg-labels">
+											<span class="scoopy-seg-label">Mask</span>
+											<span class="scoopy-seg-sublabel">{contentLabel()}</span>
 										</div>
 									)}
 									compact={() => (
-										<div class="cap-seg-labels">
-											<span class="cap-seg-label truncate">
+										<div class="scoopy-seg-labels">
+											<span class="scoopy-seg-label truncate">
 												{contentLabel()}
 											</span>
 										</div>
@@ -528,7 +528,7 @@ export function MaskTrack(props: {
 						segment={details()}
 					>
 						<SegmentContent class="justify-center">
-							<p class="cap-seg-label">+</p>
+							<p class="scoopy-seg-label">+</p>
 						</SegmentContent>
 					</SegmentRoot>
 				)}

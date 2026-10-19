@@ -45,7 +45,7 @@ pub struct SharedGpuContext {
     pub adapter: Arc<wgpu::Adapter>,
     pub instance: Arc<wgpu::Instance>,
     pub is_software_adapter: bool,
-    pub background_cache: Arc<cap_rendering::BackgroundTextureCache>,
+    pub background_cache: Arc<scoopy_rendering::BackgroundTextureCache>,
 }
 
 static GPU: OnceCell<Option<SharedGpuContext>> = OnceCell::const_new();
@@ -72,9 +72,9 @@ impl Drop for GpuInitPhaseGuard {
 async fn init_gpu_inner() -> Option<SharedGpuContext> {
     let _gpu_init_phase = GpuInitPhaseGuard::arm();
 
-    let instance = cap_rendering::create_wgpu_instance().await;
+    let instance = scoopy_rendering::create_wgpu_instance().await;
 
-    let force_software_adapter = cap_rendering::force_software_wgpu_adapter();
+    let force_software_adapter = scoopy_rendering::force_software_wgpu_adapter();
     if force_software_adapter {
         tracing::warn!("Forcing software WGPU adapter for shared context");
     }
@@ -94,7 +94,7 @@ async fn init_gpu_inner() -> Option<SharedGpuContext> {
 
     let (adapter, is_software_adapter) = if let Some(adapter) = hardware_adapter {
         let adapter_info = adapter.get_info();
-        let is_software_adapter = cap_rendering::is_software_wgpu_adapter(&adapter_info);
+        let is_software_adapter = scoopy_rendering::is_software_wgpu_adapter(&adapter_info);
 
         if is_software_adapter {
             tracing::warn!(
@@ -139,7 +139,7 @@ async fn init_gpu_inner() -> Option<SharedGpuContext> {
 
     let (device, queue) = adapter
         .request_device(&wgpu::DeviceDescriptor {
-            label: Some("cap-shared-gpu-device"),
+            label: Some("scoopy-shared-gpu-device"),
             required_features: wgpu::Features::empty(),
             ..Default::default()
         })
@@ -160,7 +160,7 @@ async fn init_gpu_inner() -> Option<SharedGpuContext> {
         adapter: Arc::new(adapter),
         instance: Arc::new(instance),
         is_software_adapter,
-        background_cache: Arc::new(cap_rendering::BackgroundTextureCache::default()),
+        background_cache: Arc::new(scoopy_rendering::BackgroundTextureCache::default()),
     })
 }
 

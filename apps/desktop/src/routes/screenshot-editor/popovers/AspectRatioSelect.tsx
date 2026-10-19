@@ -1,8 +1,8 @@
 import { Select as KSelect } from "@kobalte/core/select";
 import { createSignal, Show } from "solid-js";
 import type { AspectRatio } from "~/utils/tauri";
-import IconCapChevronDown from "~icons/cap/chevron-down";
-import IconCapLayout from "~icons/cap/layout";
+import IconScoopyChevronDown from "~icons/scoopy/chevron-down";
+import IconScoopyLayout from "~icons/scoopy/layout";
 import IconLucideCheckCircle from "~icons/lucide/check-circle-2";
 import { ASPECT_RATIOS } from "../../editor/projectConfig";
 import { useScreenshotEditorContext } from "../context";
@@ -67,10 +67,10 @@ export function AspectRatioSelect() {
 				as={KSelect.Trigger}
 				class="w-20"
 				tooltipText="Aspect Ratio"
-				leftIcon={<IconCapLayout class="size-4" />}
+				leftIcon={<IconScoopyLayout class="size-4" />}
 				rightIcon={
 					<KSelect.Icon>
-						<IconCapChevronDown class="size-4" />
+						<IconScoopyChevronDown class="size-4" />
 					</KSelect.Icon>
 				}
 				rightIconEnd={true}

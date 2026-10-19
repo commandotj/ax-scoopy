@@ -7,7 +7,7 @@
 //!   shrinkable: [`shrink`] drops ops while the failure persists.
 //! - [`TimeModel`]: an independent model of the output -> recording mapping,
 //!   written from the documented rules rather than by calling
-//!   `cap_project`:
+//!   `scoopy_project`:
 //!   - segments play back to back; segment `k` lasts
 //!     `(end - start) / timescale` and maps `u` seconds into it to recording
 //!     time `start + u * timescale`;
@@ -22,14 +22,14 @@
 
 #![allow(dead_code)]
 
-use cap_project::{
+use scoopy_project::{
     ClipConfiguration, ClipTransition, ClipTransitionType, MultipleSegment, MultipleSegments,
     Platform, ProjectConfiguration, RecordingMeta, RecordingMetaInner, StudioRecordingMeta,
     StudioRecordingStatus, TextSegment, TimelineConfiguration, TimelineFrameMapping,
     TimelineSegment, VideoMeta,
 };
-use cap_verify::fixture::{Rng, SegmentTruth, SourceFrame, SourceTruth, TrackTruth};
-use cap_verify::video_code::StreamKind;
+use scoopy_verify::fixture::{Rng, SegmentTruth, SourceFrame, SourceTruth, TrackTruth};
+use scoopy_verify::video_code::StreamKind;
 use relative_path::RelativePathBuf;
 
 /// No edit leaves a timeline segment shorter than this (recording seconds).
@@ -287,7 +287,7 @@ pub fn shrink(ops: &[Op], fails: impl Fn(&[Op]) -> bool) -> Vec<Op> {
 /// A project whose recording clips last `durations` seconds, each on the
 /// timeline once, in order.
 pub fn base_config(durations: &[f64]) -> ProjectConfiguration {
-    let mut config = cap_verify::fixture::verification_project_config();
+    let mut config = scoopy_verify::fixture::verification_project_config();
     config.timeline = Some(TimelineConfiguration {
         segments: durations
             .iter()
@@ -482,7 +482,7 @@ impl TimeModel {
             .text_segments
             .iter()
             .filter(|t| {
-                t.enabled && t.layout == cap_project::TextLayout::Fullscreen && t.end > t.start
+                t.enabled && t.layout == scoopy_project::TextLayout::Fullscreen && t.end > t.start
             })
             .map(|t| (t.start, t.end))
             .collect();
@@ -647,7 +647,7 @@ impl TimeModel {
     }
 }
 
-fn product_source(source: &cap_project::TimelineSource<'_>) -> Source {
+fn product_source(source: &scoopy_project::TimelineSource<'_>) -> Source {
     Source {
         segment: source.segment_index,
         time: source.source_time,

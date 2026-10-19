@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
-use cap_project::{ProjectConfiguration, RecordingMeta, StudioRecordingMeta, XY};
-use cap_rendering::{
+use scoopy_project::{ProjectConfiguration, RecordingMeta, StudioRecordingMeta, XY};
+use scoopy_rendering::{
     ProjectRecordingsMeta, RecordingSegmentDecoders, RenderSegment, RenderVideoConstants,
     RenderedFrame, SegmentVideoPaths,
 };
@@ -13,7 +13,7 @@ use tokio::sync::mpsc;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Path to the Cap project directory
+    /// Path to the Scoopy project directory
     project_path: PathBuf,
 
     /// Output format for the rendered frame
@@ -190,7 +190,7 @@ async fn main() -> Result<()> {
 
     // Start rendering in a separate task
     let render_task = tokio::task::spawn(async move {
-        cap_rendering::render_video_to_channel(
+        scoopy_rendering::render_video_to_channel(
             &render_constants,
             &project_config,
             tx,

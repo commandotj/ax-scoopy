@@ -1,5 +1,5 @@
-import { Button } from "@cap/ui-solid";
-import type { licenseContract } from "@cap/web-api-contract";
+import { Button } from "@scoopy/ui-solid";
+import type { licenseContract } from "@scoopy/web-api-contract";
 import { createMutation, useQueryClient } from "@tanstack/solid-query";
 import type { ClientInferResponseBody } from "@ts-rest/core";
 import {
@@ -29,7 +29,7 @@ export default function Page() {
 	onMount(() => refreshPlan.mutate());
 
 	return (
-		<div class="cap-settings-page h-full overflow-y-auto custom-scroll">
+		<div class="scoopy-settings-page h-full overflow-y-auto custom-scroll">
 			<SettingsPageContent>
 				<Section
 					title="Plan & license"

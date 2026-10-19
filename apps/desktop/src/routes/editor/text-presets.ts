@@ -451,7 +451,7 @@ export const TEXT_PRESETS: TextPreset[] = [
 		id: "code",
 		group: "Code",
 		name: "Code",
-		sample: "$ cap record",
+		sample: "$ scoopy record",
 		style: {
 			fontStack: MONO,
 			fontSize: 36,

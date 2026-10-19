@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const DUB_API_URL = "https://api.dub.co";
-const DEFAULT_DOMAIN = "cap.link";
+const DEFAULT_DOMAIN = "example.com";
 const DEFAULT_TIMEZONE = "UTC";
 const DEFAULT_INTERVAL = "30d";
 const DEFAULT_HOST =
@@ -2481,7 +2481,7 @@ export const REGIONS = {
 	"SC-02": "Anse Boileau",
 	"SC-03": "Anse Etoile",
 	"SC-05": "Anse Royale",
-	"SC-04": "Au Cap",
+	"SC-04": "Au Scoopy",
 	"SC-06": "Baie Lazare",
 	"SC-07": "Baie Sainte Anne",
 	"SC-08": "Beau Vallon",
@@ -4067,7 +4067,7 @@ function usageAndExit(message, code = 1) {
 			"Options:",
 			"  --dry-run                 Dry run (no writes). Default: true",
 			"  --apply                   Perform writes to Tinybird (sets dry-run=false)",
-			"  --domain <domain>         Dub link domain. Default: cap.link",
+			"  --domain <domain>         Dub link domain. Default: example.com",
 			"  --interval <ival>         Dub interval (24h,7d,30d,90d,1y,all). Default: 30d",
 			"  --start <iso>             Start ISO datetime (overrides interval)",
 			"  --end <iso>               End ISO datetime (overrides interval)",

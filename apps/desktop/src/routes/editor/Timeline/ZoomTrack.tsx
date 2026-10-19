@@ -304,7 +304,7 @@ export function ZoomTrack(props: {
 			<Show
 				when={hasZoomSegments()}
 				fallback={
-					<div class="cap-empty-lane relative z-1 isolate pointer-events-auto">
+					<div class="scoopy-empty-lane relative z-1 isolate pointer-events-auto">
 						<Show
 							when={
 								hasRecordedCursorData() && !sessionDismissedGenerateZoomPrompt()
@@ -320,7 +320,7 @@ export function ZoomTrack(props: {
 								<span>Generate zoom segments automatically</span>
 								<button
 									type="button"
-									class="cap-empty-lane-action outline-hidden"
+									class="scoopy-empty-lane-action outline-hidden"
 									disabled={isGeneratingAutoZoom()}
 									onClick={() => {
 										void handleGenerateZoomSegments();
@@ -722,28 +722,28 @@ export function ZoomTrack(props: {
 										return (
 											<SegmentLabel
 												full={() => (
-													<div class="cap-seg-labels animate-in fade-in">
-														<span class="cap-seg-label truncate">
+													<div class="scoopy-seg-labels animate-in fade-in">
+														<span class="scoopy-seg-label truncate">
 															{visibleBox().width >= 140
 																? zoomModeLabel()
 																: "Zoom"}
 														</span>
-														<span class="cap-seg-sublabel">
+														<span class="scoopy-seg-sublabel">
 															{zoomPercentage()}
 														</span>
 													</div>
 												)}
 												compact={() => (
-													<div class="cap-seg-labels">
-														<span class="cap-seg-label">Zoom</span>
-														<span class="cap-seg-sublabel">
+													<div class="scoopy-seg-labels">
+														<span class="scoopy-seg-label">Zoom</span>
+														<span class="scoopy-seg-sublabel">
 															{zoomPercentage()}
 														</span>
 													</div>
 												)}
 												glyph={() => (
 													<div class="flex justify-center items-center">
-														<IconLucideSearch class="size-3.5 cap-seg-label" />
+														<IconLucideSearch class="size-3.5 scoopy-seg-label" />
 													</div>
 												)}
 											/>
@@ -821,7 +821,7 @@ export function ZoomTrack(props: {
 						segment={details()}
 					>
 						<SegmentContent class="group justify-center">
-							<p class="cap-seg-label">+</p>
+							<p class="scoopy-seg-label">+</p>
 						</SegmentContent>
 					</SegmentRoot>
 				)}

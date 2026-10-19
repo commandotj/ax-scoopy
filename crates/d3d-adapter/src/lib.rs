@@ -5,7 +5,7 @@
 // (most prominently Parsec, but also DisplayLink, Splashtop, Synergy) that "first" adapter
 // can be a virtual one whose underlying user-mode driver does not safely support the
 // `D3D11_CREATE_DEVICE_VIDEO_SUPPORT` workloads MediaFoundation issues. The observed
-// failure mode in production was Cap.exe being terminated silently by an SEH exception
+// failure mode in production was Scoopy.exe being terminated silently by an SEH exception
 // originating in `msmpeg2vdec.dll_unloaded` after the virtual driver tore down its D3D11
 // device underneath us. Forcing a real physical adapter eliminates the failure mode
 // entirely while having no behavioural impact on machines without virtual displays.

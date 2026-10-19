@@ -38,7 +38,7 @@ const metadata = JSON.parse(
 	}).stdout,
 );
 const version = metadata.packages.find(
-	(pkg) => pkg.name === "cap-desktop",
+	(pkg) => pkg.name === "scoopy-desktop",
 )?.version;
 if (!version) throw new Error("Desktop version is missing from Cargo metadata");
 

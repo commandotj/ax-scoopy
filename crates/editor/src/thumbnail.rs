@@ -1,6 +1,6 @@
 use crate::{EditorInstance, editor::RendererTransitionInput};
-use cap_project::{ProjectConfiguration, XY};
-use cap_rendering::{ProjectUniforms, RenderedFrame, ZoomTransformTimeline};
+use scoopy_project::{ProjectConfiguration, XY};
+use scoopy_rendering::{ProjectUniforms, RenderedFrame, ZoomTransformTimeline};
 use std::{io::Write, path::Path};
 
 const THUMBNAIL_SIZE: XY<u32> = XY { x: 640, y: 640 };
@@ -238,15 +238,15 @@ mod tests {
     #[test]
     fn deleted_projects_are_not_recreated() {
         let (root, signature) = project();
-        let missing = root.path().join("deleted.cap");
+        let missing = root.path().join("deleted.scoopy");
         assert!(save_thumbnail(&missing, &signature, &frame()).is_err());
         assert!(!missing.exists());
     }
 
     #[tokio::test]
-    #[ignore = "Requires CAP_THUMBNAIL_TEST_PROJECT pointing to the synthetic red then blue video fixture and a GPU"]
+    #[ignore = "Requires SCOOPY_THUMBNAIL_TEST_PROJECT pointing to the synthetic red then blue video fixture and a GPU"]
     async fn native_thumbnail_tracks_edits_and_reuses_unchanged_projects() {
-        let source = std::path::PathBuf::from(std::env::var("CAP_THUMBNAIL_TEST_PROJECT").unwrap());
+        let source = std::path::PathBuf::from(std::env::var("SCOOPY_THUMBNAIL_TEST_PROJECT").unwrap());
         let fixture = tempfile::tempdir().unwrap();
         let path = fixture.path().to_path_buf();
         std::fs::create_dir(path.join("content")).unwrap();
@@ -268,7 +268,7 @@ mod tests {
             crate::EditorFrameFormat::BgraSurface,
         ] {
             let mut project = ProjectConfiguration::default();
-            project.background.source = cap_project::BackgroundSource::Color {
+            project.background.source = scoopy_project::BackgroundSource::Color {
                 value: [20, 200, 40],
                 alpha: 255,
             };

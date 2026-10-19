@@ -1,7 +1,7 @@
 use winreg::RegKey;
 use winreg::enums::HKEY_LOCAL_MACHINE;
 
-const ENV_OVERRIDE: &str = "CAP_WINDOW_CAPTURE_EXCLUSION";
+const ENV_OVERRIDE: &str = "SCOOPY_WINDOW_CAPTURE_EXCLUSION";
 
 // Shadow reports S:102 for protected windows; EC2/DCV still displays excluded windows.
 const SMBIOS_MARKERS: &[&str] = &["shadow"];

@@ -31,12 +31,12 @@ use crate::output_pipeline::{
     WindowsFragmentedM4SCameraMuxerConfig,
 };
 use anyhow::{Context as _, anyhow, bail};
-use cap_media_info::VideoInfo;
-use cap_project::{
+use scoopy_media_info::VideoInfo;
+use scoopy_project::{
     CursorEvents, KeyboardEvents, MultipleSegment, MultipleSegments, Platform, RecordingMeta,
     RecordingMetaInner, StudioRecordingMeta, StudioRecordingStatus,
 };
-use cap_timestamp::{Timestamp, Timestamps};
+use scoopy_timestamp::{Timestamp, Timestamps};
 use futures::{FutureExt, StreamExt, future::OptionFuture, stream::FuturesUnordered};
 use kameo::{Actor as _, prelude::*};
 use relative_path::RelativePathBuf;
@@ -346,7 +346,7 @@ pub struct ActorHandle {
 
 #[derive(kameo::Actor)]
 pub struct Actor {
-    diagnostic: Option<cap_utils::operation_diagnostics::Operation>,
+    diagnostic: Option<scoopy_utils::operation_diagnostics::Operation>,
     #[cfg(target_os = "linux")]
     lifetime: StudioLifetimeOwner,
     recording_dir: PathBuf,
@@ -366,7 +366,7 @@ pub struct Actor {
     completion_tx: watch::Sender<Option<Result<(), PipelineDoneError>>>,
     // Resolved once at recording start: the display can be disconnected, or its
     // mode changed, by the time the recording stops.
-    display_notch: Option<cap_project::DisplayNotch>,
+    display_notch: Option<scoopy_project::DisplayNotch>,
 }
 
 impl Actor {
@@ -525,7 +525,7 @@ impl Actor {
 
     fn update_diagnostic_segment_count(&mut self) {
         if let Some(diagnostic) = &mut self.diagnostic {
-            diagnostic.field(cap_utils::operation_diagnostics::Field::number(
+            diagnostic.field(scoopy_utils::operation_diagnostics::Field::number(
                 "segments",
                 self.segments.len() as u64,
             ));
@@ -1360,8 +1360,8 @@ struct SegmentOutput {
 
 fn to_project_gap_summary(
     summary: Option<AudioGapSummary>,
-) -> Option<cap_project::AudioGapSummary> {
-    summary.map(|s| cap_project::AudioGapSummary {
+) -> Option<scoopy_project::AudioGapSummary> {
+    summary.map(|s| scoopy_project::AudioGapSummary {
         total_overlap_trimmed_ms: s.total_overlap_trimmed_ms,
         startup_overlap_trimmed_ms: s.startup_overlap_trimmed_ms,
         overlap_dropped_frames: s.overlap_dropped_frames,
@@ -2325,13 +2325,13 @@ async fn spawn_studio_recording_actor(
     max_fps: u32,
     quality: crate::StudioQuality,
 ) -> anyhow::Result<ActorHandle> {
-    use cap_utils::operation_diagnostics::{Field, Operation};
+    use scoopy_utils::operation_diagnostics::{Field, Operation};
     let mut diagnostic = Operation::start(
         "studio_recording",
         &[
             Field::identifier(
                 "resource",
-                cap_utils::operation_diagnostics::resource_id(&recording_dir),
+                scoopy_utils::operation_diagnostics::resource_id(&recording_dir),
             ),
             Field::number("requested_fps", max_fps as u64),
             Field::flag("system_audio", base_inputs.capture_system_audio),
@@ -2488,7 +2488,7 @@ impl BoundedStoppedStudioMeta {
         {
             return None;
         }
-        let cap_project::Cursors::Correct(cursors) = &inner.cursors else {
+        let scoopy_project::Cursors::Correct(cursors) = &inner.cursors else {
             return None;
         };
         if cursors.len() > MAX_PREPARING_CURSOR_IMAGES
@@ -2539,7 +2539,7 @@ pub struct CleanStoppedStudio {
 
 struct CleanStoppedStudioSnapshot {
     metadata: RecordingMeta,
-    configuration: cap_project::ProjectConfiguration,
+    configuration: scoopy_project::ProjectConfiguration,
     claimed: std::sync::atomic::AtomicBool,
 }
 
@@ -2551,14 +2551,14 @@ impl CleanStoppedStudio {
     #[cfg(test)]
     pub(crate) fn for_test(
         metadata: RecordingMeta,
-        configuration: cap_project::ProjectConfiguration,
+        configuration: scoopy_project::ProjectConfiguration,
     ) -> Option<Self> {
         Self::new(BoundedStoppedStudioMeta::new(metadata)?, configuration)
     }
 
     fn new(
         metadata: BoundedStoppedStudioMeta,
-        configuration: cap_project::ProjectConfiguration,
+        configuration: scoopy_project::ProjectConfiguration,
     ) -> Option<Self> {
         if configuration.clips.len() > MAX_PREPARING_SEGMENTS
             || configuration.clips.capacity() > MAX_PREPARING_SEGMENTS * 2
@@ -2609,7 +2609,7 @@ impl CleanStoppedStudioClaim {
     #[cfg(test)]
     pub(crate) fn for_test(
         metadata: RecordingMeta,
-        configuration: cap_project::ProjectConfiguration,
+        configuration: scoopy_project::ProjectConfiguration,
     ) -> Option<Self> {
         let receipt = CleanStoppedStudio::for_test(metadata, configuration)?;
         receipt.claim(&receipt.snapshot.metadata.project_path)
@@ -2619,7 +2619,7 @@ impl CleanStoppedStudioClaim {
         &self.snapshot.metadata
     }
 
-    pub(crate) fn configuration(&self) -> &cap_project::ProjectConfiguration {
+    pub(crate) fn configuration(&self) -> &scoopy_project::ProjectConfiguration {
         &self.snapshot.configuration
     }
 }
@@ -2628,14 +2628,14 @@ impl CleanStoppedStudioClaim {
 pub struct CompletedRecording {
     pub project_path: PathBuf,
     pub meta: StudioRecordingMeta,
-    pub cursor_data: cap_project::CursorImages,
+    pub cursor_data: scoopy_project::CursorImages,
     pub clean_stopped: Option<CleanStoppedStudio>,
 }
 
 /// Tracks starting within one audio output buffer of each other are treated
 /// as simultaneous.
 const CROSS_TRACK_SNAP_SECS: f64 =
-    cap_timestamp::AUDIO_OUTPUT_FRAMES as f64 / cap_timestamp::DEFAULT_SAMPLE_RATE as f64;
+    scoopy_timestamp::AUDIO_OUTPUT_FRAMES as f64 / scoopy_timestamp::DEFAULT_SAMPLE_RATE as f64;
 
 /// Each track's start relative to the segment epoch, as persisted in the
 /// recording meta. Also written beside an in-progress segment
@@ -2699,10 +2699,10 @@ async fn stop_recording(
     segments: Vec<RecordingSegment>,
     cursors: Cursors,
     fragmented: bool,
-    display_notch: Option<cap_project::DisplayNotch>,
+    display_notch: Option<scoopy_project::DisplayNotch>,
     known_failure: Option<String>,
 ) -> anyhow::Result<CompletedRecording> {
-    use cap_project::*;
+    use scoopy_project::*;
 
     const DEFAULT_FPS: u32 = 30;
 
@@ -2934,7 +2934,7 @@ async fn stop_recording(
     let meta = StudioRecordingMeta::MultipleSegments {
         inner: MultipleSegments {
             segments: segment_metas,
-            cursors: cap_project::Cursors::Correct(
+            cursors: scoopy_project::Cursors::Correct(
                 cursors
                     .into_values()
                     .map(|cursor| {
@@ -2972,7 +2972,7 @@ async fn stop_recording(
         None
     };
 
-    let mut project_config = cap_project::ProjectConfiguration::default();
+    let mut project_config = scoopy_project::ProjectConfiguration::default();
     if !timeline_segments.is_empty() {
         project_config.timeline = Some(TimelineConfiguration {
             segments: timeline_segments,
@@ -3623,7 +3623,7 @@ async fn create_segment_pipeline(
                     .ok_or(CreateSegmentPipelineError::NoBounds)?;
 
                 let cursor_output_path = dir.join("cursor.json");
-                let keyboard_output_path = dir.join(cap_project::KEYBOARD_EVENTS_FILE_NAME);
+                let keyboard_output_path = dir.join(scoopy_project::KEYBOARD_EVENTS_FILE_NAME);
                 let incremental_output = if fragmented && custom_cursor_capture {
                     Some(cursor_output_path.clone())
                 } else {
@@ -3781,7 +3781,7 @@ fn write_in_progress_meta(recording_dir: &Path) -> anyhow::Result<()> {
         inner: RecordingMetaInner::Studio(Box::new(StudioRecordingMeta::MultipleSegments {
             inner: MultipleSegments {
                 segments: Vec::new(),
-                cursors: cap_project::Cursors::default(),
+                cursors: scoopy_project::Cursors::default(),
                 status: Some(StudioRecordingStatus::InProgress),
             },
         })),
@@ -3807,7 +3807,7 @@ mod tests {
                 crate::cursor::Cursor {
                     file_name: "cursor.png".into(),
                     id: 7,
-                    hotspot: cap_project::XY { x: 0.25, y: 0.75 },
+                    hotspot: scoopy_project::XY { x: 0.25, y: 0.75 },
                     shape: None,
                 },
             )]
@@ -3815,7 +3815,7 @@ mod tests {
             next_cursor_id: 8,
             moves: Vec::new(),
             clicks: Vec::new(),
-            keyboard_presses: vec![cap_project::KeyPressEvent {
+            keyboard_presses: vec![scoopy_project::KeyPressEvent {
                 key: "a".into(),
                 key_code: "KeyA".into(),
                 time_ms: 125.0,
@@ -3962,7 +3962,7 @@ mod tests {
     #[cfg(any(target_os = "macos", windows))]
     #[tokio::test]
     async fn stop_diagnostics_retain_segment_counts_when_final_metadata_cannot_be_saved() {
-        use cap_utils::operation_diagnostics::{Operation, snapshot};
+        use scoopy_utils::operation_diagnostics::{Operation, snapshot};
 
         for fail_metadata in [false, true] {
             for count in [1, 2] {
@@ -4590,7 +4590,7 @@ mod tests {
                 crate::cursor::Cursor {
                     id: 12,
                     file_name: "retained.png".into(),
-                    hotspot: cap_project::XY { x: 0.25, y: 0.75 },
+                    hotspot: scoopy_project::XY { x: 0.25, y: 0.75 },
                     shape: None,
                 },
             )]
@@ -5150,7 +5150,7 @@ mod tests {
             futures::future::ready(result)
         }
 
-        fn audio_info(&self) -> cap_media_info::AudioInfo {
+        fn audio_info(&self) -> scoopy_media_info::AudioInfo {
             test_audio_info()
         }
 
@@ -5233,7 +5233,7 @@ mod tests {
                 fail: bool,
                 _: PathBuf,
                 _: Option<VideoInfo>,
-                _: Option<cap_media_info::AudioInfo>,
+                _: Option<scoopy_media_info::AudioInfo>,
                 _: Arc<std::sync::atomic::AtomicBool>,
                 _: &mut TaskPool,
             ) -> anyhow::Result<Self> {
@@ -5426,7 +5426,7 @@ mod tests {
             _config: Self::Config,
             _output_path: PathBuf,
             _video_config: Option<VideoInfo>,
-            _audio_config: Option<cap_media_info::AudioInfo>,
+            _audio_config: Option<scoopy_media_info::AudioInfo>,
             _pause_flag: Arc<std::sync::atomic::AtomicBool>,
             _tasks: &mut TaskPool,
         ) -> anyhow::Result<Self>
@@ -5480,7 +5480,7 @@ mod tests {
             config: Self::Config,
             _output_path: PathBuf,
             _video_config: Option<VideoInfo>,
-            _audio_config: Option<cap_media_info::AudioInfo>,
+            _audio_config: Option<scoopy_media_info::AudioInfo>,
             _pause_flag: Arc<std::sync::atomic::AtomicBool>,
             _tasks: &mut TaskPool,
         ) -> anyhow::Result<Self>
@@ -5673,12 +5673,12 @@ mod tests {
     }
 
     fn test_video_info() -> VideoInfo {
-        VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 16, 16, 30)
+        VideoInfo::from_raw(scoopy_media_info::RawVideoFormat::Bgra, 16, 16, 30)
     }
 
-    fn test_audio_info() -> cap_media_info::AudioInfo {
-        cap_media_info::AudioInfo::new_raw(
-            cap_media_info::Sample::F32(cap_media_info::Type::Packed),
+    fn test_audio_info() -> scoopy_media_info::AudioInfo {
+        scoopy_media_info::AudioInfo::new_raw(
+            scoopy_media_info::Sample::F32(scoopy_media_info::Type::Packed),
             48_000,
             2,
         )
@@ -6047,7 +6047,7 @@ mod tests {
             (release, exited): Self::Config,
             _output_path: PathBuf,
             _video_config: Option<VideoInfo>,
-            _audio_config: Option<cap_media_info::AudioInfo>,
+            _audio_config: Option<scoopy_media_info::AudioInfo>,
             _pause_flag: Arc<std::sync::atomic::AtomicBool>,
             _tasks: &mut TaskPool,
         ) -> anyhow::Result<Self> {
@@ -6549,7 +6549,7 @@ mod clean_stop_receipt_tests {
 
     fn metadata(segments: usize, cursors: usize) -> RecordingMeta {
         let segment = MultipleSegment {
-            display: cap_project::VideoMeta {
+            display: scoopy_project::VideoMeta {
                 path: "content/segments/segment-0/display".into(),
                 fps: 30,
                 start_time: Some(0.0),
@@ -6564,21 +6564,21 @@ mod clean_stop_receipt_tests {
         };
         RecordingMeta {
             platform: Some(Platform::default()),
-            project_path: PathBuf::from("synthetic.cap"),
+            project_path: PathBuf::from("synthetic.scoopy"),
             pretty_name: "Synthetic".to_string(),
             sharing: None,
             inner: RecordingMetaInner::Studio(Box::new(StudioRecordingMeta::MultipleSegments {
                 inner: MultipleSegments {
                     segments: vec![segment; segments],
-                    cursors: cap_project::Cursors::Correct(
+                    cursors: scoopy_project::Cursors::Correct(
                         (0..cursors)
                             .map(|index| {
                                 (
                                     index.to_string(),
-                                    cap_project::CursorMeta {
+                                    scoopy_project::CursorMeta {
                                         image_path: format!("content/cursors/cursor_{index}.png")
                                             .into(),
-                                        hotspot: cap_project::XY::new(0.0, 0.0),
+                                        hotspot: scoopy_project::XY::new(0.0, 0.0),
                                         shape: None,
                                     },
                                 )
@@ -6595,7 +6595,7 @@ mod clean_stop_receipt_tests {
     fn receipt(metadata: RecordingMeta) -> Option<CleanStoppedStudio> {
         CleanStoppedStudio::new(
             BoundedStoppedStudioMeta::new(metadata)?,
-            cap_project::ProjectConfiguration::default(),
+            scoopy_project::ProjectConfiguration::default(),
         )
     }
 
@@ -6618,7 +6618,7 @@ mod clean_stop_receipt_tests {
             &first_receipt.snapshot,
             &second_receipt.snapshot
         ));
-        assert!(first_receipt.claim(Path::new("different.cap")).is_none());
+        assert!(first_receipt.claim(Path::new("different.scoopy")).is_none());
         let claim = first_receipt.claim(&completed.project_path).unwrap();
         assert_eq!(claim.metadata().project_path, completed.project_path);
         assert!(second_receipt.claim(&second.project_path).is_none());
@@ -6632,7 +6632,7 @@ mod clean_stop_receipt_tests {
             let workers = (0..8)
                 .map(|_| {
                     let receipt = &receipt;
-                    scope.spawn(move || receipt.claim(Path::new("synthetic.cap")).is_some())
+                    scope.spawn(move || receipt.claim(Path::new("synthetic.scoopy")).is_some())
                 })
                 .collect::<Vec<_>>();
             workers
@@ -6714,17 +6714,17 @@ mod clean_stop_receipt_tests {
             unreachable!();
         };
         let metadata_pointer = studio.as_ref() as *const StudioRecordingMeta;
-        let mut configuration = cap_project::ProjectConfiguration::default();
+        let mut configuration = scoopy_project::ProjectConfiguration::default();
         configuration
             .clips
-            .push(cap_project::ClipConfiguration::default());
+            .push(scoopy_project::ClipConfiguration::default());
         let clips_pointer = configuration.clips.as_ptr();
         let receipt = CleanStoppedStudio::new(
             BoundedStoppedStudioMeta::new(metadata).unwrap(),
             configuration,
         )
         .unwrap();
-        let claim = receipt.claim(Path::new("synthetic.cap")).unwrap();
+        let claim = receipt.claim(Path::new("synthetic.scoopy")).unwrap();
         let RecordingMetaInner::Studio(studio) = &claim.metadata().inner else {
             unreachable!();
         };
@@ -6737,13 +6737,13 @@ mod clean_stop_receipt_tests {
 
     #[test]
     fn clean_stop_receipt_declines_oversized_config_capacity_without_changing_config() {
-        let mut configuration = cap_project::ProjectConfiguration {
+        let mut configuration = scoopy_project::ProjectConfiguration {
             clips: Vec::with_capacity(MAX_PREPARING_SEGMENTS * 2 + 1),
-            ..cap_project::ProjectConfiguration::default()
+            ..scoopy_project::ProjectConfiguration::default()
         };
         configuration
             .clips
-            .push(cap_project::ClipConfiguration::default());
+            .push(scoopy_project::ClipConfiguration::default());
         assert!(
             CleanStoppedStudio::new(
                 BoundedStoppedStudioMeta::new(metadata(1, 0)).unwrap(),
@@ -6766,7 +6766,7 @@ mod clean_stop_receipt_tests {
             std::fs::read(directory.path().join("recording-meta.json")).unwrap(),
             expected
         );
-        let configuration = cap_project::ProjectConfiguration::default();
+        let configuration = scoopy_project::ProjectConfiguration::default();
         configuration.write(directory.path()).unwrap();
         let receipt = CleanStoppedStudio::new(
             BoundedStoppedStudioMeta::new(persisted).unwrap(),

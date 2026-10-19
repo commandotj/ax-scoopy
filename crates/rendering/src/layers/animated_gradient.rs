@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use cap_project::AnimatedGradientConfig;
+use scoopy_project::AnimatedGradientConfig;
 use wgpu::util::DeviceExt;
 
 use crate::ProjectUniforms;
@@ -339,7 +339,7 @@ impl AnimatedGradientLayer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cap_project::{
+    use scoopy_project::{
         BackgroundSource, CursorEvents, ProjectConfiguration, RecordingMeta, RecordingMetaInner,
         StudioRecordingMeta, XY,
     };
@@ -517,7 +517,7 @@ mod tests {
         let later = pixels(&mut layer, &constants, &config, 900).await;
         assert_ne!(first, later);
         assert_eq!(first, pixels(&mut layer, &constants, &config, 0).await);
-        if let Some(directory) = std::env::var_os("CAP_GRADIENT_TEST_OUTPUT") {
+        if let Some(directory) = std::env::var_os("SCOOPY_GRADIENT_TEST_OUTPUT") {
             std::fs::create_dir_all(&directory).unwrap();
             for (name, data) in [
                 ("gradient-start.png", &first),
@@ -539,11 +539,11 @@ mod tests {
         );
         let edges = AnimatedGradientConfig {
             color_stops: vec![
-                cap_project::AnimatedGradientStop {
+                scoopy_project::AnimatedGradientStop {
                     color: [255, 0, 0],
                     position: 25.0,
                 },
-                cap_project::AnimatedGradientStop {
+                scoopy_project::AnimatedGradientStop {
                     color: [0, 0, 255],
                     position: 75.0,
                 },

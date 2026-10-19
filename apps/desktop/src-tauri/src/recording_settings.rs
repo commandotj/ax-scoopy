@@ -1,4 +1,4 @@
-use cap_recording::{
+use scoopy_recording::{
     RecordingMode,
     feeds::{
         camera::{CameraDeviceSettings, DeviceOrModelID},

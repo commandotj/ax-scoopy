@@ -14,15 +14,15 @@ use std::{
 
 use serde_json::Value;
 
-fn cap() -> Command {
+fn scoopy() -> Command {
     Command::new(env!("CARGO_BIN_EXE_cap"))
 }
 
 fn run(args: &[&str]) -> Output {
-    cap()
+    scoopy()
         .args(args)
         .output()
-        .expect("failed to spawn cap binary")
+        .expect("failed to spawn scoopy binary")
 }
 
 fn stdout(output: &Output) -> String {
@@ -82,8 +82,8 @@ fn no_args_prints_branded_intro() {
     let text = stdout(&output);
     assert!(text.contains("██████████████████"), "stdout: {text}");
     assert!(text.contains("/ ___|__ _ _ __"), "stdout: {text}");
-    assert!(text.contains("cap record start --screen <id> --detach"));
-    assert!(text.contains("cap --help"));
+    assert!(text.contains("scoopy record start --screen <id> --detach"));
+    assert!(text.contains("scoopy --help"));
 }
 
 #[test]
@@ -91,7 +91,7 @@ fn no_args_json_is_parseable() {
     let output = run(&["--json"]);
     assert!(output.status.success(), "stderr: {}", stderr(&output));
     let json = parse_json(&output);
-    assert_eq!(json["name"], "cap");
+    assert_eq!(json["name"], "scoopy");
     assert!(json["commands"].is_array());
 }
 
@@ -122,7 +122,7 @@ fn subcommand_help_succeeds() {
         let output = run(&[command, "--help"]);
         assert!(
             output.status.success(),
-            "`cap {command} --help` failed: {}",
+            "`scoopy {command} --help` failed: {}",
             stderr(&output)
         );
     }
@@ -139,7 +139,7 @@ fn version_json_is_parseable() {
     let output = run(&["version", "--format", "json"]);
     assert!(output.status.success(), "stderr: {}", stderr(&output));
     let json = parse_json(&output);
-    assert_eq!(json["name"], "cap");
+    assert_eq!(json["name"], "scoopy");
     assert!(json["version"].is_string());
     assert!(json["platform"]["os"].is_string());
     assert!(json["distribution"].is_string());
@@ -150,7 +150,7 @@ fn doctor_json_is_parseable() {
     let output = run(&["doctor", "--format", "json"]);
     // doctor may report failing checks; it should still emit valid JSON and exit 0.
     let json = parse_json(&output);
-    assert_eq!(json["version"]["name"], "cap");
+    assert_eq!(json["version"]["name"], "scoopy");
     assert!(json["checks"].is_array());
     assert!(json["ok"].is_boolean());
     assert!(json["permissions"].is_object());
@@ -229,7 +229,7 @@ fn project_inspect_missing_fails() {
     let output = run(&[
         "project",
         "inspect",
-        "/this/path/does/not/exist.cap",
+        "/this/path/does/not/exist.scoopy",
         "--format",
         "json",
     ]);
@@ -256,7 +256,7 @@ fn project_validate_missing_meta_reports_invalid() {
 #[test]
 fn project_validate_complete_project_is_valid() {
     let dir = tempfile::tempdir().unwrap();
-    let project = dir.path().join("recording.cap");
+    let project = dir.path().join("recording.scoopy");
     let content = project.join("content");
     std::fs::create_dir_all(&content).unwrap();
     std::fs::write(content.join("display.mp4"), b"fake").unwrap();
@@ -278,7 +278,7 @@ fn project_validate_complete_project_is_valid() {
 #[test]
 fn project_validate_detects_missing_media() {
     let dir = tempfile::tempdir().unwrap();
-    let project = dir.path().join("recording.cap");
+    let project = dir.path().join("recording.scoopy");
     std::fs::create_dir_all(&project).unwrap();
     write_single_segment_meta(&project);
 
@@ -299,7 +299,7 @@ fn project_validate_detects_missing_media() {
 #[test]
 fn project_validate_rejects_in_progress_zero_segment_studio_project() {
     let dir = tempfile::tempdir().unwrap();
-    let project = dir.path().join("recording.cap");
+    let project = dir.path().join("recording.scoopy");
     std::fs::create_dir_all(&project).unwrap();
     let meta = serde_json::json!({
         "platform": "Linux",
@@ -337,7 +337,7 @@ fn project_validate_rejects_in_progress_zero_segment_studio_project() {
 #[test]
 fn project_inspect_complete_project_succeeds() {
     let dir = tempfile::tempdir().unwrap();
-    let project = dir.path().join("recording.cap");
+    let project = dir.path().join("recording.scoopy");
     let content = project.join("content");
     std::fs::create_dir_all(&content).unwrap();
     std::fs::write(content.join("display.mp4"), b"fake").unwrap();
@@ -376,7 +376,7 @@ fn record_rejects_zero_fps() {
 fn export_rejects_settings_json_with_flags() {
     let output = run(&[
         "export",
-        "/tmp/whatever.cap",
+        "/tmp/whatever.scoopy",
         "--settings-json",
         "{\"format\":\"Mp4\"}",
         "--fps",
@@ -394,7 +394,7 @@ fn export_rejects_settings_json_with_flags() {
 fn export_rejects_quality_with_gif() {
     let output = run(&[
         "export",
-        "/tmp/whatever.cap",
+        "/tmp/whatever.scoopy",
         "--format",
         "gif",
         "--quality",
@@ -412,7 +412,7 @@ fn export_rejects_quality_with_gif() {
 fn export_rejects_bad_resolution() {
     let output = run(&[
         "export",
-        "/tmp/whatever.cap",
+        "/tmp/whatever.scoopy",
         "--resolution",
         "not-a-resolution",
     ]);
@@ -428,7 +428,7 @@ fn export_rejects_bad_resolution() {
 fn export_rejects_duplicate_output() {
     let output = run(&[
         "export",
-        "/tmp/whatever.cap",
+        "/tmp/whatever.scoopy",
         "/tmp/out1.mp4",
         "--output",
         "/tmp/out2.mp4",
@@ -471,7 +471,7 @@ fn recordings_list_empty_dir_is_empty_json() {
 #[test]
 fn project_config_set_then_get_roundtrips() {
     let dir = tempfile::tempdir().unwrap();
-    let project = dir.path().join("recording.cap");
+    let project = dir.path().join("recording.scoopy");
     write_single_segment_meta(&project);
 
     let set = run(&[
@@ -503,7 +503,7 @@ fn project_config_get_without_file_returns_default() {
     // Instant / un-edited projects have no project-config.json; `config get` should still succeed
     // with the effective default config rather than erroring.
     let dir = tempfile::tempdir().unwrap();
-    let project = dir.path().join("recording.cap");
+    let project = dir.path().join("recording.scoopy");
     write_single_segment_meta(&project);
 
     let output = run(&[
@@ -521,7 +521,7 @@ fn project_config_get_without_file_returns_default() {
 
 #[test]
 fn export_missing_project_emits_json_error_event() {
-    let output = run(&["export", "/this/path/does/not/exist.cap", "--progress-json"]);
+    let output = run(&["export", "/this/path/does/not/exist.scoopy", "--progress-json"]);
     assert!(!output.status.success());
     // The NDJSON stream must end with a machine-readable terminal error rather than just stopping.
     // The `error` field is uniform across every JSON-emitting command (the `type` tag stays Error).
@@ -534,7 +534,7 @@ fn export_missing_project_emits_json_error_event() {
 fn export_global_json_implies_progress_stream() {
     // `--json` (global) must behave like --progress-json/--completion-json so the agent's universal
     // reflex works on export too; failure still ends with a terminal Error event.
-    let output = run(&["export", "/this/path/does/not/exist.cap", "--json"]);
+    let output = run(&["export", "/this/path/does/not/exist.scoopy", "--json"]);
     assert!(!output.status.success());
     let json = parse_json(&output);
     assert_eq!(json["type"], "Error");
@@ -545,7 +545,7 @@ fn export_global_json_implies_progress_stream() {
 fn export_preview_missing_project_emits_json_error() {
     let output = run(&[
         "export-preview",
-        "/this/path/does/not/exist.cap",
+        "/this/path/does/not/exist.scoopy",
         "--frame-time",
         "0",
         "--settings-json",
@@ -574,7 +574,7 @@ fn global_json_flag_works_before_subcommand() {
     let output = run(&["--json", "version"]);
     assert!(output.status.success(), "stderr: {}", stderr(&output));
     let json = parse_json(&output);
-    assert_eq!(json["name"], "cap");
+    assert_eq!(json["name"], "scoopy");
 }
 
 #[test]
@@ -582,7 +582,7 @@ fn guide_json_is_parseable_and_self_describing() {
     let output = run(&["guide", "--json"]);
     assert!(output.status.success(), "stderr: {}", stderr(&output));
     let json = parse_json(&output);
-    assert_eq!(json["binary"], "cap");
+    assert_eq!(json["binary"], "scoopy");
     assert_eq!(json["schemaVersion"], 3);
     assert!(json["commands"].is_array());
     assert!(json["env"].is_array());
@@ -634,7 +634,7 @@ fn dashboard_parity_help_exposes_secure_command_trees() {
 
 #[test]
 fn non_interactive_s3_requires_secure_credential_input() {
-    let output = cap()
+    let output = scoopy()
         .args([
             "organizations",
             "storage",
@@ -647,7 +647,7 @@ fn non_interactive_s3_requires_secure_credential_input() {
             "--format",
             "json",
         ])
-        .env("CAP_AGENT_TOKEN", "cap_cli_synthetic_test_token")
+        .env("SCOOPY_AGENT_TOKEN", "scoopy_cli_synthetic_test_token")
         .stdin(Stdio::null())
         .output()
         .unwrap();
@@ -701,30 +701,30 @@ fn caps_help_lists_the_agent_interface() {
 #[test]
 fn agent_content_mutations_require_explicit_confirmation() {
     for args in [
-        vec!["caps", "comments", "add", "cap_synthetic", "hello"],
+        vec!["caps", "comments", "add", "scoopy_synthetic", "hello"],
         vec![
             "caps",
             "comments",
             "reply",
-            "cap_synthetic",
+            "scoopy_synthetic",
             "comment_synthetic",
             "hello",
         ],
-        vec!["caps", "reactions", "add", "cap_synthetic", "thumbs-up"],
+        vec!["caps", "reactions", "add", "scoopy_synthetic", "thumbs-up"],
         vec![
             "caps",
             "update",
-            "cap_synthetic",
+            "scoopy_synthetic",
             "--title",
             "Synthetic title",
         ],
-        vec!["caps", "sharing", "set", "cap_synthetic", "--public"],
+        vec!["caps", "sharing", "set", "scoopy_synthetic", "--public"],
     ] {
-        let output = cap()
+        let output = scoopy()
             .args(args)
             .arg("--format")
             .arg("json")
-            .env("CAP_AGENT_TOKEN", "cap_cli_synthetic_test_token")
+            .env("SCOOPY_AGENT_TOKEN", "scoopy_cli_synthetic_test_token")
             .stdin(Stdio::null())
             .output()
             .unwrap();
@@ -735,13 +735,13 @@ fn agent_content_mutations_require_explicit_confirmation() {
 
 #[test]
 fn sharing_requires_one_visibility_flag() {
-    let output = run(&["caps", "sharing", "set", "cap_synthetic"]);
+    let output = run(&["caps", "sharing", "set", "scoopy_synthetic"]);
     assert_eq!(output.status.code(), Some(2));
     let output = run(&[
         "caps",
         "sharing",
         "set",
-        "cap_synthetic",
+        "scoopy_synthetic",
         "--public",
         "--private",
     ]);
@@ -772,9 +772,9 @@ fn agent_installer_dry_run_is_machine_readable() {
 
 #[test]
 fn new_commands_emit_json_errors_for_local_format_flag() {
-    let caps_output = cap()
+    let caps_output = scoopy()
         .args(["caps", "get", "!", "--format", "json"])
-        .env("CAP_AGENT_TOKEN", "cap_cli_synthetic_test_token")
+        .env("SCOOPY_AGENT_TOKEN", "scoopy_cli_synthetic_test_token")
         .output()
         .unwrap();
     assert_eq!(caps_output.status.code(), Some(1));
@@ -785,7 +785,7 @@ fn new_commands_emit_json_errors_for_local_format_flag() {
     assert!(parse_json(&auth_output)["error"].is_string());
 
     let home = tempfile::tempdir().unwrap();
-    let installer_output = cap()
+    let installer_output = scoopy()
         .args([
             "agents",
             "install",
@@ -807,11 +807,11 @@ fn new_commands_emit_json_errors_for_local_format_flag() {
 
 #[test]
 fn mcp_stdout_is_protocol_only_and_exposes_expected_tools() {
-    let mut command = cap();
+    let mut command = scoopy();
     command
         .args(["mcp", "serve"])
-        .env("CAP_AGENT_TOKEN", "cap_cli_synthetic_test_token")
-        .env("CAP_SERVER_URL", "http://127.0.0.1:9")
+        .env("SCOOPY_AGENT_TOKEN", "scoopy_cli_synthetic_test_token")
+        .env("SCOOPY_SERVER_URL", "http://127.0.0.1:9")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -836,7 +836,7 @@ fn mcp_stdout_is_protocol_only_and_exposes_expected_tools() {
             "params": {
                 "protocolVersion": "2025-03-26",
                 "capabilities": {},
-                "clientInfo": { "name": "cap-test", "version": "1" }
+                "clientInfo": { "name": "scoopy-test", "version": "1" }
             }
         })
     )
@@ -871,7 +871,7 @@ fn mcp_stdout_is_protocol_only_and_exposes_expected_tools() {
 
     let initialize: Value = serde_json::from_str(&initialize.unwrap().unwrap()).unwrap();
     assert_eq!(initialize["id"], 1);
-    assert_eq!(initialize["result"]["serverInfo"]["name"], "cap");
+    assert_eq!(initialize["result"]["serverInfo"]["name"], "scoopy");
     let tools: Value = serde_json::from_str(&tools.unwrap().unwrap()).unwrap();
     assert_eq!(tools["id"], 2);
     let tool_list = tools["result"]["tools"].as_array().unwrap();
@@ -968,11 +968,11 @@ fn mcp_cancellation_stops_wait_polling() {
         }
     });
 
-    let mut command = cap();
+    let mut command = scoopy();
     command
         .args(["mcp", "serve"])
-        .env("CAP_AGENT_TOKEN", "cap_cli_synthetic_test_token")
-        .env("CAP_SERVER_URL", server_url)
+        .env("SCOOPY_AGENT_TOKEN", "scoopy_cli_synthetic_test_token")
+        .env("SCOOPY_SERVER_URL", server_url)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -995,7 +995,7 @@ fn mcp_cancellation_stops_wait_polling() {
             "params": {
                 "protocolVersion": "2025-03-26",
                 "capabilities": {},
-                "clientInfo": { "name": "cap-test", "version": "1" }
+                "clientInfo": { "name": "scoopy-test", "version": "1" }
             }
         }),
         serde_json::json!({
@@ -1009,7 +1009,7 @@ fn mcp_cancellation_stops_wait_polling() {
             "method": "tools/call",
             "params": {
                 "name": "caps_wait",
-                "arguments": { "cap": "cap_synthetic", "timeout_seconds": 60 }
+                "arguments": { "scoopy": "scoopy_synthetic", "timeout_seconds": 60 }
             }
         }),
     ] {
@@ -1133,9 +1133,9 @@ fn clean_error_has_no_debug_quotes() {
 
 #[test]
 fn upload_missing_file_emits_json_error() {
-    // Whether auth comes from CAP_API_KEY, the desktop login, or is absent, uploading a path that
+    // Whether auth comes from SCOOPY_API_KEY, the desktop login, or is absent, uploading a path that
     // does not exist must fail with a machine-readable error before any network call.
-    let output = run(&["upload", "/tmp/does-not-exist-cap.mp4", "--format", "json"]);
+    let output = run(&["upload", "/tmp/does-not-exist.mp4", "--format", "json"]);
     assert!(!output.status.success());
     let json = parse_json(&output);
     assert!(json["error"].is_string());
@@ -1154,10 +1154,10 @@ fn auth_status_json_reports_source() {
 
 #[test]
 fn auth_status_recognizes_agent_environment_credentials() {
-    let output = cap()
+    let output = scoopy()
         .args(["auth", "status", "--json"])
-        .env("CAP_AGENT_TOKEN", "cap_cli_synthetic_agent_status")
-        .env("CAP_SERVER_URL", "http://127.0.0.1:9876")
+        .env("SCOOPY_AGENT_TOKEN", "scoopy_cli_synthetic_agent_status")
+        .env("SCOOPY_SERVER_URL", "http://127.0.0.1:9876")
         .output()
         .unwrap();
     assert!(output.status.success(), "stderr: {}", stderr(&output));
@@ -1168,7 +1168,7 @@ fn auth_status_recognizes_agent_environment_credentials() {
     assert_eq!(json["verificationStatus"], "unavailable");
     assert_eq!(json["source"], "env");
     assert_eq!(json["server"], "http://127.0.0.1:9876");
-    assert!(!stdout(&output).contains("cap_cli_synthetic_agent_status"));
+    assert!(!stdout(&output).contains("scoopy_cli_synthetic_agent_status"));
 }
 
 #[test]
@@ -1181,7 +1181,7 @@ fn auth_status_verifies_agent_credentials_with_the_server() {
         let length = stream.read(&mut request).unwrap();
         let request = String::from_utf8_lossy(&request[..length]);
         assert!(request.starts_with("GET /api/v1/auth/status HTTP/1.1"));
-        assert!(request.contains("authorization: Bearer cap_cli_synthetic_agent_status"));
+        assert!(request.contains("authorization: Bearer scoopy_cli_synthetic_agent_status"));
         let body = r#"{"authenticated":true,"tokenKind":"agent","expiresAt":"2027-01-01T00:00:00.000Z","scopes":["caps:read"],"requestId":"request-test"}"#;
         write!(
             stream,
@@ -1191,10 +1191,10 @@ fn auth_status_verifies_agent_credentials_with_the_server() {
         )
         .unwrap();
     });
-    let output = cap()
+    let output = scoopy()
         .args(["auth", "status", "--json"])
-        .env("CAP_AGENT_TOKEN", "cap_cli_synthetic_agent_status")
-        .env("CAP_SERVER_URL", server_url)
+        .env("SCOOPY_AGENT_TOKEN", "scoopy_cli_synthetic_agent_status")
+        .env("SCOOPY_SERVER_URL", server_url)
         .output()
         .unwrap();
     server.join().unwrap();
@@ -1206,15 +1206,15 @@ fn auth_status_verifies_agent_credentials_with_the_server() {
     assert_eq!(json["verificationStatus"], "verified");
     assert_eq!(json["expiresAt"], "2027-01-01T00:00:00.000Z");
     assert_eq!(json["scopes"], serde_json::json!(["caps:read"]));
-    assert!(!stdout(&output).contains("cap_cli_synthetic_agent_status"));
+    assert!(!stdout(&output).contains("scoopy_cli_synthetic_agent_status"));
 }
 
 #[test]
 fn agent_credentials_reject_insecure_remote_servers() {
-    let output = cap()
+    let output = scoopy()
         .args(["caps", "list", "--json"])
-        .env("CAP_AGENT_TOKEN", "cap_cli_synthetic_agent_status")
-        .env("CAP_SERVER_URL", "http://example.com")
+        .env("SCOOPY_AGENT_TOKEN", "scoopy_cli_synthetic_agent_status")
+        .env("SCOOPY_SERVER_URL", "http://example.com")
         .output()
         .unwrap();
     assert!(!output.status.success());

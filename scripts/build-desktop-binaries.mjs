@@ -46,19 +46,19 @@ async function main() {
 
 	for (const sidecar of [
 		{
-			packageName: "cap-muxer",
-			sourceBinary: "cap-muxer",
-			destBinaries: ["cap-muxer"],
+			packageName: "scoopy-muxer",
+			sourceBinary: "scoopy-muxer",
+			destBinaries: ["scoopy-muxer"],
 			watchPaths: [
-				path.join(repoRoot, "crates", "cap-muxer"),
-				path.join(repoRoot, "crates", "cap-muxer-protocol"),
+				path.join(repoRoot, "crates", "scoopy-muxer"),
+				path.join(repoRoot, "crates", "scoopy-muxer-protocol"),
 				path.join(repoRoot, "Cargo.lock"),
 			],
 		},
 		{
-			packageName: "cap",
-			sourceBinary: "cap",
-			destBinaries: ["cap-cli", "cap-exporter"],
+			packageName: "scoopy",
+			sourceBinary: "scoopy",
+			destBinaries: ["scoopy-cli", "scoopy-exporter"],
 			watchPaths: [
 				path.join(repoRoot, "apps", "cli"),
 				path.join(repoRoot, "crates", "cli-install"),

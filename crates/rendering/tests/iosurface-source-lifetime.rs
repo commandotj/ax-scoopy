@@ -1,6 +1,6 @@
 #![cfg(target_os = "macos")]
 
-use cap_rendering::{create_wgpu_instance_sync, yuv_converter::YuvToRgbaConverter};
+use scoopy_rendering::{create_wgpu_instance_sync, yuv_converter::YuvToRgbaConverter};
 use cidre::{arc, cf, cv};
 
 const SIZE: u32 = 16;
@@ -228,7 +228,7 @@ const EXPECTATIONS: &str = "crates/rendering/tests/expectations.toml";
 /// Judges the result against the strict expectations file and writes the
 /// case record, like every engine verification suite.
 fn settle(wrong: &[String]) {
-    use cap_verify_expect::{Observed, Outcome, Ran, Record, judge, load, platform};
+    use scoopy_verify_expect::{Observed, Outcome, Ran, Record, judge, load, platform};
     let xfails =
         load(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/expectations.toml"));
     let ran = Ran::from([(CASE.to_string(), None)]);
@@ -255,13 +255,13 @@ fn settle(wrong: &[String]) {
         )
     };
     let repro =
-        "cargo test -p cap-rendering --test iosurface-source-lifetime -- --nocapture".to_string();
+        "cargo test -p scoopy-rendering --test iosurface-source-lifetime -- --nocapture".to_string();
     let record = Record {
-        suite: "cap-rendering-native".into(),
+        suite: "scoopy-rendering-native".into(),
         expectations: EXPECTATIONS.into(),
         case: CASE.into(),
         platform: platform().into(),
-        tier: std::env::var("CAP_VERIFY_TIER").unwrap_or_else(|_| "fast".into()),
+        tier: std::env::var("SCOOPY_VERIFY_TIER").unwrap_or_else(|_| "fast".into()),
         outcome,
         failures: observed
             .keys()
@@ -281,8 +281,8 @@ fn settle(wrong: &[String]) {
         repro: repro.clone(),
         seconds: 0.0,
     };
-    cap_verify_expect::write_records(&[(record, serde_json::json!({}))]);
-    eprintln!("[cap-verify] {outcome:?} {CASE}: {summary}");
+    scoopy_verify_expect::write_records(&[(record, serde_json::json!({}))]);
+    eprintln!("[scoopy-verify] {outcome:?} {CASE}: {summary}");
     if let Some(fixed) = verdict.fixed.first() {
         panic!("{}\n  repro: {repro}", fixed.message(EXPECTATIONS));
     }

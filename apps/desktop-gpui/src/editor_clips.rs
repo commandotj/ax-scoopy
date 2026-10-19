@@ -25,7 +25,7 @@ use std::{
     },
 };
 
-use cap_project::{
+use scoopy_project::{
     AudioMeta, ClipConfiguration, ClipTransition, CursorEvents, CursorMeta, Cursors,
     MultipleSegment, MultipleSegments, ProjectConfiguration, RecordingMeta, RecordingMetaInner,
     StudioRecordingMeta, StudioRecordingStatus, TimelineConfiguration, TimelineSegment, VideoMeta,
@@ -188,7 +188,7 @@ pub(crate) fn ripple_track<T: TrackSegmentOps>(track: &mut [T], boundary: f64, s
 }
 
 pub(crate) fn ripple_keyboard_track(
-    track: &mut [cap_project::KeyboardTrackSegment],
+    track: &mut [scoopy_project::KeyboardTrackSegment],
     boundary: f64,
     shift: f64,
 ) {
@@ -1506,7 +1506,7 @@ impl EditorWindow {
 
     // -- Import (`ClipsSidebar.tsx:503-539`) -----------------------------------
 
-    /// `pickCapRecording` (`:533-539`): the `.cap` picker, rooted at the
+    /// `pickScoopyRecording` (`:533-539`): the `.scoopy` picker, rooted at the
     /// recordings directory where the platform dialog supports a root.
     fn pick_existing_recording(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.clips.importing {
@@ -1637,7 +1637,7 @@ impl EditorWindow {
         let config = self.project.clone();
         let (send, receive) = flume::bounded(1);
         let worker = std::thread::Builder::new()
-            .name("cap-editor-import".to_string())
+            .name("scoopy-editor-import".to_string())
             .stack_size(crate::MEDIA_THREAD_STACK_SIZE)
             .spawn(move || {
                 let result = PreparedMp4Import::prepare(
@@ -1830,7 +1830,7 @@ struct PreparedMp4Import {
     duration: f64,
     cancelled: Arc<AtomicBool>,
     directory: PendingImportDirectory,
-    _upload_lock: cap_recording::upload_resume::UploadLock,
+    _upload_lock: scoopy_recording::upload_resume::UploadLock,
     _in_flight: crate::import::InFlightImport,
 }
 
@@ -1860,7 +1860,7 @@ impl PreparedMp4Import {
             return Err("Import cancelled".to_string());
         }
         let target = target.canonicalize().map_err(|error| error.to_string())?;
-        let upload_lock = cap_recording::upload_resume::UploadLock::acquire(&target)
+        let upload_lock = scoopy_recording::upload_resume::UploadLock::acquire(&target)
             .map_err(|error| format!("Cannot import while this recording is in use: {error}"))?;
         let original_meta =
             std::fs::read(target.join("recording-meta.json")).map_err(|error| error.to_string())?;
@@ -2024,7 +2024,7 @@ impl PreparedMp4Import {
 }
 
 /// `getExistingRecordingPickerOptions` (`ED/existing-recording-picker.ts`):
-/// a `.cap` filter on macOS (bundles are packages there), a directory picker
+/// a `.scoopy` filter on macOS (bundles are packages there), a directory picker
 /// on Windows, both rooted at the recordings directory where the dialog
 /// supports one.
 async fn pick_existing_recording_path(_cx: &mut gpui::AsyncWindowContext) -> Option<PathBuf> {
@@ -2274,7 +2274,7 @@ fn decode_thumbnail_frame_with_budget(
             "Unexpected BGRA stride: src_stride={src_stride}, expected >= {dst_stride}"
         ));
     }
-    let buffer = cap_gpui_kernels::frame::copy_rows(
+    let buffer = scoopy_gpui_kernels::frame::copy_rows(
         bgra_frame.data(0),
         dst_stride,
         src_stride,
@@ -2299,10 +2299,10 @@ fn thumbnail_frame_reaches_target(frame: &ffmpeg::frame::Video, target_timestamp
 
 // ---------------------------------------------------------------------------
 // "Existing recording" -- `add_existing_recording_to_editor` and its helpers
-// (`apps/desktop/src-tauri/src/import.rs`), the `.cap` branch. The MP4 branch
+// (`apps/desktop/src-tauri/src/import.rs`), the `.scoopy` branch. The MP4 branch
 // (`append_mp4_to_editor_project`) is the transcode pipeline `crate::import`
 // owns and is not duplicated here. Relative paths travel as `String`s: the
-// `relative-path` crate is `cap-project`'s dependency, not this workspace's,
+// `relative-path` crate is `scoopy-project`'s dependency, not this workspace's,
 // so the type can be assigned (`.into()`) but not named.
 // ---------------------------------------------------------------------------
 
@@ -2793,7 +2793,7 @@ fn copy_keyboard_path(
     if let Some(source_relative_path) = &source_segment.keyboard {
         let file_name = relative_file_name(
             source_relative_path.as_str(),
-            cap_project::KEYBOARD_EVENTS_FILE_NAME,
+            scoopy_project::KEYBOARD_EVENTS_FILE_NAME,
         );
         let Some(source_path) = source_asset_path(
             &source_meta.project_path,
@@ -2817,8 +2817,8 @@ fn copy_keyboard_path(
     };
 
     for file_name in [
-        cap_project::KEYBOARD_EVENTS_FILE_NAME,
-        cap_project::LEGACY_KEYBOARD_EVENTS_FILE_NAME,
+        scoopy_project::KEYBOARD_EVENTS_FILE_NAME,
+        scoopy_project::LEGACY_KEYBOARD_EVENTS_FILE_NAME,
     ] {
         let source_relative_path = display_dir.join(file_name);
         let Some(source_path) = source_asset_path(
@@ -3010,7 +3010,7 @@ fn copy_cursor_events_path(
 }
 
 /// `single_segment_to_multiple` (`import.rs:841-851`).
-fn single_segment_to_multiple(segment: &cap_project::SingleSegment) -> MultipleSegment {
+fn single_segment_to_multiple(segment: &scoopy_project::SingleSegment) -> MultipleSegment {
     MultipleSegment {
         display: segment.display.clone(),
         camera: segment.camera.clone(),
@@ -3251,7 +3251,7 @@ fn copy_source_segment(
 
 /// `add_existing_recording_to_editor` +
 /// `append_cap_project_to_editor_project` (`import.rs:1746-1895`), the
-/// studio-`.cap` branch. Blocking; the caller runs it on the background
+/// studio-`.scoopy` branch. Blocking; the caller runs it on the background
 /// executor. Returns how many recording segments were imported.
 ///
 /// Deviations, both erroring where the Tauri binary has machinery this app
@@ -3467,7 +3467,7 @@ mod tests {
             let imports = crate::import::IMPORT_TEST_LOCK.lock().unwrap();
             ffmpeg::init().unwrap();
             let root = std::env::temp_dir().join(format!(
-                "cap-editor-import-{}-{}",
+                "scoopy-editor-import-{}-{}",
                 std::process::id(),
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
@@ -3475,7 +3475,7 @@ mod tests {
                     .as_nanos()
             ));
             std::fs::create_dir(&root).unwrap();
-            let project = root.join("target.cap");
+            let project = root.join("target.scoopy");
             let segment_dir = project.join("content/segments/segment-0");
             std::fs::create_dir_all(&segment_dir).unwrap();
             std::fs::write(segment_dir.join("display.mp4"), MP4_WITHOUT_AUDIO).unwrap();
@@ -3497,7 +3497,7 @@ mod tests {
             };
             RecordingMeta {
                 project_path: project.clone(),
-                platform: Some(cap_project::Platform::default()),
+                platform: Some(scoopy_project::Platform::default()),
                 pretty_name: "Existing project".to_string(),
                 sharing: None,
                 inner: RecordingMetaInner::Studio(Box::new(
@@ -3594,7 +3594,7 @@ mod tests {
             assert!(imported.camera.is_none() && imported.mic.is_none());
             assert_eq!(imported.system_audio.is_some(), source == MP4_WITH_AUDIO);
             assert!(
-                cap_enc_ffmpeg::remux::probe_video_can_decode(&meta.path(&imported.display.path))
+                scoopy_enc_ffmpeg::remux::probe_video_can_decode(&meta.path(&imported.display.path))
                     .unwrap()
             );
             if let Some(audio) = &imported.system_audio {
@@ -3831,7 +3831,7 @@ mod tests {
     fn transition(segment_index: u32, duration: f64) -> ClipTransition {
         ClipTransition {
             segment_index,
-            kind: cap_project::ClipTransitionType::CrossFade,
+            kind: scoopy_project::ClipTransitionType::CrossFade,
             duration,
         }
     }
@@ -3956,23 +3956,23 @@ mod tests {
             segment(2, 0.0, 10.0),
         ]);
         config.transitions = vec![transition(1, 1.0)];
-        config.zoom_segments = vec![cap_project::ZoomSegment {
+        config.zoom_segments = vec![scoopy_project::ZoomSegment {
             start: 15.0,
             end: 18.0,
             amount: 1.5,
-            mode: cap_project::ZoomMode::Auto,
+            mode: scoopy_project::ZoomMode::Auto,
             glide_direction: Default::default(),
             glide_speed: 0.5,
             instant_animation: false,
             edge_snap_ratio: 0.25,
         }];
 
-        config.style_segments.push(cap_project::StyleSegment {
+        config.style_segments.push(scoopy_project::StyleSegment {
             start: 15.,
             end: 18.,
             ..Default::default()
         });
-        config.image_segments.push(cap_project::ImageSegment {
+        config.image_segments.push(scoopy_project::ImageSegment {
             start: 15.,
             end: 18.,
             path: "content/images/retained.png".into(),

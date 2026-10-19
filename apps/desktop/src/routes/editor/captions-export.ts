@@ -213,7 +213,7 @@ if (import.meta.vitest) {
 					{
 						startMs: 0,
 						endMs: 1250,
-						text: "Cap <Rend> & fast --> captions",
+						text: "Scoopy <Rend> & fast --> captions",
 					},
 				]),
 			).toBe(

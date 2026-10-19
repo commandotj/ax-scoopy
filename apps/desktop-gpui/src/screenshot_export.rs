@@ -20,8 +20,8 @@
 
 use std::sync::{Mutex, OnceLock};
 
-use cap_gpui_kernels::{codec, screenshot as pixels};
-use cap_project::{Annotation, AnnotationType, ProjectConfiguration};
+use scoopy_gpui_kernels::{codec, screenshot as pixels};
+use scoopy_project::{Annotation, AnnotationType, ProjectConfiguration};
 
 use crate::screenshot_annotations::{self as annotations, Rect};
 use crate::screenshot_editor::has_no_visible_background;
@@ -483,7 +483,7 @@ fn draw_text(pixmap: &mut tiny_skia::PixmapMut<'_>, annotation: &Annotation) {
 
     let stack = TEXT_STACK.get_or_init(|| {
         Mutex::new((
-            cap_rendering::new_font_system(),
+            scoopy_rendering::new_font_system(),
             cosmic_text::SwashCache::new(),
         ))
     });
@@ -527,7 +527,7 @@ fn draw_text(pixmap: &mut tiny_skia::PixmapMut<'_>, annotation: &Annotation) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cap_project::BackgroundSource;
+    use scoopy_project::BackgroundSource;
 
     fn annotation(kind: AnnotationType, x: f64, y: f64, w: f64, h: f64) -> Annotation {
         Annotation {

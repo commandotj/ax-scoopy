@@ -1,4 +1,4 @@
-use cap_audio::{AudioData, cast_f32_slice_to_bytes};
+use scoopy_audio::{AudioData, cast_f32_slice_to_bytes};
 use ffmpeg::{
     codec as avcodec,
     format::{self as avformat},

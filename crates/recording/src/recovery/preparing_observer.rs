@@ -2,8 +2,8 @@ use super::preparing_projection::{
     PreparingAudioInput, PreparingProjection, PreparingStudioSegment, PreparingVideoInput,
 };
 use crate::studio_recording::{CleanStoppedStudioClaim, CompletedRecording};
-use cap_enc_ffmpeg::RelocatableSource;
-use cap_project::{AudioMeta, ProjectConfiguration, RecordingMeta, VideoMeta};
+use scoopy_enc_ffmpeg::RelocatableSource;
+use scoopy_project::{AudioMeta, ProjectConfiguration, RecordingMeta, VideoMeta};
 use std::{
     path::{Path, PathBuf},
     sync::{
@@ -434,7 +434,7 @@ impl PreparingSidecarLease<'_> {
 mod tests {
     use super::*;
     use crate::studio_recording::CleanStoppedStudio;
-    use cap_project::{
+    use scoopy_project::{
         MultipleSegment, MultipleSegments, Platform, RecordingMetaInner, StudioRecordingMeta,
         StudioRecordingStatus,
     };
@@ -474,7 +474,7 @@ mod tests {
             inner: RecordingMetaInner::Studio(Box::new(StudioRecordingMeta::MultipleSegments {
                 inner: MultipleSegments {
                     segments: vec![segment()],
-                    cursors: cap_project::Cursors::Correct(Default::default()),
+                    cursors: scoopy_project::Cursors::Correct(Default::default()),
                     status: Some(StudioRecordingStatus::NeedsRemux),
                 },
             })),
@@ -518,14 +518,14 @@ mod tests {
 
     #[test]
     fn completion_receipt_claim_is_one_shot_and_wrong_path_does_not_consume_it() {
-        let completion = completed(Path::new("same.cap"));
+        let completion = completed(Path::new("same.scoopy"));
         let mut wrong_path = completion.clone();
-        wrong_path.project_path = PathBuf::from("different.cap");
+        wrong_path.project_path = PathBuf::from("different.scoopy");
         assert!(PreparingStudioJob::claim(&wrong_path, 1).is_none());
         let (job, observer) = PreparingStudioJob::claim(&completion, 1).unwrap();
         assert!(PreparingStudioJob::claim(&completion.clone(), 2).is_none());
         assert!(job.claimed().is_some());
-        assert_eq!(job.identity().project_path(), Path::new("same.cap"));
+        assert_eq!(job.identity().project_path(), Path::new("same.scoopy"));
         assert_eq!(observer.identity().generation(), 1);
         assert!(observer.same_job(&observer.clone()));
         let mut reconstructed = completion.clone();
@@ -535,9 +535,9 @@ mod tests {
 
     #[test]
     fn separate_jobs_with_same_project_and_generation_have_distinct_identity() {
-        let first = completed(Path::new("same.cap"));
-        let second = completed(Path::new("same.cap"));
-        let third = completed(Path::new("same.cap"));
+        let first = completed(Path::new("same.scoopy"));
+        let second = completed(Path::new("same.scoopy"));
+        let third = completed(Path::new("same.scoopy"));
         let (first_job, first_observer) = PreparingStudioJob::claim(&first, 7).unwrap();
         let (second_job, second_observer) = PreparingStudioJob::claim(&second, 7).unwrap();
         let (third_job, third_observer) = PreparingStudioJob::claim(&third, 8).unwrap();
@@ -708,7 +708,7 @@ mod tests {
 
     #[tokio::test]
     async fn waiting_job_drop_wakes_changed_and_preserves_ended_for_clones() {
-        let completion = completed(Path::new("waiting.cap"));
+        let completion = completed(Path::new("waiting.scoopy"));
         let (job, mut observer) = PreparingStudioJob::claim(&completion, 14).unwrap();
         let mut changed = Box::pin(observer.changed());
         assert!(futures::poll!(&mut changed).is_pending());

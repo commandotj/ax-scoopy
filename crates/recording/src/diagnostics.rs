@@ -128,7 +128,7 @@ pub fn collect_displays() -> Vec<DisplayDiagnostics> {
     displays
         .into_iter()
         .enumerate()
-        .map(|(idx, (cap_display, display))| {
+        .map(|(idx, (scoopy_display, display))| {
             let physical_size = display.physical_size();
             let logical_size = display.logical_size();
 
@@ -142,11 +142,11 @@ pub fn collect_displays() -> Vec<DisplayDiagnostics> {
             };
 
             DisplayDiagnostics {
-                id: cap_display.id.to_string(),
-                name: cap_display.name,
+                id: scoopy_display.id.to_string(),
+                name: scoopy_display.name,
                 width,
                 height,
-                refresh_rate: cap_display.refresh_rate,
+                refresh_rate: scoopy_display.refresh_rate,
                 scale_factor,
                 is_primary: idx == 0,
                 position: display
@@ -159,7 +159,7 @@ pub fn collect_displays() -> Vec<DisplayDiagnostics> {
 }
 
 pub fn collect_cameras() -> Vec<CameraDiagnostics> {
-    cap_camera::list_cameras()
+    scoopy_camera::list_cameras()
         .map(|camera| {
             let formats = camera
                 .formats()
@@ -201,7 +201,7 @@ fn config_ranges<I: Iterator<Item = cpal::SupportedStreamConfigRange>>(
         .collect()
 }
 
-/// Name heuristics, matching `cap-test`'s device discovery so reports and the
+/// Name heuristics, matching `scoopy-test`'s device discovery so reports and the
 /// test harness classify the same device the same way.
 fn is_bluetooth_device(name: &str) -> bool {
     let lower = name.to_lowercase();
@@ -337,7 +337,7 @@ fn home_dir() -> Option<PathBuf> {
 }
 
 /// Replaces the user's home directory with `~` anywhere it appears. Reports
-/// are shared with the Cap team, and paths are the main place a real name
+/// are shared with the Scoopy team, and paths are the main place a real name
 /// leaks out of an otherwise anonymous machine description.
 pub fn redact_home_paths(value: &str) -> String {
     let Some(home) = home_dir() else {
@@ -386,13 +386,13 @@ fn replace_ignore_ascii_case(value: &str, needle: &str) -> String {
     out
 }
 
-/// One `.cap` directory reduced to the timing facts that explain a sync
+/// One `.scoopy` directory reduced to the timing facts that explain a sync
 /// complaint: which devices produced each track, at what rate, and how far
 /// apart the tracks started.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RecentRecordingDigest {
-    /// Deliberately NOT the directory name. A `.cap` folder is named from the
+    /// Deliberately NOT the directory name. A `.scoopy` folder is named from the
     /// capture target's title (`recording.rs` -> `ScreenCaptureTarget::title`),
     /// so for a window recording that name IS the window title -- document
     /// names, client names, chat subjects. `created` identifies the entry well
@@ -431,13 +431,13 @@ pub struct RecentRecordingSegment {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mic_start_time: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub mic_gap_summary: Option<cap_project::AudioGapSummary>,
+    pub mic_gap_summary: Option<scoopy_project::AudioGapSummary>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub system_audio_device_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub system_audio_start_time: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub system_audio_gap_summary: Option<cap_project::AudioGapSummary>,
+    pub system_audio_gap_summary: Option<scoopy_project::AudioGapSummary>,
 }
 
 fn file_created_rfc3339(path: &Path) -> Option<String> {
@@ -447,10 +447,10 @@ fn file_created_rfc3339(path: &Path) -> Option<String> {
 }
 
 fn segment_from_studio(
-    display: &cap_project::VideoMeta,
-    camera: Option<&cap_project::VideoMeta>,
-    mic: Option<&cap_project::AudioMeta>,
-    system_audio: Option<&cap_project::AudioMeta>,
+    display: &scoopy_project::VideoMeta,
+    camera: Option<&scoopy_project::VideoMeta>,
+    mic: Option<&scoopy_project::AudioMeta>,
+    system_audio: Option<&scoopy_project::AudioMeta>,
 ) -> RecentRecordingSegment {
     RecentRecordingSegment {
         display_fps: display.fps,
@@ -469,7 +469,7 @@ fn segment_from_studio(
 }
 
 fn digest_recording(index: usize, path: &Path) -> RecentRecordingDigest {
-    use cap_project::{
+    use scoopy_project::{
         InstantRecordingMeta, RecordingMetaInner, StudioRecordingMeta, StudioRecordingStatus,
     };
 
@@ -482,7 +482,7 @@ fn digest_recording(index: usize, path: &Path) -> RecentRecordingDigest {
         error: None,
     };
 
-    let meta = match cap_project::RecordingMeta::load_for_project(path) {
+    let meta = match scoopy_project::RecordingMeta::load_for_project(path) {
         Ok(meta) => meta,
         Err(e) => {
             digest.error = Some(redact_home_paths(&e.to_string()));
@@ -561,7 +561,7 @@ fn digest_recording(index: usize, path: &Path) -> RecentRecordingDigest {
     digest
 }
 
-/// The newest `limit` `.cap` directories under `recordings_dir`, newest first.
+/// The newest `limit` `.scoopy` directories under `recordings_dir`, newest first.
 pub fn collect_recent_recordings(
     recordings_dir: &Path,
     limit: usize,
@@ -574,7 +574,7 @@ pub fn collect_recent_recordings(
         .filter_map(|entry| {
             let entry = entry.ok()?;
             let path = entry.path();
-            if !path.is_dir() || path.extension().is_none_or(|ext| ext != "cap") {
+            if !path.is_dir() || path.extension().is_none_or(|ext| ext != "scoopy") {
                 return None;
             }
             let modified = entry
@@ -596,7 +596,7 @@ pub fn collect_recent_recordings(
 
 /// The machine's capture shapes expressed as `sync_matrix` case parameters,
 /// so a report can be replayed as a synthetic matrix run
-/// (`CAP_SYNC_MATRIX_FROM_REPORT`).
+/// (`SCOOPY_SYNC_MATRIX_FROM_REPORT`).
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncMatrixHints {
@@ -912,7 +912,7 @@ mod windows_impl {
         })
     }
 
-    fn gpu_info_to_diag(info: &cap_frame_converter::GpuInfo) -> GpuInfoDiag {
+    fn gpu_info_to_diag(info: &scoopy_frame_converter::GpuInfo) -> GpuInfoDiag {
         GpuInfoDiag {
             vendor: info.vendor_name().to_string(),
             description: info.description.clone(),
@@ -925,11 +925,11 @@ mod windows_impl {
     }
 
     fn get_gpu_info() -> Option<GpuInfoDiag> {
-        cap_frame_converter::detect_primary_gpu().map(gpu_info_to_diag)
+        scoopy_frame_converter::detect_primary_gpu().map(gpu_info_to_diag)
     }
 
     fn get_all_gpus_info() -> Option<AllGpusInfo> {
-        let all_gpus = cap_frame_converter::get_all_gpus();
+        let all_gpus = scoopy_frame_converter::get_all_gpus();
 
         if all_gpus.is_empty() {
             return None;
@@ -937,7 +937,7 @@ mod windows_impl {
 
         let gpus: Vec<GpuInfoDiag> = all_gpus.iter().map(gpu_info_to_diag).collect();
 
-        let primary_gpu = cap_frame_converter::detect_primary_gpu();
+        let primary_gpu = scoopy_frame_converter::detect_primary_gpu();
         let primary_gpu_index = primary_gpu.and_then(|primary| {
             all_gpus
                 .iter()
@@ -948,10 +948,10 @@ mod windows_impl {
         let has_discrete = all_gpus.iter().any(|g| {
             matches!(
                 g.vendor,
-                cap_frame_converter::GpuVendor::Nvidia
-                    | cap_frame_converter::GpuVendor::Amd
-                    | cap_frame_converter::GpuVendor::Qualcomm
-                    | cap_frame_converter::GpuVendor::Arm
+                scoopy_frame_converter::GpuVendor::Nvidia
+                    | scoopy_frame_converter::GpuVendor::Amd
+                    | scoopy_frame_converter::GpuVendor::Qualcomm
+                    | scoopy_frame_converter::GpuVendor::Arm
             ) && !g.is_software_adapter
         });
 
@@ -1033,7 +1033,7 @@ mod windows_impl {
     }
 
     fn check_d3d11_video_processor() -> bool {
-        use cap_frame_converter::ConversionConfig;
+        use scoopy_frame_converter::ConversionConfig;
 
         let test_config = ConversionConfig::new(
             ffmpeg::format::Pixel::BGRA,
@@ -1044,7 +1044,7 @@ mod windows_impl {
             1080,
         );
 
-        match cap_frame_converter::D3D11Converter::new(test_config) {
+        match scoopy_frame_converter::D3D11Converter::new(test_config) {
             Ok(converter) => {
                 tracing::debug!(
                     "D3D11 video processor check passed: {} ({})",
@@ -1320,7 +1320,7 @@ mod tests {
         let home = home_dir().expect("a home directory");
         let home = home.to_string_lossy().to_string();
         let value = serde_json::json!({
-            "summary": format!("kept at {home}/Movies/a.cap"),
+            "summary": format!("kept at {home}/Movies/a.scoopy"),
             "nested": { "paths": [format!("{home}/one"), "/opt/two".to_string()] },
             "count": 7,
             "flag": true,
@@ -1329,7 +1329,7 @@ mod tests {
 
         let redacted = redact_json_strings(value);
 
-        assert_eq!(redacted["summary"], "kept at ~/Movies/a.cap");
+        assert_eq!(redacted["summary"], "kept at ~/Movies/a.scoopy");
         assert_eq!(redacted["nested"]["paths"][0], "~/one");
         // Non-home paths and non-string leaves are left exactly as they were.
         assert_eq!(redacted["nested"]["paths"][1], "/opt/two");
@@ -1343,8 +1343,8 @@ mod tests {
         // Windows paths are case-insensitive, so a lowercased spelling of the
         // home directory still has to redact.
         assert_eq!(
-            replace_ignore_ascii_case(r"c:\users\bob\Movies\a.cap", r"C:\Users\Bob"),
-            r"~\Movies\a.cap"
+            replace_ignore_ascii_case(r"c:\users\bob\Movies\a.scoopy", r"C:\Users\Bob"),
+            r"~\Movies\a.scoopy"
         );
         assert_eq!(
             replace_ignore_ascii_case("nothing to do here", r"C:\Users\Bob"),
@@ -1362,8 +1362,8 @@ mod tests {
         // The env var is read, never written: another test thread reading
         // HOME concurrently must not see it change.
         assert_eq!(
-            redact_prefix("/Users/someone/Movies/Cap/a.cap", "/Users/someone"),
-            "~/Movies/Cap/a.cap"
+            redact_prefix("/Users/someone/Movies/Scoopy/a.scoopy", "/Users/someone"),
+            "~/Movies/Scoopy/a.scoopy"
         );
         assert_eq!(
             redact_prefix(
@@ -1372,13 +1372,13 @@ mod tests {
             ),
             "failed to open ~/x and ~/y"
         );
-        assert_eq!(redact_prefix("/opt/cap", "/Users/someone"), "/opt/cap");
+        assert_eq!(redact_prefix("/opt/scoopy", "/Users/someone"), "/opt/scoopy");
         assert_eq!(
             redact_prefix(r"C:\Users\someone\Videos", r"C:\Users\someone\"),
             r"~\Videos"
         );
         // No home means no redaction rather than a mangled string.
-        assert_eq!(redact_prefix("/opt/cap", ""), "/opt/cap");
+        assert_eq!(redact_prefix("/opt/scoopy", ""), "/opt/scoopy");
 
         if let Some(home) = home_dir() {
             let home = home.to_string_lossy().to_string();
@@ -1395,7 +1395,7 @@ mod tests {
 
         write_recording(
             dir,
-            "studio.cap",
+            "studio.scoopy",
             r#"{
                 "pretty_name": "Studio",
                 "segments": [
@@ -1426,17 +1426,17 @@ mod tests {
         );
         write_recording(
             dir,
-            "instant.cap",
+            "instant.scoopy",
             r#"{ "pretty_name": "Instant", "fps": 30, "sample_rate": 48000 }"#,
         );
-        write_recording(dir, "broken.cap", "{ not json");
+        write_recording(dir, "broken.scoopy", "{ not json");
         std::fs::create_dir_all(dir.join("not-a-recording")).unwrap();
 
         let digests = collect_recent_recordings(dir, 5);
-        assert_eq!(digests.len(), 3, "only .cap directories are digested");
+        assert_eq!(digests.len(), 3, "only .scoopy directories are digested");
 
         // Entries are identified by mode now: the digest deliberately carries
-        // no name, because a .cap directory is named from the capture
+        // no name, because a .scoopy directory is named from the capture
         // target's title.
         let studio = digests
             .iter()
@@ -1482,7 +1482,7 @@ mod tests {
         for i in 0..4 {
             write_recording(
                 temp.path(),
-                &format!("r{i}.cap"),
+                &format!("r{i}.scoopy"),
                 r#"{ "pretty_name": "R", "fps": 30, "sample_rate": 48000 }"#,
             );
         }
@@ -1646,7 +1646,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         write_recording(
             temp.path(),
-            "one.cap",
+            "one.scoopy",
             r#"{ "pretty_name": "One", "fps": 30, "sample_rate": 48000 }"#,
         );
 

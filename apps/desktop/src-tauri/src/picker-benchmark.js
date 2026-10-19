@@ -15,7 +15,7 @@
 			if (frames === 2) {
 				armed = false;
 				void invoke("plugin:event|emit", {
-					event: "cap-picker-benchmark-ready",
+					event: "scoopy-picker-benchmark-ready",
 					payload: { navigationMs: performance.now() },
 				});
 			}

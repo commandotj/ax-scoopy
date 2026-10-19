@@ -101,7 +101,7 @@ export default function MicrophoneSelect(props: {
 						style={{ right: `${audioLevel() * 100}%` }}
 					/>
 				</Show>
-				<IconCapMicrophone class={DEVICE_ROW_ICON_CLASS} />
+				<IconScoopyMicrophone class={DEVICE_ROW_ICON_CLASS} />
 				<p
 					class={cx(DEVICE_ROW_LABEL_CLASS, notConnected() && "text-gray-10")}
 					title={notConnected() ? "Not connected" : undefined}
@@ -237,7 +237,7 @@ export function MicrophoneSelectBase(props: {
 						/>
 					)}
 				</Show>
-				<IconCapMicrophone class={props.iconClass} />
+				<IconScoopyMicrophone class={props.iconClass} />
 				<p class="flex-1 text-sm text-left truncate">
 					{props.value ?? NO_MICROPHONE}
 				</p>
