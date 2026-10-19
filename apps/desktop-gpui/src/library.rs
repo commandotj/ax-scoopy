@@ -1290,7 +1290,7 @@ mod tests {
 
     fn temp_dir(tag: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!(
-            "cap-gpui-library-{tag}-{}-{:?}",
+            "scoopy-library-{tag}-{}-{:?}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(UNIX_EPOCH)

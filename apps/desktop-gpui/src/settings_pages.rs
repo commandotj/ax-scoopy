@@ -2770,7 +2770,7 @@ mod cli_install {
         #[test]
         fn cap_managed_shim_detection() {
             let dir =
-                std::env::temp_dir().join(format!("cap-gpui-cli-test-{}", std::process::id()));
+                std::env::temp_dir().join(format!("scoopy-cli-test-{}", std::process::id()));
             let _ = fs::remove_dir_all(&dir);
             fs::create_dir_all(&dir).unwrap();
             let shim = dir.join(SHIM_NAME);

@@ -17,7 +17,9 @@ const configNames = {
 const configName = configNames[process.platform];
 
 if (!configName) {
-	console.log(`Skipping Scoopy GPUI release validation on ${process.platform}.`);
+	console.log(
+		`Skipping Scoopy GPUI release validation on ${process.platform}.`,
+	);
 } else {
 	const srcTauri = path.join(repoRoot, "apps/desktop/src-tauri");
 	const configPath = path.join(srcTauri, configName);
@@ -30,7 +32,8 @@ if (!configName) {
 		productionConfig.bundle?.externalBin ?? config.bundle?.externalBin;
 	if (
 		!Array.isArray(externalBin) ||
-		!externalBin.includes("binaries/cap-gpui")
+		(!externalBin.includes("binaries/scoopy") &&
+			!externalBin.includes("binaries/cap-gpui"))
 	) {
 		throw new Error(
 			`The effective ${process.platform} release config does not bundle Scoopy GPUI.`,
@@ -46,7 +49,7 @@ if (!configName) {
 	if (!target) throw new Error("Could not determine the Rust target triple");
 
 	const extension = process.platform === "win32" ? ".exe" : "";
-	const fileName = `cap-gpui-${target}${extension}`;
+	const fileName = `scoopy-${target}${extension}`;
 	const binaryPath = path.join(binariesDir, fileName);
 	const releaseBinaryPath = path.join(
 		repoRoot,
@@ -55,7 +58,7 @@ if (!configName) {
 		"target",
 		...(requestedTarget ? [target] : []),
 		"release",
-		`cap-gpui${extension}`,
+		`scoopy${extension}`,
 	);
 	const [stagedBinary, releaseBinary] = await Promise.all([
 		fs.readFile(binaryPath),

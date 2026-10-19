@@ -201,7 +201,7 @@ fn bundled_resource_dirs_for(
         if parent.file_name().is_some_and(|name| name == "bin")
             && let Some(prefix) = parent.parent()
         {
-            directories.push(prefix.join("lib").join("cap"));
+            directories.push(prefix.join("lib").join("scoopy"));
         }
         directories.push(parent.join("resources"));
         directories.push(parent.to_path_buf());
@@ -215,7 +215,7 @@ fn bundled_resource_dirs_for(
 /// left behind reads as a crash and routes the next `bun run dev:desktop` back
 /// to the classic app.
 pub fn handoff_marker_path() -> PathBuf {
-    app_data_dir().join("cap-gpui.handoff")
+    app_data_dir().join("scoopy.handoff")
 }
 
 pub fn mark_handoff_session() {
@@ -1466,8 +1466,8 @@ mod tests {
     #[test]
     fn the_handoff_marker_holds_this_pid_until_a_clean_quit_clears_it() {
         let directory =
-            std::env::temp_dir().join(format!("cap-gpui-handoff-{}", super::new_uuid_v4()));
-        let marker = directory.join("cap-gpui.handoff");
+            std::env::temp_dir().join(format!("scoopy-handoff-{}", super::new_uuid_v4()));
+        let marker = directory.join("scoopy.handoff");
         super::mark_handoff_session_at(&marker).unwrap();
         assert_eq!(
             std::fs::read_to_string(&marker).unwrap(),
@@ -1489,7 +1489,7 @@ mod tests {
     impl TempStore {
         fn new(name: &str, contents: Option<&str>) -> Self {
             let path = std::env::temp_dir()
-                .join(format!("cap-gpui-store-test-{}-{name}", std::process::id()));
+                .join(format!("scoopy-store-test-{}-{name}", std::process::id()));
             match contents {
                 Some(contents) => std::fs::write(&path, contents).unwrap(),
                 None => {
@@ -1969,33 +1969,33 @@ mod tests {
 
     #[test]
     fn bundled_resource_paths_follow_the_installed_executable() {
-        let executable = std::path::Path::new("/Applications/Cap.app/Contents/MacOS/cap-gpui");
-        let override_dir = std::path::Path::new("/tmp/cap-resources");
+        let executable = std::path::Path::new("/Applications/Scoopy.app/Contents/MacOS/scoopy");
+        let override_dir = std::path::Path::new("/tmp/scoopy-resources");
 
         assert_eq!(
             super::bundled_resource_dirs_for(Some(executable), Some(override_dir)),
             vec![
                 override_dir.to_path_buf(),
-                std::path::PathBuf::from("/Applications/Cap.app/Contents/Resources"),
-                std::path::PathBuf::from("/Applications/Cap.app/Contents/MacOS/resources"),
-                std::path::PathBuf::from("/Applications/Cap.app/Contents/MacOS"),
+                std::path::PathBuf::from("/Applications/Scoopy.app/Contents/Resources"),
+                std::path::PathBuf::from("/Applications/Scoopy.app/Contents/MacOS/resources"),
+                std::path::PathBuf::from("/Applications/Scoopy.app/Contents/MacOS"),
             ]
         );
 
-        let executable = std::path::Path::new("/opt/cap/cap-gpui");
+        let executable = std::path::Path::new("/opt/scoopy/scoopy");
         assert_eq!(
             super::bundled_resource_dirs_for(Some(executable), None),
             vec![
-                std::path::PathBuf::from("/opt/cap/resources"),
-                std::path::PathBuf::from("/opt/cap"),
+                std::path::PathBuf::from("/opt/scoopy/resources"),
+                std::path::PathBuf::from("/opt/scoopy"),
             ]
         );
 
-        let executable = std::path::Path::new("/usr/bin/cap-gpui");
+        let executable = std::path::Path::new("/usr/bin/scoopy");
         assert_eq!(
             super::bundled_resource_dirs_for(Some(executable), None),
             vec![
-                std::path::PathBuf::from("/usr/lib/cap"),
+                std::path::PathBuf::from("/usr/lib/scoopy"),
                 std::path::PathBuf::from("/usr/bin/resources"),
                 std::path::PathBuf::from("/usr/bin"),
             ]

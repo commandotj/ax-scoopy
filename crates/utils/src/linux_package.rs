@@ -196,8 +196,13 @@ mod tests {
 
     #[test]
     fn legacy_debian_packages_require_executable_ownership() {
-        let files = Some("/usr/bin/Cap\n/usr/bin/cap-gpui\n");
-        for executable in ["/usr/bin/Cap", "/usr/bin/cap-gpui"] {
+        let files = Some("/usr/bin/Scoopy\n/usr/bin/scoopy\n/usr/bin/Cap\n/usr/bin/cap-gpui\n");
+        for executable in [
+            "/usr/bin/Scoopy",
+            "/usr/bin/scoopy",
+            "/usr/bin/Cap",
+            "/usr/bin/cap-gpui",
+        ] {
             assert_eq!(
                 package_format(Path::new(executable), None, None, None, files),
                 PackageFormat::Deb

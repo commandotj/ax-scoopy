@@ -4929,7 +4929,7 @@ mod tests {
         values[values.len() / 2]
     }
 
-    /// `cargo test --bin cap-gpui benchmark_annotation_slider_drag -- --ignored --nocapture`
+    /// `cargo test --bin scoopy benchmark_annotation_slider_drag -- --ignored --nocapture`
     #[test]
     #[ignore = "GPU benchmark"]
     fn benchmark_annotation_slider_drag() {

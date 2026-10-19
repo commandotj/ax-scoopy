@@ -1939,7 +1939,7 @@ mod tests {
 
     fn temp_dir(tag: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!(
-            "cap-gpui-import-{tag}-{}-{:?}",
+            "scoopy-import-{tag}-{}-{:?}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -2159,7 +2159,7 @@ mod tests {
         std::fs::remove_dir_all(root).unwrap();
     }
 
-    /// `CAP_IMPORT_BENCH_SOURCES=a.mp4,b.mp4 cargo test --bin cap-gpui benchmark_video_import -- --ignored --nocapture`
+    /// `CAP_IMPORT_BENCH_SOURCES=a.mp4,b.mp4 cargo test --bin scoopy benchmark_video_import -- --ignored --nocapture`
     #[test]
     #[ignore = "benchmark: transcodes the videos named by CAP_IMPORT_BENCH_SOURCES"]
     fn benchmark_video_import() {

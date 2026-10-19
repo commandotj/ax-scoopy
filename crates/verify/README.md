@@ -27,12 +27,12 @@ The upload fault suite (`apps/desktop-gpui/src/upload/verify_tests.rs` and
 `upload/queue/verify_resume_tests.rs`: a mock API with scripted 5xx,
 resets, outages, hangs and quits, byte-identical objects and request and byte
 budgets) lives in the GPUI app's own workspace. It runs inside
-`cargo test --bin cap-gpui`, which the `CI / Build GPUI Desktop` job already
+`cargo test --bin scoopy`, which the `CI / Build GPUI Desktop` job already
 runs on all three OSes, so that job is its gate. The app-level caption tests
 (`apps/desktop-gpui/src/transcription/verify_tests.rs`: a fake transcriber
 behind the real extraction and caption pipeline) run in the same job. Run them
 locally with
-`cargo test --manifest-path apps/desktop-gpui/Cargo.toml --bin cap-gpui upload::`
+`cargo test --manifest-path apps/desktop-gpui/Cargo.toml --bin scoopy upload::`
 (or `transcription::`).
 
 Platform-independent logic runs on Linux only in CI. Suites that test platform

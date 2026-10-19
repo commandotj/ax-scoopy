@@ -8,7 +8,7 @@ resolver = "2"
 members = [".", "kernels"]
 
 [package]
-name = "cap-desktop-gpui"
+name = "scoopy"
 version = "0.6.1"
 description = "Beautiful screen recordings, owned by you."
 edition = "2024"
@@ -16,7 +16,7 @@ license = "AGPL-3.0"
 publish = false
 
 [[bin]]
-name = "cap-gpui"
+name = "scoopy"
 path = "src/main.rs"
 
 [[example]]
@@ -276,7 +276,7 @@ opt-level = 3
 
 # Incremental halves a one-line rebuild for about 2 GB of cache, and line tables
 # cut its codegen and link time; breakpoints and backtraces keep their lines.
-[profile.dev.package.cap-desktop-gpui]
+[profile.dev.package.scoopy]
 incremental = true
 debug = "line-tables-only"
 

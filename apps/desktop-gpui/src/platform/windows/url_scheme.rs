@@ -8,7 +8,7 @@ pub(super) fn install() {
         return;
     }
     std::thread::Builder::new()
-        .name("cap-url-scheme".into())
+        .name("scoopy-url-scheme".into())
         .spawn(move || {
             if let Err(error) = claim_url_scheme("scoopy", &executable) {
                 tracing::warn!(%error, "could not register the scoopy link handler");
@@ -20,7 +20,9 @@ pub(super) fn install() {
 fn is_installed_executable(executable: &Path) -> bool {
     executable
         .file_name()
-        .is_some_and(|name| name.eq_ignore_ascii_case("Cap.exe"))
+        .is_some_and(|name| {
+            name.eq_ignore_ascii_case("Scoopy.exe") || name.eq_ignore_ascii_case("Cap.exe")
+        })
         && !executable
             .components()
             .any(|component| component.as_os_str() == "target")
@@ -111,10 +113,13 @@ mod tests {
     #[test]
     fn only_installed_builds_claim_the_link_scheme() {
         assert!(super::is_installed_executable(Path::new(
+            r"C:\Users\x\AppData\Local\Scoopy\Scoopy.exe"
+        )));
+        assert!(super::is_installed_executable(Path::new(
             r"C:\Users\x\AppData\Local\Cap\Cap.exe"
         )));
         assert!(!super::is_installed_executable(Path::new(
-            r"C:\src\Cap\apps\desktop-gpui\target\release\Cap.exe"
+            r"C:\src\Cap\apps\desktop-gpui\target\release\Scoopy.exe"
         )));
         assert!(!super::is_installed_executable(Path::new(
             r"C:\Users\x\AppData\Local\Cap Classic\Cap Classic.exe"

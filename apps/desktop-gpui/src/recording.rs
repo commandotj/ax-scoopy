@@ -2412,7 +2412,7 @@ mod tests {
 
     fn temp_project(tag: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!(
-            "cap-gpui-config-{tag}-{}-{:?}",
+            "scoopy-config-{tag}-{}-{:?}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

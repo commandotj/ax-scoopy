@@ -28,8 +28,8 @@ $manifestPath = Join-Path $signingRoot "payload-manifest.json"
 function Get-PayloadDefinitions {
 	return @(
 		[pscustomobject]@{
-			Name = "Cap.exe"
-			Path = Join-Path $WorkspaceRoot "apps/desktop-gpui/target/$Target/release/cap-gpui.exe"
+			Name = "Scoopy.exe"
+			Path = Join-Path $WorkspaceRoot "apps/desktop-gpui/target/$Target/release/scoopy.exe"
 		},
 		[pscustomobject]@{
 			Name = "cap-cli.exe"

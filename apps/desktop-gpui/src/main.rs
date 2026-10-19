@@ -137,12 +137,11 @@ fn resolve_auto_screenshot_editor(target: &str) -> Option<std::path::PathBuf> {
 fn init_logging() -> Option<tracing_appender::non_blocking::WorkerGuard> {
     use tracing_subscriber::{Layer as _, layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
-    // The binary is `cap-gpui`, so the crate these spans are recorded under is
-    // `cap_gpui` -- not `cap_desktop_gpui`, which is the package name and
-    // matches nothing.
+    // The binary is `scoopy`, so the crate these spans are recorded under is
+    // `scoopy`.
     let filter = || {
         tracing_subscriber::EnvFilter::try_from_default_env()
-            .unwrap_or_else(|_| "warn,cap_gpui=info,wgpu_core=error,wgpu_hal=error".into())
+            .unwrap_or_else(|_| "warn,scoopy=info,wgpu_core=error,wgpu_hal=error".into())
     };
 
     let file = create_log_appender(&diagnostics::logs_dir(), diagnostics::LOG_FILE_PREFIX).map(
@@ -770,7 +769,7 @@ mod logging_tests {
                 .unwrap()
                 .as_nanos();
             let directory = std::env::temp_dir()
-                .join(format!("cap-gpui-logging-{}-{nonce}", std::process::id()));
+                .join(format!("scoopy-logging-{}-{nonce}", std::process::id()));
             std::fs::create_dir_all(&directory).unwrap();
             Self(directory)
         }

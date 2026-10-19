@@ -27,7 +27,7 @@ export function targetPlatform(target) {
 }
 
 export function mainBinaryName(target) {
-	return targetPlatform(target) === "win32" ? "Cap.exe" : "Cap";
+	return targetPlatform(target) === "win32" ? "Scoopy.exe" : "Scoopy";
 }
 
 export function gpuiBinaryPath(target, profile = "release") {
@@ -37,7 +37,7 @@ export function gpuiBinaryPath(target, profile = "release") {
 		"target",
 		target,
 		profile,
-		`cap-gpui${extension}`,
+		`scoopy${extension}`,
 	);
 }
 

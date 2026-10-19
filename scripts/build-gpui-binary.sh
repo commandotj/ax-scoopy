@@ -60,8 +60,8 @@ node "$repo_root/scripts/sync-desktop-versions.mjs"
 	fi
 )
 
-source_binary="$artifact_dir/cap-gpui$extension"
-staged_binary="$binaries_dir/cap-gpui-$target$extension"
+source_binary="$artifact_dir/scoopy$extension"
+staged_binary="$binaries_dir/scoopy-$target$extension"
 if [[ ! -f "$source_binary" ]]; then
 	echo "error: built GPUI binary not found at $source_binary" >&2
 	exit 1
@@ -72,7 +72,7 @@ if [[ "$target" == *windows-msvc ]]; then
 fi
 
 if [[ "$target" == *linux* ]]; then
-	patchelf --set-rpath '$ORIGIN:$ORIGIN/../lib/cap' "$source_binary"
+	patchelf --set-rpath '$ORIGIN:$ORIGIN/../lib/scoopy' "$source_binary"
 fi
 
 mkdir -p "$binaries_dir"

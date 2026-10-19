@@ -11951,7 +11951,7 @@ mod tests {
     #[test]
     fn importing_short_audio_keeps_source_and_probes_copied_duration() {
         let root = std::env::temp_dir().join(format!(
-            "cap-gpui-short-audio-import-{}",
+            "scoopy-short-audio-import-{}",
             std::process::id()
         ));
         std::fs::create_dir_all(&root).unwrap();
@@ -12591,7 +12591,7 @@ mod tests {
     #[test]
     fn preflight_rejects_a_bundle_with_no_meta() {
         let dir =
-            std::env::temp_dir().join(format!("cap-gpui-preflight-{}.cap", std::process::id()));
+            std::env::temp_dir().join(format!("scoopy-preflight-{}.scoopy", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let error = preflight(&dir).unwrap_err();
